@@ -6,6 +6,7 @@ import { audioManager } from './audioManager.js';
 import { initMenuSystem, submitMultiplayerGuess, isMultiplayerGame, showGameOver } from './menuController.js';
 import { artifactService } from './artifactService.js';
 import { tutorial } from './tutorial.js';
+import { settingsController } from './settings.js';
 
 
 // ============================================
@@ -222,6 +223,9 @@ async function init() {
 
     // Initialize menu system with callback
     initMenuSystem((settings) => {
+        // Stop menu music when game starts
+        audioManager.stopMenuMusic();
+
         gameSettings = settings;
         totalRounds = settings.rounds;
         currentRound = 0;
@@ -234,6 +238,12 @@ async function init() {
         // Start game
         startNewRound();
     });
+
+    // Menu music is started by splash screen click (ensures audio is unlocked)
+    // Fallback: try to start if splash was already dismissed or doesn't exist
+    if (!document.getElementById('splash-screen')) {
+        audioManager.startMenuMusic();
+    }
 
     // DON'T auto-start the game - wait for menu selection
 
@@ -1753,6 +1763,7 @@ function animateShovelDig(targetPoint) {
     const phase7Duration = 250;  // Return to rest
 
     const startTime = Date.now();
+    let digTriggered = false; // Flag to only trigger dig once
 
     // Key positions for realistic dig motion
     const abovePos = new THREE.Vector3(targetPoint.x, terrainHeight + 0.6, targetPoint.z + 0.3);
@@ -1802,10 +1813,12 @@ function animateShovelDig(targetPoint) {
             // Slight more forward as it goes deeper
             shovel.rotation.x = lerp(0.3, 0.15, eased);
 
-            // Trigger dig here
-            if (progress < 0.2) {
+            // Trigger dig here (once)
+            if (!digTriggered && progress > 0.1) {
+                digTriggered = true;
                 digAt(targetPoint.x, targetPoint.z);
                 audioManager.playDig();
+                settingsController.doScreenShake(4, 80);
             }
             requestAnimationFrame(animatePhase);
             return;
@@ -3068,11 +3081,12 @@ function makeGuess() {
 
     hasGuessedThisRound = true;
 
-    // Stop timer
+    // Stop timer and reset urgent mode
     if (roundTimer) {
         clearInterval(roundTimer);
         roundTimer = null;
     }
+    audioManager.setUrgentMode(false);
 
     totalGuesses++;
 
@@ -3133,6 +3147,11 @@ async function startNewRound() {
     currentRound++;
     artifactsFound = 0;
     hasGuessedThisRound = false;
+
+    // Start game music on first round
+    if (currentRound === 1) {
+        audioManager.startGameMusic();
+    }
 
     // Show loading screen
     showRoundLoading(true);
@@ -3621,6 +3640,9 @@ function startRoundTimer() {
     timeRemaining = gameSettings.timePerRound;
     updateTimerDisplay();
 
+    // Reset urgent mode at start of round
+    audioManager.setUrgentMode(false);
+
     if (roundTimer) clearInterval(roundTimer);
 
     roundTimer = setInterval(() => {
@@ -3632,9 +3654,15 @@ function startRoundTimer() {
             window.updateTimer(timeRemaining);
         }
 
+        // Speed up music when 10 seconds left
+        if (timeRemaining === 10) {
+            audioManager.setUrgentMode(true);
+        }
+
         if (timeRemaining <= 0) {
             clearInterval(roundTimer);
             roundTimer = null;
+            audioManager.setUrgentMode(false);
             handleTimeUp();
         }
     }, 1000);
@@ -3730,6 +3758,9 @@ function checkGameEnd() {
 }
 
 function showFinalResults() {
+    // Stop game music
+    audioManager.stopGameMusic();
+
     // Use the global function from index.html
     if (window.showGameResults) {
         window.showGameResults({
@@ -3911,6 +3942,16 @@ window.gameScore = 0;
 window.tutorial = tutorial;
 window.startTutorial = () => tutorial.start();
 window.resetTutorial = () => tutorial.reset();
+
+// Expose audio controls for settings menu
+window.audioManager = audioManager;
+window.toggleMusic = () => audioManager.toggleMusic();
+window.toggleSFX = () => audioManager.toggleSFX();
+window.startMenuMusic = () => audioManager.startMenuMusic();
+window.stopMenuMusic = () => audioManager.stopMenuMusic();
+
+// Expose settings controller
+window.settingsController = settingsController;
 
 // ============================================
 // START

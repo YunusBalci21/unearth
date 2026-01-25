@@ -13,6 +13,84 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
     <style>
+        /* Splash Screen */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center bottom, #1a120a 0%, #0d0906 70%);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: opacity 0.5s ease;
+        }
+
+        #splash-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #splash-screen .splash-title {
+            font-family: 'Cinzel', 'Times New Roman', serif;
+            font-size: 72px;
+            color: #c9a227;
+            letter-spacing: 25px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 30px rgba(201, 162, 39, 0.5);
+            animation: splash-glow 2s ease-in-out infinite;
+        }
+
+        #splash-screen .splash-pickaxe {
+            font-size: 48px;
+            margin-bottom: 40px;
+            animation: splash-swing 1.5s ease-in-out infinite;
+        }
+
+        #splash-screen .splash-prompt {
+            font-family: 'Crimson Text', Georgia, serif;
+            font-size: 24px;
+            color: #8a7355;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+            animation: splash-pulse 1.5s ease-in-out infinite;
+        }
+
+        #splash-screen .splash-prompt span {
+            color: #c9a227;
+        }
+
+        @keyframes splash-glow {
+            0%, 100% { text-shadow: 0 0 30px rgba(201, 162, 39, 0.5); }
+            50% { text-shadow: 0 0 50px rgba(201, 162, 39, 0.8), 0 0 80px rgba(201, 162, 39, 0.4); }
+        }
+
+        @keyframes splash-swing {
+            0%, 100% { transform: rotate(-10deg); }
+            50% { transform: rotate(10deg); }
+        }
+
+        @keyframes splash-pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 768px) {
+            #splash-screen .splash-title {
+                font-size: 42px;
+                letter-spacing: 12px;
+            }
+            #splash-screen .splash-prompt {
+                font-size: 16px;
+                letter-spacing: 4px;
+            }
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -2360,6 +2438,13 @@
     </style>
 </head>
 <body>
+
+    <div id="splash-screen">
+        <div class="splash-pickaxe">⛏️</div>
+        <h1 class="splash-title">UNEARTH</h1>
+        <p class="splash-prompt"><span>Click</span> to Begin</p>
+    </div>
+
     <!-- Main Menu -->
     <div id="main-menu">
         <!-- Background layers -->
@@ -2858,26 +2943,6 @@
             }
         });
         
-        // Volume sliders
-        document.getElementById('volume-slider').addEventListener('input', function() {
-            document.getElementById('volume-value').textContent = this.value + '%';
-        });
-        
-        document.getElementById('music-slider').addEventListener('input', function() {
-            document.getElementById('music-value').textContent = this.value + '%';
-        });
-        
-        document.getElementById('sfx-slider').addEventListener('input', function() {
-            document.getElementById('sfx-value').textContent = this.value + '%';
-        });
-        
-        // Toggle switches
-        document.querySelectorAll('.toggle-switch').forEach(toggle => {
-            toggle.addEventListener('click', function() {
-                this.classList.toggle('active');
-            });
-        });
-        
         // Initialize
         createParticles();
         
@@ -3083,6 +3148,31 @@
                 timerEl.classList.add('warning');
             }
         };
+
+        document.getElementById('splash-screen').addEventListener('click', function() {
+            // Hide splash screen
+            this.classList.add('hidden');
+
+            // Start menu music (now audio is unlocked)
+            if (window.audioManager) {
+                window.audioManager.startMenuMusic();
+            }
+
+            // Remove splash screen from DOM after animation
+            setTimeout(() => {
+                this.remove();
+            }, 500);
+        });
+
+        // Also allow Enter/Space to dismiss
+        document.addEventListener('keydown', function(e) {
+            const splash = document.getElementById('splash-screen');
+            if (splash && !splash.classList.contains('hidden')) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    splash.click();
+                }
+            }
+        });
     </script>
 
     <script type="module" src="game.js"></script>
