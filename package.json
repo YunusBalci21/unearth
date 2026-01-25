@@ -1,0 +1,16 @@
+{
+  "name": "unearth-multiplayer",
+  "version": "1.0.0",
+  "description": "Unearth - Archaeological Guessing Game with Multiplayer",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "vite": "^6.4.1",
+    "ws": "^8.16.0"
+  }
+}

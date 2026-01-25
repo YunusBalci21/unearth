@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artifact API Demo v2 - With Icons!</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: white;
+            padding: 30px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #ffd700;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 25px;
+        }
+
+        .mode-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            padding: 10px 25px;
+            border: 2px solid #444;
+            background: transparent;
+            color: #888;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .mode-btn.active {
+            border-color: #ffd700;
+            color: #ffd700;
+            background: rgba(255, 215, 0, 0.1);
+        }
+
+        .mode-btn:hover {
+            border-color: #ffd700;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        select, button {
+            padding: 12px 20px;
+            font-size: 15px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        select {
+            background: #2a2a4e;
+            color: white;
+            border: 2px solid #444;
+        }
+
+        button {
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            color: #1a1a2e;
+            font-weight: bold;
+        }
+
+        button:hover { transform: scale(1.03); }
+        button:disabled { background: #444; color: #888; transform: none; cursor: not-allowed; }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #ffd700;
+            font-size: 18px;
+        }
+
+        .artifacts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .artifact-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .artifact-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .artifact-card.icon-mode {
+            border-color: rgba(255, 215, 0, 0.3);
+        }
+
+        .artifact-image-container {
+            width: 100%;
+            height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1a1a2e;
+        }
+
+        .artifact-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        /* For icons - show on transparent/themed background */
+        .icon-mode .artifact-image-container {
+            background: radial-gradient(circle, rgba(255,215,0,0.1) 0%, transparent 70%);
+        }
+
+        .icon-mode .artifact-image {
+            width: 120px;
+            height: 120px;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+        }
+
+        .artifact-info {
+            padding: 15px;
+        }
+
+        .artifact-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #ffd700;
+            margin-bottom: 6px;
+            line-height: 1.3;
+        }
+
+        .artifact-meta {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 4px;
+        }
+
+        .artifact-period {
+            display: inline-block;
+            background: rgba(255, 215, 0, 0.15);
+            color: #ffd700;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-top: 8px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            margin-left: 5px;
+        }
+
+        .badge.api { background: #4ade80; color: #000; }
+        .badge.icon { background: #ffd700; color: #000; }
+
+        .stats {
+            text-align: center;
+            margin-top: 25px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .stats p {
+            color: #888;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .stats span { color: #4ade80; font-weight: bold; }
+        .stats .query { color: #ffd700; }
+
+        .error {
+            background: rgba(255, 0, 0, 0.15);
+            border: 1px solid #ff4444;
+            color: #ff6b6b;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 20px auto;
+            max-width: 500px;
+        }
+
+        .info-box {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px auto;
+            max-width: 700px;
+            text-align: center;
+        }
+
+        .info-box h3 { color: #ffd700; margin-bottom: 8px; }
+        .info-box p { color: #aaa; font-size: 13px; line-height: 1.5; }
+    </style>
+</head>
+<body>
+<h1>🏛️ Artifact Service Demo v2</h1>
+<p class="subtitle">Two modes: Museum API (photos) or SVG Icons (transparent, always works!)</p>
+
+<div class="mode-toggle">
+    <button class="mode-btn active" id="mode-auto">🔄 Auto (API → Icons fallback)</button>
+    <button class="mode-btn" id="mode-api">📷 API Only (Museum Photos)</button>
+    <button class="mode-btn" id="mode-icons">🎨 Icons Only (SVG, Transparent)</button>
+</div>
+
+<div class="controls">
+    <select id="country-select">
+        <option value="Egypt">🇪🇬 Egypt</option>
+        <option value="Greece">🇬🇷 Greece</option>
+        <option value="China">🇨🇳 China</option>
+        <option value="Japan">🇯🇵 Japan</option>
+        <option value="Mexico">🇲🇽 Mexico</option>
+        <option value="Rome">🇮🇹 Rome</option>
+        <option value="India">🇮🇳 India</option>
+        <option value="Peru">🇵🇪 Peru</option>
+        <option value="Mesopotamia">🏺 Mesopotamia</option>
+    </select>
+
+    <select id="count-select">
+        <option value="5">5 Artifacts</option>
+        <option value="8">8 Artifacts</option>
+        <option value="10">10 Artifacts</option>
+    </select>
+
+    <button id="fetch-btn">🎲 Get Random Artifacts</button>
+</div>
+
+<div id="info-box" class="info-box">
+    <h3>💡 About the Modes</h3>
+    <p>
+        <strong>Auto:</strong> Tries museum API first, falls back to icons if it fails<br>
+        <strong>API:</strong> Real photos from Met Museum (470k+ artworks, but may fail due to CORS/rate limits)<br>
+        <strong>Icons:</strong> Stylized SVG icons - transparent backgrounds, always works, perfect for games!
+    </p>
+</div>
+
+<div id="loading" class="loading" style="display: none;">⏳ Fetching artifacts...</div>
+<div id="error" class="error" style="display: none;"></div>
+<div id="artifacts-grid" class="artifacts-grid"></div>
+
+<div id="stats" class="stats" style="display: none;">
+    <p>Mode: <span id="mode-used" class="query"></span></p>
+    <p>Loaded <span id="loaded-count">0</span> artifacts in <span id="load-time">0</span>ms</p>
+    <p style="color: #4ade80; margin-top: 8px;">🎲 Click again for different artifacts!</p>
+</div>
+
+<script type="module">
+    // ============================================
+    // INLINE ARTIFACT SERVICE (for demo)
+    // ============================================
+
+    const API_BASE = 'https://collectionapi.metmuseum.org/public/collection/v1';
+    let currentMode = 'auto'; // 'auto', 'api', 'icons'
+    const usedIds = new Set();
+
+    const countryQueries = {
+        'Egypt': ['Egyptian sculpture', 'Egyptian jewelry', 'Pharaoh', 'Mummy mask', 'Scarab', 'Egyptian gold', 'Ankh'],
+        'Greece': ['Greek vase', 'Greek sculpture', 'Amphora', 'Greek coin', 'Hellenistic', 'Greek bronze'],
+        'China': ['Chinese porcelain', 'Chinese jade', 'Ming dynasty', 'Chinese Buddha', 'Chinese dragon'],
+        'Japan': ['Japanese samurai', 'Katana', 'Ukiyo-e', 'Noh mask', 'Japanese armor'],
+        'Mexico': ['Aztec', 'Maya', 'Olmec', 'Aztec mask', 'Maya jade', 'Aztec warrior'],
+        'Rome': ['Roman bust', 'Roman coin', 'Roman mosaic', 'Pompeii', 'Roman glass'],
+        'India': ['Hindu deity', 'Shiva', 'Ganesha', 'Mughal', 'Indian bronze'],
+        'Peru': ['Inca', 'Moche', 'Nazca', 'Peruvian gold', 'Inca silver'],
+        'Mesopotamia': ['Assyrian relief', 'Babylonian', 'Sumerian', 'Cuneiform', 'Cylinder seal']
+    };
+
+    // SVG Icon data
+    const artifactIcons = {
+        'Egypt': [
+            { id: 'eg1', title: 'Pharaoh Mask', period: 'Ancient Egypt', culture: 'Egyptian', icon: 'pharaoh-mask' },
+            { id: 'eg2', title: 'Scarab Amulet', period: 'New Kingdom', culture: 'Egyptian', icon: 'scarab' },
+            { id: 'eg3', title: 'Ankh Symbol', period: 'Ancient Egypt', culture: 'Egyptian', icon: 'ankh' },
+            { id: 'eg4', title: 'Canopic Jar', period: 'Ancient Egypt', culture: 'Egyptian', icon: 'canopic-jar' },
+            { id: 'eg5', title: 'Eye of Horus', period: 'Ancient Egypt', culture: 'Egyptian', icon: 'eye-of-horus' },
+            { id: 'eg6', title: 'Sphinx Statue', period: 'Old Kingdom', culture: 'Egyptian', icon: 'sphinx' },
+            { id: 'eg7', title: 'Pyramid Model', period: 'Ancient Egypt', culture: 'Egyptian', icon: 'pyramid' },
+            { id: 'eg8', title: 'Cat Statue', period: 'Late Period', culture: 'Egyptian', icon: 'cat-statue' },
+        ],
+        'Greece': [
+            { id: 'gr1', title: 'Amphora Vase', period: '5th Century BC', culture: 'Greek', icon: 'amphora' },
+            { id: 'gr2', title: 'Spartan Helmet', period: 'Classical', culture: 'Greek', icon: 'spartan-helmet' },
+            { id: 'gr3', title: 'Laurel Wreath', period: 'Classical', culture: 'Greek', icon: 'laurel-wreath' },
+            { id: 'gr4', title: 'Greek Column', period: 'Classical', culture: 'Greek', icon: 'column' },
+            { id: 'gr5', title: 'Lyre', period: 'Ancient Greece', culture: 'Greek', icon: 'lyre' },
+            { id: 'gr6', title: 'Owl of Athena', period: 'Classical', culture: 'Greek', icon: 'owl' },
+            { id: 'gr7', title: 'Theater Mask', period: 'Classical', culture: 'Greek', icon: 'theater-mask' },
+            { id: 'gr8', title: 'Drachma Coin', period: '4th Century BC', culture: 'Greek', icon: 'coin' },
+        ],
+        'China': [
+            { id: 'ch1', title: 'Dragon Vase', period: 'Ming Dynasty', culture: 'Chinese', icon: 'dragon-vase' },
+            { id: 'ch2', title: 'Jade Disc', period: 'Han Dynasty', culture: 'Chinese', icon: 'jade-disc' },
+            { id: 'ch3', title: 'Terracotta Warrior', period: 'Qin Dynasty', culture: 'Chinese', icon: 'terracotta' },
+            { id: 'ch4', title: 'Bronze Bell', period: 'Zhou Dynasty', culture: 'Chinese', icon: 'bronze-bell' },
+            { id: 'ch5', title: 'Silk Fan', period: 'Tang Dynasty', culture: 'Chinese', icon: 'fan' },
+            { id: 'ch6', title: 'Pagoda Model', period: 'Song Dynasty', culture: 'Chinese', icon: 'pagoda' },
+            { id: 'ch7', title: 'Buddha Statue', period: 'Tang Dynasty', culture: 'Chinese', icon: 'buddha' },
+            { id: 'ch8', title: 'Tea Set', period: 'Qing Dynasty', culture: 'Chinese', icon: 'tea-set' },
+        ],
+        'Japan': [
+            { id: 'jp1', title: 'Samurai Helmet', period: 'Edo Period', culture: 'Japanese', icon: 'samurai-helmet' },
+            { id: 'jp2', title: 'Katana Sword', period: 'Muromachi', culture: 'Japanese', icon: 'katana' },
+            { id: 'jp3', title: 'Noh Mask', period: 'Edo Period', culture: 'Japanese', icon: 'noh-mask' },
+            { id: 'jp4', title: 'Daruma Doll', period: 'Edo Period', culture: 'Japanese', icon: 'daruma' },
+            { id: 'jp5', title: 'Torii Gate', period: 'Traditional', culture: 'Japanese', icon: 'torii' },
+            { id: 'jp6', title: 'Origami Crane', period: 'Edo Period', culture: 'Japanese', icon: 'origami' },
+            { id: 'jp7', title: 'Maneki-neko', period: 'Edo Period', culture: 'Japanese', icon: 'lucky-cat' },
+            { id: 'jp8', title: 'Bonsai Tree', period: 'Traditional', culture: 'Japanese', icon: 'bonsai' },
+        ],
+        'Mexico': [
+            { id: 'mx1', title: 'Aztec Sun Stone', period: 'Aztec Empire', culture: 'Aztec', icon: 'sun-stone' },
+            { id: 'mx2', title: 'Jade Mask', period: 'Maya Classic', culture: 'Maya', icon: 'jade-mask' },
+            { id: 'mx3', title: 'Quetzalcoatl', period: 'Aztec Empire', culture: 'Aztec', icon: 'quetzalcoatl' },
+            { id: 'mx4', title: 'Olmec Head', period: '1500-400 BC', culture: 'Olmec', icon: 'olmec-head' },
+            { id: 'mx5', title: 'Maya Calendar', period: 'Maya Classic', culture: 'Maya', icon: 'maya-calendar' },
+            { id: 'mx6', title: 'Eagle Warrior', period: 'Aztec Empire', culture: 'Aztec', icon: 'eagle-warrior' },
+            { id: 'mx7', title: 'Obsidian Knife', period: 'Aztec Empire', culture: 'Aztec', icon: 'obsidian-knife' },
+            { id: 'mx8', title: 'Jaguar Statue', period: 'Maya Classic', culture: 'Maya', icon: 'jaguar' },
+        ],
+        'Rome': [
+            { id: 'rm1', title: 'Roman Helmet', period: 'Imperial Rome', culture: 'Roman', icon: 'roman-helmet' },
+            { id: 'rm2', title: 'Gladius Sword', period: 'Imperial Rome', culture: 'Roman', icon: 'gladius' },
+            { id: 'rm3', title: 'Laurel Crown', period: 'Roman Republic', culture: 'Roman', icon: 'laurel-crown' },
+            { id: 'rm4', title: 'Roman Coin', period: 'Imperial Rome', culture: 'Roman', icon: 'roman-coin' },
+            { id: 'rm5', title: 'Eagle Standard', period: 'Imperial Rome', culture: 'Roman', icon: 'aquila' },
+            { id: 'rm6', title: 'Roman Shield', period: 'Imperial Rome', culture: 'Roman', icon: 'scutum' },
+            { id: 'rm7', title: 'Oil Lamp', period: 'Imperial Rome', culture: 'Roman', icon: 'oil-lamp' },
+            { id: 'rm8', title: 'Bust of Caesar', period: 'Roman Republic', culture: 'Roman', icon: 'caesar-bust' },
+        ],
+        'India': [
+            { id: 'in1', title: 'Shiva Nataraja', period: 'Chola Dynasty', culture: 'Indian', icon: 'shiva' },
+            { id: 'in2', title: 'Ganesha Statue', period: 'Medieval India', culture: 'Indian', icon: 'ganesha' },
+            { id: 'in3', title: 'Lotus Flower', period: 'Traditional', culture: 'Indian', icon: 'lotus' },
+            { id: 'in4', title: 'Mughal Dagger', period: 'Mughal Empire', culture: 'Indian', icon: 'mughal-dagger' },
+            { id: 'in5', title: 'Elephant Statue', period: 'Medieval India', culture: 'Indian', icon: 'elephant' },
+            { id: 'in6', title: 'Buddha Head', period: 'Gupta Period', culture: 'Indian', icon: 'buddha-head' },
+            { id: 'in7', title: 'Om Symbol', period: 'Traditional', culture: 'Indian', icon: 'om' },
+            { id: 'in8', title: 'Peacock Ornament', period: 'Mughal Empire', culture: 'Indian', icon: 'peacock' },
+        ],
+        'Peru': [
+            { id: 'pe1', title: 'Inca Gold Mask', period: 'Inca Empire', culture: 'Inca', icon: 'inca-mask' },
+            { id: 'pe2', title: 'Moche Portrait', period: 'Moche Culture', culture: 'Moche', icon: 'moche-portrait' },
+            { id: 'pe3', title: 'Nazca Bird', period: 'Nazca Culture', culture: 'Nazca', icon: 'nazca-bird' },
+            { id: 'pe4', title: 'Tumi Knife', period: 'Chimu Culture', culture: 'Chimu', icon: 'tumi' },
+            { id: 'pe5', title: 'Llama Figure', period: 'Inca Empire', culture: 'Inca', icon: 'llama' },
+            { id: 'pe6', title: 'Quipu', period: 'Inca Empire', culture: 'Inca', icon: 'quipu' },
+            { id: 'pe7', title: 'Sun Disc', period: 'Inca Empire', culture: 'Inca', icon: 'inti' },
+            { id: 'pe8', title: 'Condor Figure', period: 'Nazca Culture', culture: 'Nazca', icon: 'condor' },
+        ],
+        'Mesopotamia': [
+            { id: 'ms1', title: 'Winged Bull', period: 'Assyrian Empire', culture: 'Assyrian', icon: 'lamassu' },
+            { id: 'ms2', title: 'Cuneiform Tablet', period: 'Sumerian', culture: 'Sumerian', icon: 'cuneiform' },
+            { id: 'ms3', title: 'Cylinder Seal', period: 'Akkadian', culture: 'Akkadian', icon: 'cylinder-seal' },
+            { id: 'ms4', title: 'Ishtar Lion', period: 'Babylonian', culture: 'Babylonian', icon: 'ishtar-lion' },
+            { id: 'ms5', title: 'Ziggurat Model', period: 'Sumerian', culture: 'Sumerian', icon: 'ziggurat' },
+            { id: 'ms6', title: 'Code of Hammurabi', period: 'Babylonian', culture: 'Babylonian', icon: 'hammurabi' },
+            { id: 'ms7', title: 'Royal Harp', period: 'Sumerian', culture: 'Sumerian', icon: 'harp' },
+            { id: 'ms8', title: 'Star of Shamash', period: 'Babylonian', culture: 'Babylonian', icon: 'shamash' },
+        ]
+    };
+
+    // Country-specific colors for icons
+    const colors = {
+        'Egypt': { primary: '#D4AF37', secondary: '#8B6914', bg: '#2C1810' },
+        'Greece': { primary: '#E8E8E8', secondary: '#1E90FF', bg: '#1A237E' },
+        'China': { primary: '#FF0000', secondary: '#FFD700', bg: '#8B0000' },
+        'Japan': { primary: '#FFFFFF', secondary: '#BC002D', bg: '#2D2D2D' },
+        'Mexico': { primary: '#00A86B', secondary: '#FFD700', bg: '#4A0E0E' },
+        'Rome': { primary: '#FFD700', secondary: '#8B0000', bg: '#1A1A2E' },
+        'India': { primary: '#FF9933', secondary: '#138808', bg: '#2E1A47' },
+        'Peru': { primary: '#FFD700', secondary: '#C41E3A', bg: '#3D2914' },
+        'Mesopotamia': { primary: '#C9A227', secondary: '#4A3728', bg: '#1A1410' }
+    };
+
+    // Generate SVG for icon
+    function generateSVG(iconType, country) {
+        const c = colors[country] || colors['Egypt'];
+
+        const svgs = {
+            'pharaoh-mask': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="45" rx="30" ry="35" fill="${c.primary}"/><path d="M20 45 Q50 90 80 45" fill="${c.secondary}"/><circle cx="40" cy="40" r="5" fill="${c.bg}"/><circle cx="60" cy="40" r="5" fill="${c.bg}"/><path d="M20 30 L50 10 L80 30" fill="${c.primary}" stroke="${c.secondary}" stroke-width="2"/></svg>`,
+            'scarab': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="25" ry="30" fill="${c.primary}"/><circle cx="50" cy="25" r="15" fill="${c.primary}"/><path d="M25 50 Q10 30 25 20" stroke="${c.secondary}" stroke-width="4" fill="none"/><path d="M75 50 Q90 30 75 20" stroke="${c.secondary}" stroke-width="4" fill="none"/></svg>`,
+            'ankh': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="25" rx="15" ry="20" fill="none" stroke="${c.primary}" stroke-width="8"/><line x1="50" y1="45" x2="50" y2="90" stroke="${c.primary}" stroke-width="8"/><line x1="30" y1="60" x2="70" y2="60" stroke="${c.primary}" stroke-width="8"/></svg>`,
+            'canopic-jar': `<svg viewBox="0 0 100 100"><path d="M35 30 Q35 80 50 85 Q65 80 65 30" fill="${c.primary}"/><ellipse cx="50" cy="30" rx="15" ry="8" fill="${c.secondary}"/><circle cx="50" cy="15" r="12" fill="${c.primary}"/></svg>`,
+            'eye-of-horus': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="40" rx="35" ry="20" fill="${c.primary}"/><circle cx="50" cy="40" r="12" fill="${c.bg}"/><circle cx="50" cy="40" r="6" fill="${c.secondary}"/><path d="M15 40 Q30 70 50 80" stroke="${c.primary}" stroke-width="6" fill="none"/></svg>`,
+            'sphinx': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="70" rx="35" ry="15" fill="${c.primary}"/><path d="M30 70 L30 40 Q50 20 70 40 L70 70" fill="${c.primary}"/><circle cx="42" cy="45" r="3" fill="${c.bg}"/><circle cx="58" cy="45" r="3" fill="${c.bg}"/></svg>`,
+            'pyramid': `<svg viewBox="0 0 100 100"><polygon points="50,15 85,85 15,85" fill="${c.primary}" stroke="${c.secondary}" stroke-width="2"/><line x1="50" y1="15" x2="50" y2="85" stroke="${c.secondary}" stroke-width="1" opacity="0.5"/></svg>`,
+            'cat-statue': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="75" rx="20" ry="10" fill="${c.primary}"/><path d="M35 75 L35 40 Q50 30 65 40 L65 75" fill="${c.primary}"/><polygon points="35,40 25,20 40,35" fill="${c.primary}"/><polygon points="65,40 75,20 60,35" fill="${c.primary}"/><circle cx="42" cy="45" r="3" fill="${c.secondary}"/><circle cx="58" cy="45" r="3" fill="${c.secondary}"/></svg>`,
+
+            'amphora': `<svg viewBox="0 0 100 100"><path d="M35 25 Q30 50 35 80 Q50 90 65 80 Q70 50 65 25" fill="${c.secondary}"/><ellipse cx="50" cy="25" rx="15" ry="8" fill="${c.secondary}"/><path d="M35 35 Q20 30 25 45" stroke="${c.secondary}" stroke-width="5" fill="none"/><path d="M65 35 Q80 30 75 45" stroke="${c.secondary}" stroke-width="5" fill="none"/></svg>`,
+            'spartan-helmet': `<svg viewBox="0 0 100 100"><path d="M25 70 Q25 30 50 20 Q75 30 75 70" fill="${c.primary}"/><rect x="45" y="15" width="10" height="40" fill="${c.secondary}"/><rect x="30" y="65" width="40" height="15" fill="${c.primary}"/><rect x="35" y="55" width="30" height="8" fill="${c.bg}"/></svg>`,
+            'laurel-wreath': `<svg viewBox="0 0 100 100"><path d="M50 80 Q20 60 25 30" stroke="${c.secondary}" stroke-width="3" fill="none"/><path d="M50 80 Q80 60 75 30" stroke="${c.secondary}" stroke-width="3" fill="none"/><ellipse cx="30" cy="45" rx="8" ry="15" fill="${c.secondary}" transform="rotate(-20 30 45)"/><ellipse cx="70" cy="45" rx="8" ry="15" fill="${c.secondary}" transform="rotate(20 70 45)"/></svg>`,
+            'column': `<svg viewBox="0 0 100 100"><rect x="30" y="20" width="40" height="60" fill="${c.primary}"/><rect x="25" y="15" width="50" height="8" fill="${c.primary}"/><rect x="25" y="77" width="50" height="8" fill="${c.primary}"/></svg>`,
+            'lyre': `<svg viewBox="0 0 100 100"><path d="M30 80 Q20 40 35 20" stroke="${c.primary}" stroke-width="5" fill="none"/><path d="M70 80 Q80 40 65 20" stroke="${c.primary}" stroke-width="5" fill="none"/><rect x="25" y="75" width="50" height="10" fill="${c.primary}" rx="3"/></svg>`,
+            'owl': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="25" ry="30" fill="${c.primary}"/><circle cx="40" cy="45" r="10" fill="${c.secondary}"/><circle cx="60" cy="45" r="10" fill="${c.secondary}"/><circle cx="40" cy="45" r="5" fill="${c.bg}"/><circle cx="60" cy="45" r="5" fill="${c.bg}"/><polygon points="50,55 45,65 55,65" fill="${c.secondary}"/></svg>`,
+            'theater-mask': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="50" rx="30" ry="35" fill="${c.primary}"/><ellipse cx="38" cy="40" rx="8" ry="10" fill="${c.bg}"/><ellipse cx="62" cy="40" rx="8" ry="10" fill="${c.bg}"/><path d="M35 65 Q50 80 65 65" stroke="${c.bg}" stroke-width="4" fill="none"/></svg>`,
+            'coin': `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="35" fill="${c.primary}"/><circle cx="50" cy="50" r="28" fill="${c.secondary}"/><circle cx="50" cy="45" r="12" fill="${c.primary}"/></svg>`,
+
+            'dragon-vase': `<svg viewBox="0 0 100 100"><path d="M35 25 Q30 55 40 85 Q50 90 60 85 Q70 55 65 25" fill="${c.secondary}"/><ellipse cx="50" cy="25" rx="15" ry="8" fill="${c.secondary}"/><path d="M40 50 Q50 40 60 50" stroke="${c.primary}" stroke-width="3" fill="none"/></svg>`,
+            'jade-disc': `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="35" fill="${c.secondary}"/><circle cx="50" cy="50" r="12" fill="${c.bg}"/></svg>`,
+            'terracotta': `<svg viewBox="0 0 100 100"><path d="M35 85 L35 40 Q50 25 65 40 L65 85" fill="${c.primary}"/><rect x="30" y="30" width="40" height="15" fill="${c.secondary}"/><circle cx="43" cy="50" r="3" fill="${c.bg}"/><circle cx="57" cy="50" r="3" fill="${c.bg}"/></svg>`,
+            'bronze-bell': `<svg viewBox="0 0 100 100"><path d="M30 70 Q30 30 50 20 Q70 30 70 70" fill="${c.primary}"/><ellipse cx="50" cy="70" rx="20" ry="8" fill="${c.secondary}"/><circle cx="50" cy="15" r="8" fill="${c.primary}"/></svg>`,
+            'fan': `<svg viewBox="0 0 100 100"><path d="M50 85 L20 30 Q50 15 80 30 Z" fill="${c.primary}"/><line x1="50" y1="85" x2="35" y2="40" stroke="${c.secondary}" stroke-width="1"/><line x1="50" y1="85" x2="50" y2="30" stroke="${c.secondary}" stroke-width="1"/><line x1="50" y1="85" x2="65" y2="40" stroke="${c.secondary}" stroke-width="1"/></svg>`,
+            'pagoda': `<svg viewBox="0 0 100 100"><polygon points="50,10 70,30 30,30" fill="${c.primary}"/><polygon points="50,30 75,50 25,50" fill="${c.primary}"/><polygon points="50,50 80,75 20,75" fill="${c.primary}"/><rect x="40" y="75" width="20" height="15" fill="${c.secondary}"/></svg>`,
+            'buddha': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="70" rx="25" ry="15" fill="${c.primary}"/><circle cx="50" cy="40" r="20" fill="${c.primary}"/><circle cx="50" cy="20" r="8" fill="${c.secondary}"/><circle cx="43" cy="38" r="2" fill="${c.bg}"/><circle cx="57" cy="38" r="2" fill="${c.bg}"/></svg>`,
+            'tea-set': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="70" rx="25" ry="10" fill="${c.primary}"/><path d="M30 70 Q30 50 50 45 Q70 50 70 70" fill="${c.secondary}"/><path d="M70 55 Q85 55 80 70" stroke="${c.secondary}" stroke-width="4" fill="none"/></svg>`,
+
+            'samurai-helmet': `<svg viewBox="0 0 100 100"><path d="M20 60 Q20 30 50 20 Q80 30 80 60" fill="${c.primary}"/><path d="M15 45 Q50 60 85 45" fill="${c.secondary}"/><rect x="40" y="55" width="20" height="30" fill="${c.primary}"/></svg>`,
+            'katana': `<svg viewBox="0 0 100 100"><path d="M20 80 Q50 50 80 20" stroke="${c.primary}" stroke-width="4" fill="none"/><rect x="45" y="75" width="15" height="8" fill="${c.secondary}" rx="2"/></svg>`,
+            'noh-mask': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="50" rx="28" ry="35" fill="${c.primary}"/><path d="M35 45 L40 45" stroke="${c.bg}" stroke-width="3"/><path d="M60 45 L65 45" stroke="${c.bg}" stroke-width="3"/><ellipse cx="50" cy="65" rx="8" ry="5" fill="${c.secondary}"/></svg>`,
+            'daruma': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="30" ry="35" fill="${c.secondary}"/><circle cx="50" cy="40" r="20" fill="${c.primary}"/><circle cx="43" cy="40" r="6" fill="${c.bg}"/><circle cx="57" cy="40" r="6" fill="${c.bg}"/></svg>`,
+            'torii': `<svg viewBox="0 0 100 100"><rect x="20" y="25" width="8" height="60" fill="${c.secondary}"/><rect x="72" y="25" width="8" height="60" fill="${c.secondary}"/><rect x="15" y="20" width="70" height="8" fill="${c.secondary}"/><rect x="20" y="35" width="60" height="6" fill="${c.secondary}"/></svg>`,
+            'origami': `<svg viewBox="0 0 100 100"><polygon points="50,20 80,50 50,80 20,50" fill="${c.primary}"/><polygon points="50,20 65,50 50,60" fill="${c.secondary}"/></svg>`,
+            'lucky-cat': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="65" rx="25" ry="20" fill="${c.primary}"/><circle cx="50" cy="35" r="20" fill="${c.primary}"/><polygon points="35,20 40,35 30,30" fill="${c.primary}"/><polygon points="65,20 60,35 70,30" fill="${c.primary}"/><circle cx="42" cy="35" r="3" fill="${c.bg}"/><circle cx="58" cy="35" r="3" fill="${c.bg}"/><path d="M75 40 L85 20" stroke="${c.primary}" stroke-width="6"/></svg>`,
+            'bonsai': `<svg viewBox="0 0 100 100"><rect x="30" y="75" width="40" height="15" fill="${c.secondary}"/><rect x="47" y="55" width="6" height="20" fill="#8B4513"/><ellipse cx="50" cy="45" rx="25" ry="20" fill="${c.secondary}"/></svg>`,
+
+            'sun-stone': `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="${c.secondary}"/><circle cx="50" cy="50" r="15" fill="${c.primary}"/><circle cx="50" cy="50" r="8" fill="${c.bg}"/></svg>`,
+            'jade-mask': `<svg viewBox="0 0 100 100"><path d="M25 30 Q25 75 50 85 Q75 75 75 30 Q50 20 25 30" fill="${c.primary}"/><ellipse cx="38" cy="45" rx="8" ry="10" fill="${c.bg}"/><ellipse cx="62" cy="45" rx="8" ry="10" fill="${c.bg}"/><path d="M40 70 Q50 75 60 70" stroke="${c.secondary}" stroke-width="4" fill="none"/></svg>`,
+            'quetzalcoatl': `<svg viewBox="0 0 100 100"><circle cx="50" cy="40" r="20" fill="${c.primary}"/><path d="M30 40 Q20 60 40 70 Q60 60 70 80" stroke="${c.secondary}" stroke-width="6" fill="none"/><circle cx="43" cy="38" r="4" fill="${c.bg}"/><circle cx="57" cy="38" r="4" fill="${c.bg}"/></svg>`,
+            'olmec-head': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="30" ry="35" fill="${c.primary}"/><rect x="35" y="15" width="30" height="15" fill="${c.secondary}"/><circle cx="40" cy="50" r="5" fill="${c.bg}"/><circle cx="60" cy="50" r="5" fill="${c.bg}"/><ellipse cx="50" cy="70" rx="10" ry="6" fill="${c.bg}"/></svg>`,
+            'maya-calendar': `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="${c.secondary}"/><circle cx="50" cy="50" r="28" fill="${c.primary}"/><circle cx="50" cy="50" r="15" fill="${c.secondary}"/><circle cx="50" cy="50" r="5" fill="${c.bg}"/></svg>`,
+            'eagle-warrior': `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="25" fill="${c.primary}"/><path d="M25 40 L40 50 L25 60" fill="${c.secondary}"/><path d="M75 40 L60 50 L75 60" fill="${c.secondary}"/><circle cx="43" cy="48" r="4" fill="${c.bg}"/><circle cx="57" cy="48" r="4" fill="${c.bg}"/></svg>`,
+            'obsidian-knife': `<svg viewBox="0 0 100 100"><polygon points="50,15 65,70 50,85 35,70" fill="${c.bg}"/><rect x="42" y="70" width="16" height="20" fill="${c.secondary}"/></svg>`,
+            'jaguar': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="60" rx="30" ry="20" fill="${c.primary}"/><circle cx="50" cy="35" r="18" fill="${c.primary}"/><polygon points="35,25 40,35 32,32" fill="${c.primary}"/><polygon points="65,25 60,35 68,32" fill="${c.primary}"/><circle cx="43" cy="35" r="3" fill="${c.bg}"/><circle cx="57" cy="35" r="3" fill="${c.bg}"/></svg>`,
+
+            'roman-helmet': `<svg viewBox="0 0 100 100"><path d="M25 65 Q25 30 50 20 Q75 30 75 65" fill="${c.primary}"/><rect x="45" y="10" width="10" height="30" fill="${c.secondary}"/><rect x="25" y="60" width="50" height="10" fill="${c.primary}"/></svg>`,
+            'gladius': `<svg viewBox="0 0 100 100"><rect x="47" y="15" width="6" height="50" fill="${c.primary}"/><rect x="40" y="60" width="20" height="8" fill="${c.secondary}"/><rect x="45" y="65" width="10" height="20" fill="${c.secondary}"/></svg>`,
+            'laurel-crown': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="50" rx="30" ry="25" fill="none" stroke="${c.primary}" stroke-width="8"/></svg>`,
+            'roman-coin': `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="35" fill="${c.primary}"/><circle cx="50" cy="50" r="25" fill="${c.secondary}"/><circle cx="50" cy="45" r="10" fill="${c.primary}"/></svg>`,
+            'aquila': `<svg viewBox="0 0 100 100"><rect x="47" y="40" width="6" height="50" fill="${c.secondary}"/><path d="M30 50 L50 25 L70 50 L50 40 Z" fill="${c.primary}"/></svg>`,
+            'scutum': `<svg viewBox="0 0 100 100"><path d="M25 20 Q25 80 50 90 Q75 80 75 20 Q50 30 25 20" fill="${c.secondary}"/><ellipse cx="50" cy="50" rx="15" ry="20" fill="${c.primary}"/></svg>`,
+            'oil-lamp': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="60" rx="25" ry="15" fill="${c.primary}"/><path d="M70 55 L85 50" stroke="${c.primary}" stroke-width="6"/><ellipse cx="50" cy="45" rx="8" ry="5" fill="${c.secondary}"/></svg>`,
+            'caesar-bust': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="75" rx="25" ry="10" fill="${c.secondary}"/><path d="M35 75 L35 55 Q50 45 65 55 L65 75" fill="${c.primary}"/><circle cx="50" cy="35" r="18" fill="${c.primary}"/></svg>`,
+
+            'shiva': `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" fill="${c.primary}"/><path d="M50 20 L55 35 L70 35 L58 45 L63 60 L50 50 L37 60 L42 45 L30 35 L45 35 Z" fill="${c.secondary}"/></svg>`,
+            'ganesha': `<svg viewBox="0 0 100 100"><circle cx="50" cy="45" r="25" fill="${c.primary}"/><path d="M50 55 Q40 80 35 85" stroke="${c.primary}" stroke-width="8"/><circle cx="40" cy="40" r="5" fill="${c.bg}"/><circle cx="60" cy="40" r="5" fill="${c.bg}"/></svg>`,
+            'lotus': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="70" rx="8" ry="15" fill="${c.primary}"/><ellipse cx="35" cy="65" rx="8" ry="15" fill="${c.primary}" transform="rotate(-20 35 65)"/><ellipse cx="65" cy="65" rx="8" ry="15" fill="${c.primary}" transform="rotate(20 65 65)"/><ellipse cx="25" cy="60" rx="7" ry="12" fill="${c.secondary}" transform="rotate(-40 25 60)"/><ellipse cx="75" cy="60" rx="7" ry="12" fill="${c.secondary}" transform="rotate(40 75 60)"/></svg>`,
+            'mughal-dagger': `<svg viewBox="0 0 100 100"><path d="M50 15 Q55 50 50 70" stroke="${c.primary}" stroke-width="4" fill="none"/><ellipse cx="50" cy="80" rx="12" ry="8" fill="${c.secondary}"/></svg>`,
+            'elephant': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="30" ry="25" fill="${c.primary}"/><circle cx="35" cy="40" r="15" fill="${c.primary}"/><path d="M25 50 Q20 70 25 85" stroke="${c.primary}" stroke-width="8"/><circle cx="30" cy="38" r="3" fill="${c.bg}"/></svg>`,
+            'buddha-head': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="25" ry="30" fill="${c.primary}"/><circle cx="50" cy="25" r="15" fill="${c.primary}"/><circle cx="42" cy="50" r="3" fill="${c.bg}"/><circle cx="58" cy="50" r="3" fill="${c.bg}"/></svg>`,
+            'om': `<svg viewBox="0 0 100 100"><circle cx="35" cy="60" r="15" fill="none" stroke="${c.primary}" stroke-width="5"/><path d="M50 45 Q65 45 65 60 Q65 75 50 75" stroke="${c.primary}" stroke-width="5" fill="none"/><path d="M65 30 Q75 35 70 45" stroke="${c.primary}" stroke-width="4" fill="none"/><circle cx="70" cy="25" r="5" fill="${c.primary}"/></svg>`,
+            'peacock': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="70" rx="15" ry="20" fill="${c.secondary}"/><circle cx="50" cy="40" r="12" fill="${c.secondary}"/><path d="M30 50 Q50 20 70 50" fill="${c.primary}"/><circle cx="40" cy="35" r="5" fill="${c.primary}"/><circle cx="60" cy="35" r="5" fill="${c.primary}"/><circle cx="50" cy="25" r="5" fill="${c.primary}"/></svg>`,
+
+            'inca-mask': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="50" rx="30" ry="35" fill="${c.primary}"/><rect x="35" y="35" width="10" height="15" fill="${c.bg}"/><rect x="55" y="35" width="10" height="15" fill="${c.bg}"/><rect x="40" y="65" width="20" height="8" fill="${c.bg}"/></svg>`,
+            'moche-portrait': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="25" ry="30" fill="${c.primary}"/><rect x="25" y="25" width="50" height="15" fill="${c.secondary}"/><circle cx="40" cy="50" r="5" fill="${c.bg}"/><circle cx="60" cy="50" r="5" fill="${c.bg}"/></svg>`,
+            'nazca-bird': `<svg viewBox="0 0 100 100"><path d="M20 50 L50 30 L80 50 L50 45 Z" fill="${c.primary}"/><circle cx="50" cy="50" r="10" fill="${c.secondary}"/><path d="M50 60 L50 80" stroke="${c.primary}" stroke-width="4"/></svg>`,
+            'tumi': `<svg viewBox="0 0 100 100"><path d="M30 45 Q50 20 70 45 L70 75 L30 75 Z" fill="${c.primary}"/><circle cx="50" cy="35" r="12" fill="${c.secondary}"/></svg>`,
+            'llama': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="60" rx="20" ry="15" fill="${c.primary}"/><rect x="35" y="65" width="6" height="20" fill="${c.primary}"/><rect x="55" y="65" width="6" height="20" fill="${c.primary}"/><ellipse cx="65" cy="40" rx="10" ry="15" fill="${c.primary}"/><circle cx="68" cy="35" r="3" fill="${c.bg}"/></svg>`,
+            'quipu': `<svg viewBox="0 0 100 100"><rect x="20" y="25" width="60" height="6" fill="${c.secondary}"/><path d="M30 31 L30 75" stroke="${c.primary}" stroke-width="3"/><path d="M45 31 L45 85" stroke="${c.primary}" stroke-width="3"/><path d="M60 31 L60 70" stroke="${c.primary}" stroke-width="3"/><circle cx="30" cy="50" r="4" fill="${c.secondary}"/><circle cx="45" cy="60" r="4" fill="${c.secondary}"/><circle cx="60" cy="55" r="4" fill="${c.secondary}"/></svg>`,
+            'inti': `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="20" fill="${c.primary}"/><line x1="50" y1="15" x2="50" y2="25" stroke="${c.primary}" stroke-width="4"/><line x1="50" y1="75" x2="50" y2="85" stroke="${c.primary}" stroke-width="4"/><line x1="15" y1="50" x2="25" y2="50" stroke="${c.primary}" stroke-width="4"/><line x1="75" y1="50" x2="85" y2="50" stroke="${c.primary}" stroke-width="4"/><line x1="25" y1="25" x2="32" y2="32" stroke="${c.primary}" stroke-width="4"/><line x1="68" y1="68" x2="75" y2="75" stroke="${c.primary}" stroke-width="4"/><line x1="75" y1="25" x2="68" y2="32" stroke="${c.primary}" stroke-width="4"/><line x1="32" y1="68" x2="25" y2="75" stroke="${c.primary}" stroke-width="4"/></svg>`,
+            'condor': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="50" rx="35" ry="15" fill="${c.primary}"/><circle cx="50" cy="35" r="12" fill="${c.primary}"/><circle cx="50" cy="30" r="6" fill="${c.secondary}"/></svg>`,
+
+            'lamassu': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="65" rx="30" ry="20" fill="${c.primary}"/><rect x="30" y="70" width="8" height="20" fill="${c.primary}"/><rect x="60" y="70" width="8" height="20" fill="${c.primary}"/><circle cx="50" cy="35" r="18" fill="${c.primary}"/><path d="M30 30 L20 15 L35 25" fill="${c.secondary}"/><path d="M70 30 L80 15 L65 25" fill="${c.secondary}"/></svg>`,
+            'cuneiform': `<svg viewBox="0 0 100 100"><rect x="20" y="20" width="60" height="60" fill="${c.secondary}" rx="5"/><path d="M30 35 L45 35 L40 40" fill="${c.primary}"/><path d="M55 35 L70 35 L65 40" fill="${c.primary}"/><path d="M30 55 L45 55 L40 60" fill="${c.primary}"/><path d="M55 55 L70 55 L65 60" fill="${c.primary}"/></svg>`,
+            'cylinder-seal': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="25" rx="20" ry="10" fill="${c.primary}"/><rect x="30" y="25" width="40" height="50" fill="${c.primary}"/><ellipse cx="50" cy="75" rx="20" ry="10" fill="${c.secondary}"/></svg>`,
+            'ishtar-lion': `<svg viewBox="0 0 100 100"><ellipse cx="45" cy="60" rx="25" ry="20" fill="${c.secondary}"/><circle cx="35" cy="45" r="15" fill="${c.secondary}"/><path d="M25 35 L15 25 L30 35" fill="${c.primary}"/><circle cx="30" cy="43" r="3" fill="${c.bg}"/><path d="M65 55 L85 50 L80 60 Z" fill="${c.secondary}"/></svg>`,
+            'ziggurat': `<svg viewBox="0 0 100 100"><rect x="15" y="70" width="70" height="15" fill="${c.primary}"/><rect x="22" y="55" width="56" height="15" fill="${c.primary}"/><rect x="29" y="40" width="42" height="15" fill="${c.primary}"/><rect x="36" y="25" width="28" height="15" fill="${c.primary}"/></svg>`,
+            'hammurabi': `<svg viewBox="0 0 100 100"><rect x="30" y="15" width="40" height="70" fill="${c.secondary}" rx="5"/><circle cx="50" cy="30" r="10" fill="${c.primary}"/><rect x="38" y="45" width="24" height="3" fill="${c.primary}"/><rect x="38" y="52" width="24" height="3" fill="${c.primary}"/><rect x="38" y="59" width="24" height="3" fill="${c.primary}"/><rect x="38" y="66" width="24" height="3" fill="${c.primary}"/></svg>`,
+            'harp': `<svg viewBox="0 0 100 100"><path d="M30 80 Q20 40 40 20" stroke="${c.primary}" stroke-width="6" fill="none"/><path d="M40 20 L70 30 L70 80 L30 80" fill="${c.secondary}"/><line x1="40" y1="25" x2="40" y2="75" stroke="${c.primary}" stroke-width="1"/><line x1="50" y1="28" x2="50" y2="78" stroke="${c.primary}" stroke-width="1"/><line x1="60" y1="30" x2="60" y2="80" stroke="${c.primary}" stroke-width="1"/></svg>`,
+            'shamash': `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="15" fill="${c.primary}"/><polygon points="50,20 55,35 50,30 45,35" fill="${c.primary}"/><polygon points="50,80 55,65 50,70 45,65" fill="${c.primary}"/><polygon points="20,50 35,55 30,50 35,45" fill="${c.primary}"/><polygon points="80,50 65,55 70,50 65,45" fill="${c.primary}"/></svg>`,
+
+            'default': `<svg viewBox="0 0 100 100"><rect x="25" y="25" width="50" height="50" fill="${c.primary}" rx="10"/><text x="50" y="58" text-anchor="middle" fill="${c.bg}" font-size="24">?</text></svg>`
+        };
+
+        const svg = svgs[iconType] || svgs['default'];
+        return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+    }
+
+    // Get icon artifacts
+    function getIconArtifacts(country, count) {
+        const icons = artifactIcons[country] || [];
+        const available = icons.filter(a => !usedIds.has(a.id));
+
+        if (available.length < count) {
+            icons.forEach(a => usedIds.delete(a.id));
+            available.push(...icons);
+        }
+
+        // Shuffle
+        for (let i = available.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [available[i], available[j]] = [available[j], available[i]];
+        }
+
+        return available.slice(0, count).map(a => {
+            usedIds.add(a.id);
+            return {
+                ...a,
+                image: generateSVG(a.icon, country),
+                isIcon: true
+            };
+        });
+    }
+
+    // Fetch from API
+    async function fetchFromAPI(country, count) {
+        const queries = countryQueries[country];
+        const query = queries[Math.floor(Math.random() * queries.length)];
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+
+        try {
+            const res = await fetch(`${API_BASE}/search?hasImages=true&q=${encodeURIComponent(query)}`, { signal: controller.signal });
+            clearTimeout(timeout);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+            const data = await res.json();
+            if (!data.objectIDs?.length) throw new Error('No results');
+
+            // Shuffle
+            const shuffled = [...data.objectIDs].sort(() => Math.random() - 0.5);
+            const candidates = shuffled.filter(id => !usedIds.has(id)).slice(0, count * 2);
+
+            const artifacts = [];
+            for (const id of candidates) {
+                if (artifacts.length >= count) break;
+                try {
+                    const detail = await fetch(`${API_BASE}/objects/${id}`);
+                    const d = await detail.json();
+                    if (d.primaryImageSmall || d.primaryImage) {
+                        usedIds.add(id);
+                        artifacts.push({
+                            id,
+                            title: d.title || 'Unknown',
+                            period: d.objectDate || 'Ancient',
+                            culture: d.culture || country,
+                            image: d.primaryImageSmall || d.primaryImage,
+                            isIcon: false
+                        });
+                    }
+                } catch {}
+            }
+
+            return { artifacts, query, total: data.objectIDs.length };
+        } finally {
+            clearTimeout(timeout);
+        }
+    }
+
+    // Main fetch function
+    async function fetchArtifacts() {
+        const country = document.getElementById('country-select').value;
+        const count = parseInt(document.getElementById('count-select').value);
+
+        document.getElementById('fetch-btn').disabled = true;
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('error').style.display = 'none';
+        document.getElementById('artifacts-grid').innerHTML = '';
+        document.getElementById('stats').style.display = 'none';
+
+        const startTime = Date.now();
+        let artifacts = [];
+        let modeUsed = currentMode;
+        let query = '';
+
+        try {
+            if (currentMode === 'icons') {
+                artifacts = getIconArtifacts(country, count);
+                modeUsed = 'Icons (SVG)';
+            } else if (currentMode === 'api') {
+                const result = await fetchFromAPI(country, count);
+                artifacts = result.artifacts;
+                query = result.query;
+                modeUsed = `API: "${query}"`;
+            } else {
+                // Auto mode: try API first
+                try {
+                    const result = await fetchFromAPI(country, count);
+                    if (result.artifacts.length >= count) {
+                        artifacts = result.artifacts;
+                        query = result.query;
+                        modeUsed = `API: "${query}"`;
+                    } else {
+                        throw new Error('Not enough results');
+                    }
+                } catch {
+                    artifacts = getIconArtifacts(country, count);
+                    modeUsed = 'Icons (API fallback)';
+                }
+            }
+
+            const loadTime = Date.now() - startTime;
+            renderArtifacts(artifacts);
+
+            document.getElementById('mode-used').textContent = modeUsed;
+            document.getElementById('loaded-count').textContent = artifacts.length;
+            document.getElementById('load-time').textContent = loadTime;
+            document.getElementById('stats').style.display = 'block';
+
+        } catch (error) {
+            document.getElementById('error').textContent = `❌ Error: ${error.message}`;
+            document.getElementById('error').style.display = 'block';
+        }
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('fetch-btn').disabled = false;
+    }
+
+    function renderArtifacts(artifacts) {
+        const grid = document.getElementById('artifacts-grid');
+        grid.innerHTML = artifacts.map(a => `
+                <div class="artifact-card ${a.isIcon ? 'icon-mode' : ''}">
+                    <div class="artifact-image-container">
+                        <img class="artifact-image" src="${a.image}" alt="${a.title}"
+                             onerror="this.src='data:image/svg+xml,${encodeURIComponent('<svg viewBox="0 0 100 100"><rect fill="#333" width="100" height="100"/><text x="50" y="55" text-anchor="middle" fill="#666">Error</text></svg>')}'">
+                    </div>
+                    <div class="artifact-info">
+                        <div class="artifact-title">${a.title} <span class="badge ${a.isIcon ? 'icon' : 'api'}">${a.isIcon ? 'SVG' : 'Photo'}</span></div>
+                        <div class="artifact-meta">📍 ${a.culture}</div>
+                        <span class="artifact-period">📅 ${a.period}</span>
+                    </div>
+                </div>
+            `).join('');
+    }
+
+    // Mode buttons
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            if (btn.id === 'mode-auto') currentMode = 'auto';
+            else if (btn.id === 'mode-api') currentMode = 'api';
+            else currentMode = 'icons';
+        });
+    });
+
+    document.getElementById('fetch-btn').addEventListener('click', fetchArtifacts);
+
+    // Auto-fetch on load
+    fetchArtifacts();
+</script>
+</body>
+</html>

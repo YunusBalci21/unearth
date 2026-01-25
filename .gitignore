@@ -1,0 +1,104 @@
+# =========================
+# OS files
+# =========================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# =========================
+# Logs & temp files
+# =========================
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*.bak
+*.cache
+
+# =========================
+# Environment variables
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+.venv/
+venv/
+ENV/
+env/
+pip-wheel-metadata/
+
+# =========================
+# Node.js
+# =========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =========================
+# Build outputs
+# =========================
+build/
+dist/
+out/
+target/
+bin/
+obj/
+
+# =========================
+# C / C++
+# =========================
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.out
+
+# =========================
+# IDEs & editors
+# =========================
+.vscode/
+.idea/
+*.iml
+*.sublime-project
+*.sublime-workspace
+
+# =========================
+# Testing / coverage
+# =========================
+.coverage
+htmlcov/
+coverage.xml
+*.lcov
+
+# =========================
+# Jupyter
+# =========================
+.ipynb_checkpoints/
+
+# =========================
+# Misc
+# =========================
+*.pid
+*.seed
+*.orig
