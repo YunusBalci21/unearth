@@ -491,6 +491,229 @@
             z-index: 10;
         }
 
+        #solo-settings-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1500;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #solo-settings-modal.show {
+            display: flex;
+        }
+
+        .solo-settings-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+        }
+
+        .solo-settings-dialog {
+            position: relative;
+            background: linear-gradient(135deg, #1a1208 0%, #2a1f0f 100%);
+            border: 2px solid #c9a227;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(201, 162, 39, 0.2);
+            animation: solo-modal-appear 0.3s ease;
+        }
+
+        @keyframes solo-modal-appear {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .solo-settings-title {
+            font-family: 'Cinzel', 'Times New Roman', serif;
+            font-size: 28px;
+            color: #c9a227;
+            margin: 0 0 10px 0;
+            letter-spacing: 3px;
+        }
+
+        .solo-settings-subtitle {
+            font-family: 'Crimson Text', Georgia, serif;
+            font-size: 16px;
+            color: #8a7355;
+            margin: 0 0 30px 0;
+        }
+
+        .solo-settings-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        .solo-settings-label {
+            font-family: 'Cinzel', 'Times New Roman', serif;
+            font-size: 14px;
+            color: #c9a227;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        /* Round Selection - Button Style */
+        .round-options {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .round-option {
+            flex: 1;
+            padding: 15px 10px;
+            background: rgba(201, 162, 39, 0.1);
+            border: 2px solid rgba(201, 162, 39, 0.3);
+            border-radius: 10px;
+            color: #d4c5a9;
+            font-family: 'Cinzel', 'Times New Roman', serif;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .round-option:hover {
+            border-color: #c9a227;
+            background: rgba(201, 162, 39, 0.2);
+        }
+
+        .round-option.selected {
+            border-color: #c9a227;
+            background: linear-gradient(135deg, #c9a227 0%, #a68523 100%);
+            color: #1a1208;
+            font-weight: 600;
+        }
+
+        .round-option span {
+            display: block;
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        /* Time Selection */
+        .time-select {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(201, 162, 39, 0.4);
+            border-radius: 8px;
+            color: #d4c5a9;
+            font-family: 'Crimson Text', Georgia, serif;
+            font-size: 16px;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23c9a227' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+        }
+
+        .time-select:focus {
+            outline: none;
+            border-color: #c9a227;
+        }
+
+        .time-select option {
+            background: #1a1208;
+            color: #d4c5a9;
+        }
+
+        /* Buttons */
+        .solo-settings-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .solo-settings-btn {
+            flex: 1;
+            font-family: 'Cinzel', 'Times New Roman', serif;
+            font-size: 14px;
+            padding: 14px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .solo-settings-back {
+            background: transparent;
+            border: 1px solid rgba(201, 162, 39, 0.4);
+            color: #8a7355;
+        }
+
+        .solo-settings-back:hover {
+            border-color: #c9a227;
+            color: #c9a227;
+        }
+
+        .solo-settings-start {
+            background: linear-gradient(135deg, #c9a227 0%, #a68523 100%);
+            border: none;
+            color: #1a1208;
+            font-weight: 600;
+        }
+
+        .solo-settings-start:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 20px rgba(201, 162, 39, 0.4);
+        }
+
+        /* Close button */
+        .solo-settings-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 28px;
+            color: #8a7355;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .solo-settings-close:hover {
+            color: #c9a227;
+        }
+
+        /* Mobile */
+        @media (max-width: 480px) {
+            .solo-settings-dialog {
+                padding: 25px;
+            }
+
+            .solo-settings-title {
+                font-size: 22px;
+            }
+
+            .round-option {
+                padding: 12px 8px;
+                font-size: 16px;
+            }
+
+            .round-option span {
+                font-size: 10px;
+            }
+        }
+
         /* ============================================
            SETTINGS MODAL
            ============================================ */
@@ -2609,8 +2832,8 @@
                     <div class="form-group">
                         <label>Rounds</label>
                         <select id="rounds-select">
-                            <option value="5">5 Rounds</option>
-                            <option value="10" selected>10 Rounds</option>
+                            <option value="5" selected>5 Rounds</option>
+                            <option value="10">10 Rounds</option>
                             <option value="15">15 Rounds</option>
                             <option value="20">20 Rounds</option>
                         </select>
@@ -2686,8 +2909,7 @@
                     <h3>⚙️ Expedition Settings</h3>
                     <div class="setting-item">
                         <span class="setting-label">Rounds</span>
-                        <span class="setting-value" id="setting-rounds">10</span>
-                    </div>
+                        <span class="setting-value" id="setting-rounds">5</span>                    </div>
                     <div class="setting-item">
                         <span class="setting-label">Time per Round</span>
                         <span class="setting-value" id="setting-time">2:00</span>
@@ -2790,6 +3012,55 @@
         </div>
     </div>
 
+    <div id="solo-settings-modal">
+        <div class="solo-settings-backdrop"></div>
+        <div class="solo-settings-dialog">
+            <button class="solo-settings-close" id="solo-settings-close">×</button>
+
+            <h2 class="solo-settings-title">🏺 Solo Expedition</h2>
+            <p class="solo-settings-subtitle">Configure your dig</p>
+
+            <div class="solo-settings-group">
+                <label class="solo-settings-label">Rounds</label>
+                <div class="round-options" id="round-options">
+                    <button class="round-option" data-rounds="3">
+                        3
+                        <span>Quick</span>
+                    </button>
+                    <button class="round-option selected" data-rounds="5">
+                        5
+                        <span>Standard</span>
+                    </button>
+                    <button class="round-option" data-rounds="10">
+                        10
+                        <span>Extended</span>
+                    </button>
+                    <button class="round-option" data-rounds="15">
+                        15
+                        <span>Marathon</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="solo-settings-group">
+                <label class="solo-settings-label">Time per Round</label>
+                <select class="time-select" id="solo-time-select">
+                    <option value="60">1 Minute</option>
+                    <option value="90">1.5 Minutes</option>
+                    <option value="120" selected>2 Minutes</option>
+                    <option value="180">3 Minutes</option>
+                    <option value="0">No Limit ∞</option>
+                </select>
+            </div>
+
+            <div class="solo-settings-buttons">
+                <button class="solo-settings-btn solo-settings-back" id="solo-settings-back">Back</button>
+                <button class="solo-settings-btn solo-settings-start" id="solo-settings-start">⛏️ Start Dig</button>
+            </div>
+        </div>
+    </div>
+
+
     <!-- Game Over Screen - Skribbl Style -->
     <div id="game-over">
         <div class="game-over-content">
@@ -2856,6 +3127,9 @@
             <div class="game-over-buttons">
                 <button class="game-over-btn play-again-btn" id="play-again-btn">New Expedition</button>
                 <button class="game-over-btn menu-return-btn" id="menu-return-btn">Base Camp</button>
+                <button class="menu-btn" onclick="window.showShareModal()">
+                    🏺 Share Results
+                </button>
             </div>
         </div>
     </div>

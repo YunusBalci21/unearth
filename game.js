@@ -7,6 +7,7 @@ import { initMenuSystem, submitMultiplayerGuess, isMultiplayerGame, showGameOver
 import { artifactService } from './artifactService.js';
 import { tutorial } from './tutorial.js';
 import { settingsController } from './settings.js';
+import { shareResults } from './shareResults.js';
 
 
 // ============================================
@@ -134,18 +135,23 @@ let digTargetPoint = null;
 
 // Multiplayer & Game Settings
 let gameSettings = {
-    rounds: 10,
+    rounds: 5,
     timePerRound: 120,
     isMultiplayer: false
 };
 let currentRound = 0;
-let totalRounds = 10;
+let totalRounds = 5;
 let correctGuesses = 0;
 let totalGuesses = 0;
 let totalArtifactsFoundGame = 0;
 let roundTimer = null;
 let timeRemaining = 0;
 let hasGuessedThisRound = false;
+
+// Round results tracking for share feature
+let roundResults = [];
+let currentStreak = 0;
+let bestStreak = 0;
 
 // ============================================
 // THREE.JS SETUP
@@ -233,6 +239,12 @@ async function init() {
         totalGuesses = 0;
         totalArtifactsFoundGame = 0;
         score = 0;
+
+        // Reset share tracking
+        roundResults = [];
+        currentStreak = 0;
+        bestStreak = 0;
+
         document.getElementById('score-value').textContent = '0';
 
         // Start game
@@ -245,10 +257,135 @@ async function init() {
         audioManager.startMenuMusic();
     }
 
+    // Initialize solo settings modal
+    initSoloSettingsModal();
+
     // DON'T auto-start the game - wait for menu selection
 
     // Animation loop
     animate();
+}
+
+// ============================================
+// SOLO SETTINGS MODAL
+// ============================================
+
+function initSoloSettingsModal() {
+    const modal = document.getElementById('solo-settings-modal');
+    const soloPlayBtn = document.getElementById('solo-play-btn');
+
+    // If modal doesn't exist, skip initialization
+    if (!modal || !soloPlayBtn) {
+        console.log('[SoloSettings] Modal not found, skipping');
+        return;
+    }
+
+    const closeBtn = document.getElementById('solo-settings-close');
+    const backBtn = document.getElementById('solo-settings-back');
+    const startBtn = document.getElementById('solo-settings-start');
+    const backdrop = modal.querySelector('.solo-settings-backdrop');
+    const roundOptions = modal.querySelectorAll('.round-option');
+    const timeSelect = document.getElementById('solo-time-select');
+
+    let selectedRounds = 5;
+    let selectedTime = 120;
+
+    // Clone and replace button to remove ALL existing event listeners
+    const newSoloBtn = soloPlayBtn.cloneNode(true);
+    soloPlayBtn.parentNode.replaceChild(newSoloBtn, soloPlayBtn);
+
+    // Open modal when clicking Solo Expedition
+    newSoloBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        modal.classList.add('show');
+        audioManager.playClick();
+    });
+
+    // Close modal function
+    function closeModal() {
+        modal.classList.remove('show');
+        audioManager.playClick();
+    }
+
+    // Close button handlers
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (backBtn) backBtn.addEventListener('click', closeModal);
+    if (backdrop) backdrop.addEventListener('click', closeModal);
+
+    // ESC to close
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal.classList.contains('show')) {
+            closeModal();
+        }
+    });
+
+    // Round selection
+    roundOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            roundOptions.forEach(o => o.classList.remove('selected'));
+            this.classList.add('selected');
+            selectedRounds = parseInt(this.dataset.rounds);
+            audioManager.playClick();
+        });
+    });
+
+    // Time selection
+    if (timeSelect) {
+        timeSelect.addEventListener('change', function() {
+            selectedTime = parseInt(this.value);
+        });
+    }
+
+    // Start game with selected settings
+    if (startBtn) {
+        startBtn.addEventListener('click', function() {
+            const timePerRound = timeSelect ? parseInt(timeSelect.value) : 120;
+
+            console.log('[SoloSettings] Starting game with', selectedRounds, 'rounds,', timePerRound, 'sec/round');
+
+            // Close modal
+            modal.classList.remove('show');
+
+            // Hide main menu
+            const mainMenu = document.getElementById('main-menu');
+            if (mainMenu) mainMenu.style.display = 'none';
+
+            // Show game container (note: not 'game-ui')
+            const gameContainer = document.getElementById('game-container');
+            if (gameContainer) gameContainer.style.display = 'block';
+
+            audioManager.playClick();
+
+            // Start game directly with our settings
+            audioManager.stopMenuMusic();
+
+            gameSettings = {
+                rounds: selectedRounds,
+                timePerRound: timePerRound,
+                isMultiplayer: false
+            };
+            totalRounds = selectedRounds;
+            currentRound = 0;
+            correctGuesses = 0;
+            totalGuesses = 0;
+            totalArtifactsFoundGame = 0;
+            score = 0;
+
+            // Reset share tracking
+            roundResults = [];
+            currentStreak = 0;
+            bestStreak = 0;
+
+            document.getElementById('score-value').textContent = '0';
+
+            // Start game
+            startNewRound();
+        });
+    }
+
+    console.log('[SoloSettings] Modal initialized');
 }
 
 async function loadShovel() {
@@ -3097,6 +3234,25 @@ function makeGuess() {
 
     const isCorrect = guess === correct;
 
+    // Track round result for sharing
+    roundResults.push({
+        round: currentRound,
+        correct: isCorrect,
+        artifactsFound: artifactsFound,
+        civilization: currentCountry.name,
+        timeRemaining: timeRemaining
+    });
+
+    // Track streak
+    if (isCorrect) {
+        currentStreak++;
+        if (currentStreak > bestStreak) {
+            bestStreak = currentStreak;
+        }
+    } else {
+        currentStreak = 0;
+    }
+
     if (isCorrect) {
         // Calculate points based on artifacts found and time
         const points = getPointsForCorrectGuess();
@@ -3761,6 +3917,21 @@ function showFinalResults() {
     // Stop game music
     audioManager.stopGameMusic();
 
+    // Prepare share data
+    const shareData = {
+        score: score,
+        correctGuesses: correctGuesses,
+        totalRounds: totalRounds,
+        totalArtifacts: totalArtifactsFoundGame,
+        streak: bestStreak,
+        roundResults: roundResults,
+        isDaily: false,
+        dailyNumber: null
+    };
+
+    // Expose share data to window for share button
+    window.lastGameResults = shareData;
+
     // Use the global function from index.html
     if (window.showGameResults) {
         window.showGameResults({
@@ -3952,6 +4123,42 @@ window.stopMenuMusic = () => audioManager.stopMenuMusic();
 
 // Expose settings controller
 window.settingsController = settingsController;
+
+// Expose share functionality
+window.shareResults = shareResults;
+window.showShareModal = () => {
+    console.log('[Share] showShareModal called');
+    console.log('[Share] lastGameResults:', window.lastGameResults);
+    if (window.lastGameResults) {
+        shareResults.showShareModal(window.lastGameResults);
+    } else {
+        console.error('[Share] No game results to share!');
+    }
+};
+
+// Expose solo game start function (called by solo-settings-modal)
+window.startSoloGame = (settings) => {
+    // Stop menu music when game starts
+    audioManager.stopMenuMusic();
+
+    gameSettings = settings;
+    totalRounds = settings.rounds;
+    currentRound = 0;
+    correctGuesses = 0;
+    totalGuesses = 0;
+    totalArtifactsFoundGame = 0;
+    score = 0;
+
+    // Reset share tracking
+    roundResults = [];
+    currentStreak = 0;
+    bestStreak = 0;
+
+    document.getElementById('score-value').textContent = '0';
+
+    // Start game
+    startNewRound();
+};
 
 // ============================================
 // START
