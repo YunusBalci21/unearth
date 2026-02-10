@@ -5,7 +5,7 @@
 
 class ShareResults {
     constructor() {
-        this.baseUrl = 'https://unearth.game'; // Update with your actual URL
+        this.baseUrl = 'https://playunearth.tech'; // Update with your actual URL
     }
 
     // Generate share text from game results
