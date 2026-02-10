@@ -14,8 +14,13 @@ class AudioManager {
             incorrect: null,
             notification: null,
             click: null,        // Menu button clicks
-            bonfire: null       // Ambient bonfire (SFX category)
+            bonfire: null,      // Ambient bonfire (SFX category)
+            countdown: null     // Countdown tick
         };
+
+        // Countdown state
+        this.countdownActive = false;
+        this.lastCountdownTick = -1;
 
         // Music tracks
         this.menuMusic = null;          // intro_main.mp3 - menu theme
@@ -76,6 +81,7 @@ class AudioManager {
         this.sounds.notification = await this.loadAudio('./public/sounds/notification.wav');
         this.sounds.click = await this.loadAudio('./public/sounds/clicking.wav');
         this.sounds.bonfire = await this.loadAudio('./public/sounds/bonfire.mp3', true); // Loop
+        this.sounds.countdown = await this.loadAudio('./public/sounds/countdown-singlesound.mp3');
 
         // Music tracks
         this.menuMusic = await this.loadAudio('./public/sounds/intro_main.mp3', true);
@@ -257,6 +263,39 @@ class AudioManager {
 
     playNotification() {
         this.playSFX(this.sounds.notification);
+    }
+
+    // Countdown tick - called each second with seconds remaining
+    // Plays the tick sound with pitch rising in the final 3 seconds
+    playCountdownTick(secondsLeft) {
+        if (!this.sfxEnabled || !this.sounds.countdown) return;
+        if (secondsLeft > 10 || secondsLeft <= 0) return;
+
+        // Don't double-tick the same second
+        if (secondsLeft === this.lastCountdownTick) return;
+        this.lastCountdownTick = secondsLeft;
+
+        const sound = this.sounds.countdown.cloneNode();
+
+        // Pitch: normal for 10-4, rising for 3-1
+        // 1 semitone = 2^(1/12) ≈ 1.0595
+        let rate = 1.0;
+        if (secondsLeft === 3) rate = Math.pow(2, 1 / 12);      // +1 semitone
+        else if (secondsLeft === 2) rate = Math.pow(2, 1.5 / 12); // +1.5 semitones
+        else if (secondsLeft === 1) rate = Math.pow(2, 2 / 12);   // +2 semitones
+
+        sound.playbackRate = rate;
+
+        // Volume: gentle ramp from 0.4 at 10s to 0.8 at 1s
+        const volScale = 0.4 + (0.4 * (1 - (secondsLeft - 1) / 9));
+        sound.volume = Math.min(1.0, this.sfxVolume * this.masterVolume * volScale);
+
+        sound.play().catch(() => {});
+    }
+
+    // Reset countdown state (call at round start / end)
+    resetCountdown() {
+        this.lastCountdownTick = -1;
     }
 
     playSFX(audio, volumeMultiplier = 1.0) {

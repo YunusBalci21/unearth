@@ -2,8 +2,37 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Unearth - Archaeological Guessing Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Unearth — Archaeological Guessing Game</title>
+
+    <!-- SEO -->
+    <meta name="description" content="Dig through ancient ruins, uncover artifacts, and guess which country they belong to. Multiplayer archaeology game with 32 countries. Free to play.">
+    <meta name="keywords" content="unearth, archaeology game, guessing game, multiplayer, geography, history, artifacts, countries">
+    <meta name="author" content="Unearth">
+    <meta name="theme-color" content="#0a0705">
+
+    <!-- Open Graph (Facebook, Discord, iMessage) -->
+    <!-- IMPORTANT: Update these URLs with your Render domain before launch -->
+    <!-- e.g. https://unearth-xxxx.onrender.com/public/images/og-image.png -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Unearth — Dig Deep, Discover History">
+    <meta property="og:description" content="A multiplayer archaeological guessing game. Uncover artifacts from 32 countries and prove your knowledge.">
+    <meta property="og:image" content="/public/images/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Unearth — Dig Deep, Discover History">
+    <meta name="twitter:description" content="A multiplayer archaeological guessing game. Uncover artifacts from 32 countries.">
+    <meta name="twitter:image" content="/public/images/og-image.png">
+
+    <!-- Mobile web app -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Unearth">
+
+    <!-- Favicons -->
     <link rel="apple-touch-icon" sizes="180x180" href="/public/favicons/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/public/favicons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/public/favicons/favicon-16x16.png">
@@ -13,6 +42,40 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
     <style>
+        /* Global mobile fixes */
+        html, body {
+            overscroll-behavior: none;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Safe area padding for notched phones */
+        @supports (padding: env(safe-area-inset-top)) {
+            #score-panel { padding-top: max(20px, env(safe-area-inset-top)) !important; }
+            #round-panel { padding-top: max(10px, env(safe-area-inset-top)) !important; }
+            #ingame-buttons { top: max(20px, env(safe-area-inset-top)) !important; }
+            #guess-panel { padding-bottom: max(15px, env(safe-area-inset-bottom)) !important; }
+        }
+
+        /* Touch ripple effect for digging */
+        .dig-ripple {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 215, 0, 0.6);
+            pointer-events: none;
+            transform: translate(-50%, -50%) scale(0.5);
+            animation: dig-ripple-anim 0.4s ease-out forwards;
+            z-index: 50;
+        }
+
+        @keyframes dig-ripple-anim {
+            to {
+                transform: translate(-50%, -50%) scale(1.5);
+                opacity: 0;
+            }
+        }
+
         /* Splash Screen */
         #splash-screen {
             position: fixed;
@@ -127,11 +190,11 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: 
-                radial-gradient(ellipse at 20% 80%, rgba(139, 90, 43, 0.15) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 20%, rgba(184, 134, 11, 0.1) 0%, transparent 50%),
-                radial-gradient(ellipse at 50% 50%, rgba(30, 20, 10, 0.8) 0%, transparent 70%),
-                linear-gradient(180deg, #0d0906 0%, #1a120a 50%, #0d0906 100%);
+            background:
+                    radial-gradient(ellipse at 20% 80%, rgba(139, 90, 43, 0.15) 0%, transparent 50%),
+                    radial-gradient(ellipse at 80% 20%, rgba(184, 134, 11, 0.1) 0%, transparent 50%),
+                    radial-gradient(ellipse at 50% 50%, rgba(30, 20, 10, 0.8) 0%, transparent 70%),
+                    linear-gradient(180deg, #0d0906 0%, #1a120a 50%, #0d0906 100%);
             z-index: 1;
         }
 
@@ -440,19 +503,19 @@
         .menu-btn-primary {
             background: linear-gradient(180deg, #d4af37 0%, #a08030 50%, #8b6914 100%);
             color: #1a0f00;
-            box-shadow: 
-                0 4px 15px rgba(201, 162, 39, 0.4),
-                inset 0 1px 0 rgba(255,255,255,0.3),
-                inset 0 -2px 0 rgba(0,0,0,0.2);
+            box-shadow:
+                    0 4px 15px rgba(201, 162, 39, 0.4),
+                    inset 0 1px 0 rgba(255,255,255,0.3),
+                    inset 0 -2px 0 rgba(0,0,0,0.2);
         }
 
         .menu-btn-primary:hover {
             background: linear-gradient(180deg, #e5c040 0%, #b89038 50%, #9a7818 100%);
             transform: translateY(-3px);
-            box-shadow: 
-                0 8px 25px rgba(201, 162, 39, 0.5),
-                inset 0 1px 0 rgba(255,255,255,0.4),
-                inset 0 -2px 0 rgba(0,0,0,0.2);
+            box-shadow:
+                    0 8px 25px rgba(201, 162, 39, 0.5),
+                    inset 0 1px 0 rgba(255,255,255,0.4),
+                    inset 0 -2px 0 rgba(0,0,0,0.2);
         }
 
         .menu-btn-secondary {
@@ -467,9 +530,9 @@
             border-color: #b8860b;
             color: #ffd700;
             transform: translateY(-3px);
-            box-shadow: 
-                0 8px 20px rgba(0, 0, 0, 0.5),
-                0 0 20px rgba(139, 105, 20, 0.2);
+            box-shadow:
+                    0 8px 20px rgba(0, 0, 0, 0.5),
+                    0 0 20px rgba(139, 105, 20, 0.2);
         }
 
         /* Footer */
@@ -888,9 +951,9 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: 
-                radial-gradient(ellipse at 20% 80%, rgba(139, 90, 43, 0.1) 0%, transparent 50%),
-                linear-gradient(180deg, #0d0906 0%, #1a120a 50%, #0d0906 100%);
+            background:
+                    radial-gradient(ellipse at 20% 80%, rgba(139, 90, 43, 0.1) 0%, transparent 50%),
+                    linear-gradient(180deg, #0d0906 0%, #1a120a 50%, #0d0906 100%);
             display: none;
             flex-direction: column;
             padding: 40px;
@@ -909,9 +972,9 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: 
-                radial-gradient(ellipse at 20% 80%, rgba(139, 90, 43, 0.1) 0%, transparent 50%),
-                linear-gradient(180deg, #0d0906 0%, #1a120a 50%, #0d0906 100%);
+            background:
+                    radial-gradient(ellipse at 20% 80%, rgba(139, 90, 43, 0.1) 0%, transparent 50%),
+                    linear-gradient(180deg, #0d0906 0%, #1a120a 50%, #0d0906 100%);
             display: none;
             flex-direction: column;
             padding: 40px;
@@ -1641,10 +1704,12 @@
 
         .score-entry {
             display: flex;
+            align-items: center;
             justify-content: space-between;
             padding: 6px 0;
             border-bottom: 1px solid rgba(139, 105, 20, 0.15);
             color: #a08060;
+            gap: 8px;
         }
 
         .score-entry:last-child {
@@ -1760,7 +1825,41 @@
             transform: translate(-50%, -50%);
             font-family: 'Cinzel', serif;
             color: #ffd700;
-            font-size: 24px;
+            font-size: 18px;
+            letter-spacing: 3px;
+            text-align: center;
+            z-index: 10;
+        }
+
+        #loading::after {
+            content: '';
+            display: block;
+            width: 120px;
+            height: 3px;
+            background: rgba(139, 105, 20, 0.2);
+            border-radius: 2px;
+            margin: 16px auto 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #loading::before {
+            content: '';
+            position: absolute;
+            bottom: -19px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 3px;
+            background: linear-gradient(90deg, #8b6914, #ffd700);
+            border-radius: 2px;
+            animation: loading-slide 1.2s ease-in-out infinite;
+        }
+
+        @keyframes loading-slide {
+            0% { margin-left: -40px; }
+            50% { margin-left: 40px; }
+            100% { margin-left: -40px; }
         }
 
         .autocomplete-list {
@@ -1817,6 +1916,7 @@
             left: 200px;
             pointer-events: auto;
             z-index: 100;
+            display: none;
         }
 
         #debug-toggle {
@@ -1905,6 +2005,113 @@
             height: 18px;
             cursor: pointer;
             accent-color: #c9a227;
+        }
+
+        /* In-game buttons (top-right) */
+        #ingame-buttons {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            pointer-events: auto;
+            z-index: 100;
+            display: flex;
+            gap: 8px;
+        }
+
+        .ingame-btn {
+            background: rgba(40, 25, 10, 0.85);
+            border: 1px solid rgba(139, 105, 20, 0.4);
+            color: #a08060;
+            width: 42px;
+            height: 42px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .ingame-btn:hover {
+            background: rgba(60, 40, 20, 0.9);
+            border-color: #ffd700;
+            color: #ffd700;
+        }
+
+        /* Pause overlay */
+        #pause-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(5, 3, 1, 0.85);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+            pointer-events: auto;
+        }
+
+        #pause-overlay.show {
+            display: flex;
+        }
+
+        #pause-menu {
+            background: linear-gradient(135deg, rgba(26, 16, 8, 0.98), rgba(15, 10, 5, 0.98));
+            border: 1px solid rgba(139, 105, 20, 0.4);
+            border-radius: 14px;
+            padding: 36px 40px;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .pause-title {
+            font-family: 'Cinzel', serif;
+            color: #ffd700;
+            font-size: 24px;
+            letter-spacing: 4px;
+            margin-bottom: 10px;
+        }
+
+        .pause-btn {
+            width: 100%;
+            padding: 14px 24px;
+            background: rgba(40, 25, 10, 0.9);
+            border: 1px solid rgba(139, 105, 20, 0.4);
+            color: #c8b08a;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Crimson Text', serif;
+            font-size: 16px;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .pause-btn:hover {
+            background: rgba(60, 40, 20, 0.9);
+            border-color: #ffd700;
+            color: #ffd700;
+        }
+
+        .pause-btn-danger {
+            border-color: rgba(180, 60, 60, 0.4);
+            color: #d48080;
+        }
+
+        .pause-btn-danger:hover {
+            background: rgba(80, 20, 20, 0.9);
+            border-color: #b43c3c;
+            color: #ff8080;
+        }
+
+        .pause-hint {
+            color: #504030;
+            font-size: 12px;
+            margin-top: 6px;
+            letter-spacing: 1px;
         }
 
         /* Name Input Modal */
@@ -2658,801 +2865,1192 @@
             border-color: #ef4444;
             color: #ef4444;
         }
+
+        /* ============================================
+           COLOR PICKER
+           ============================================ */
+        .color-picker {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .color-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .color-swatch:hover {
+            transform: scale(1.15);
+            border-color: rgba(255,255,255,0.5);
+        }
+
+        .color-swatch.active {
+            border-color: #fff;
+            box-shadow: 0 0 8px rgba(255,255,255,0.4);
+            transform: scale(1.15);
+        }
+
+        /* Solo name input */
+        .solo-name-input {
+            width: 100%;
+            padding: 10px 14px;
+            background: rgba(30, 18, 8, 0.8);
+            border: 2px solid #3d2612;
+            border-radius: 6px;
+            color: #e0d0b0;
+            font-family: 'Crimson Text', serif;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .solo-name-input:focus {
+            border-color: #8b6914;
+        }
+
+        .solo-name-input::placeholder {
+            color: #6b5030;
+        }
+
+        /* ============================================
+           LEADERBOARD OVERLAY
+           ============================================ */
+        .leaderboard-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .leaderboard-overlay.show {
+            display: flex;
+        }
+
+        .leaderboard-modal {
+            background: linear-gradient(135deg, rgba(26, 16, 8, 0.98), rgba(15, 10, 5, 0.98));
+            border: 1px solid rgba(139, 105, 20, 0.4);
+            border-radius: 14px;
+            width: 90%;
+            max-width: 520px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .leaderboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(139, 105, 20, 0.2);
+        }
+
+        .leaderboard-header h2 {
+            font-family: 'Cinzel', serif;
+            color: #ffd700;
+            font-size: 20px;
+            letter-spacing: 3px;
+        }
+
+        .leaderboard-list {
+            overflow-y: auto;
+            padding: 12px 20px;
+            flex: 1;
+        }
+
+        .lb-entry {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 8px;
+            border-bottom: 1px solid rgba(139, 105, 20, 0.1);
+        }
+
+        .lb-entry.lb-top {
+            background: rgba(139, 105, 20, 0.08);
+        }
+
+        .lb-rank {
+            min-width: 36px;
+            font-family: 'Cinzel', serif;
+            color: #8b6914;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .lb-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .lb-name {
+            flex: 1;
+            color: #e0d0b0;
+            font-size: 15px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .lb-details {
+            color: #6b5030;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .lb-score {
+            font-family: 'Cinzel', serif;
+            color: #ffd700;
+            font-size: 16px;
+            font-weight: 600;
+            min-width: 60px;
+            text-align: right;
+        }
+
+        /* ============================================
+           MOBILE RESPONSIVE
+           ============================================ */
+        @media (max-width: 768px) {
+            /* Main menu */
+            .menu-title { font-size: 36px !important; letter-spacing: 8px !important; }
+            .menu-logo-icon { font-size: 48px !important; }
+            .menu-btn { padding: 14px 20px !important; font-size: 15px !important; min-height: 48px; }
+            .floating-artifacts { display: none; }
+            .torch { display: none; }
+            .torch-glow { display: none; }
+
+            /* Splash */
+            .splash-action::after { content: 'Tap'; }
+            .splash-action { font-size: 0; }
+            .splash-action::after { font-size: 18px; }
+
+            /* Game UI panels */
+            #score-panel {
+                top: 10px !important;
+                left: 10px !important;
+                padding: 12px 16px !important;
+            }
+            #score-value { font-size: 24px !important; }
+            #artifacts-found { font-size: 12px !important; }
+
+            #round-panel {
+                top: 10px !important;
+                padding: 10px 20px !important;
+            }
+            #round-display { font-size: 12px !important; }
+            #timer-display { font-size: 24px !important; }
+
+            #multiplayer-scores {
+                top: auto !important;
+                bottom: 110px !important;
+                right: 10px !important;
+                padding: 10px 14px !important;
+                min-width: 140px !important;
+                font-size: 13px !important;
+            }
+
+            /* Guess panel */
+            #guess-panel {
+                bottom: 10px !important;
+                left: 5px !important;
+                right: 5px !important;
+                transform: none !important;
+                padding: 12px 15px !important;
+                gap: 8px !important;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            #country-input {
+                width: 100% !important;
+                padding: 14px 16px !important;
+                font-size: 16px !important; /* Prevents iOS zoom */
+                min-height: 48px;
+            }
+
+            #guess-btn {
+                padding: 14px 24px !important;
+                font-size: 14px !important;
+                flex: 1;
+                min-height: 48px;
+            }
+
+            #next-round-btn {
+                padding: 14px 24px !important;
+                font-size: 14px !important;
+                flex: 1;
+                min-height: 48px;
+            }
+
+            #potential-points { font-size: 12px !important; width: 100%; text-align: center; }
+
+            /* Hint */
+            #hint {
+                top: 80px !important;
+                right: 10px !important;
+                font-size: 12px !important;
+                padding: 10px 14px !important;
+            }
+
+            /* In-game buttons */
+            #ingame-buttons {
+                top: 10px !important;
+                right: 10px !important;
+            }
+
+            .ingame-btn {
+                width: 44px !important;
+                height: 44px !important;
+                font-size: 18px !important;
+            }
+
+            /* Message overlay */
+            #message { font-size: 36px !important; }
+
+            /* Pause menu */
+            #pause-menu {
+                padding: 28px 30px !important;
+                min-width: 260px !important;
+            }
+
+            .pause-btn {
+                min-height: 48px !important;
+                font-size: 15px !important;
+            }
+
+            /* Autocomplete */
+            .autocomplete-list { width: 100% !important; }
+            .autocomplete-item { padding: 14px 18px !important; min-height: 44px; }
+
+            /* Lobby screens */
+            .create-form { padding: 20px !important; }
+            .lobby-room-content { flex-direction: column !important; }
+            .lobby-sidebar { flex-direction: row !important; flex-wrap: wrap !important; gap: 10px !important; }
+            .start-game-btn, .leave-btn { flex: 1 !important; min-height: 48px; }
+
+            /* Solo settings */
+            .solo-settings-dialog { margin: 10px !important; }
+
+            /* Game over */
+            .game-over-content { padding: 20px !important; }
+            .podium-container { gap: 10px !important; }
+            .podium-avatar { width: 48px !important; height: 48px !important; }
+            .results-title { font-size: 28px !important; }
+            .final-score { font-size: 48px !important; }
+            .game-over-btn { min-height: 48px !important; }
+
+            /* Leaderboard modal */
+            .leaderboard-modal { margin: 10px !important; max-height: 80vh !important; }
+            .lb-entry { padding: 10px 8px !important; min-height: 44px; }
+
+            /* Color picker touch targets */
+            .color-swatch { width: 36px !important; height: 36px !important; }
+        }
+
+        @media (max-width: 480px) {
+            .menu-title { font-size: 28px !important; letter-spacing: 6px !important; }
+            #score-panel h2 { font-size: 10px !important; }
+            #score-value { font-size: 20px !important; }
+            #timer-display { font-size: 20px !important; }
+            .podium-stand { display: none !important; }
+        }
     </style>
 </head>
 <body>
 
-    <div id="splash-screen">
-        <div class="splash-pickaxe">⛏️</div>
-        <h1 class="splash-title">UNEARTH</h1>
-        <p class="splash-prompt"><span>Click</span> to Begin</p>
+<div id="splash-screen">
+    <div class="splash-pickaxe">⛏️</div>
+    <h1 class="splash-title">UNEARTH</h1>
+    <p class="splash-prompt"><span class="splash-action">Click</span> to Begin</p>
+</div>
+
+<!-- Main Menu -->
+<div id="main-menu">
+    <!-- Background layers -->
+    <div class="menu-background"></div>
+    <div class="terrain-decoration"></div>
+    <div class="vignette"></div>
+
+    <!-- Floating artifacts -->
+    <div class="floating-artifacts">
+        <div class="floating-artifact">🏺</div>
+        <div class="floating-artifact">⚱️</div>
+        <div class="floating-artifact">🗿</div>
+        <div class="floating-artifact">👑</div>
+        <div class="floating-artifact">🏛️</div>
+        <div class="floating-artifact">⛩️</div>
+        <div class="floating-artifact">🎭</div>
+        <div class="floating-artifact">🗡️</div>
     </div>
 
-    <!-- Main Menu -->
-    <div id="main-menu">
-        <!-- Background layers -->
-        <div class="menu-background"></div>
-        <div class="terrain-decoration"></div>
-        <div class="vignette"></div>
-        
-        <!-- Floating artifacts -->
-        <div class="floating-artifacts">
-            <div class="floating-artifact">🏺</div>
-            <div class="floating-artifact">⚱️</div>
-            <div class="floating-artifact">🗿</div>
-            <div class="floating-artifact">👑</div>
-            <div class="floating-artifact">🏛️</div>
-            <div class="floating-artifact">⛩️</div>
-            <div class="floating-artifact">🎭</div>
-            <div class="floating-artifact">🗡️</div>
-        </div>
-        
-        <!-- Particles -->
-        <div class="particles-container" id="particles"></div>
-        
-        <!-- Torches -->
-        <div class="torch torch-left">
-            <div class="torch-flame">🔥</div>
-            <div class="torch-handle"></div>
-        </div>
-        <div class="torch-glow torch-glow-left"></div>
-        
-        <div class="torch torch-right">
-            <div class="torch-flame">🔥</div>
-            <div class="torch-handle"></div>
-        </div>
-        <div class="torch-glow torch-glow-right"></div>
-        
-        <!-- Corner decorations -->
-        <div class="corner-decoration corner-tl"></div>
-        <div class="corner-decoration corner-tr"></div>
-        <div class="corner-decoration corner-bl"></div>
-        <div class="corner-decoration corner-br"></div>
-        
-        <!-- Top buttons -->
-        <div class="top-buttons">
-            <button class="icon-btn" id="sound-toggle-btn" title="Toggle Sound">🔊</button>
-            <button class="icon-btn" id="settings-btn" title="Settings">⚙️</button>
-        </div>
-        
-        <!-- Main content - CENTERED -->
-        <div class="menu-content">
-            <span class="menu-logo-icon">⛏️</span>
-            <h1 class="menu-title">UNEARTH</h1>
-            <p class="menu-subtitle">Dig Deep • Discover History</p>
-            
-            <div class="decorative-line"></div>
-            
-            <div class="menu-buttons">
-                <button class="menu-btn menu-btn-primary" id="solo-play-btn">
-                    🎮 Solo Expedition
-                </button>
-                <button class="menu-btn menu-btn-secondary" id="create-lobby-btn">
-                    ⚔️ Create Lobby
-                </button>
-                <button class="menu-btn menu-btn-secondary" id="join-lobby-btn">
-                    🌍 Join Lobby
-                </button>
+    <!-- Particles -->
+    <div class="particles-container" id="particles"></div>
 
-                <button class="menu-btn menu-btn-secondary"
-                        onclick="window.resetTutorial(); window.startTutorial();">
-                    📖 How to Play
-                </button>
-            </div>
-        </div>
-        
-        <!-- Footer -->
-        <div class="menu-footer">Made with ⛏️ by Yunus</div>
-        <div class="version-tag">v1.0.0</div>
+    <!-- Torches -->
+    <div class="torch torch-left">
+        <div class="torch-flame">🔥</div>
+        <div class="torch-handle"></div>
+    </div>
+    <div class="torch-glow torch-glow-left"></div>
+
+    <div class="torch torch-right">
+        <div class="torch-flame">🔥</div>
+        <div class="torch-handle"></div>
+    </div>
+    <div class="torch-glow torch-glow-right"></div>
+
+    <!-- Corner decorations -->
+    <div class="corner-decoration corner-tl"></div>
+    <div class="corner-decoration corner-tr"></div>
+    <div class="corner-decoration corner-bl"></div>
+    <div class="corner-decoration corner-br"></div>
+
+    <!-- Top buttons -->
+    <div class="top-buttons">
+        <button class="icon-btn" id="sound-toggle-btn" title="Toggle Sound">🔊</button>
+        <button class="icon-btn" id="settings-btn" title="Settings">⚙️</button>
     </div>
 
-    <!-- Settings Modal -->
-    <div class="settings-overlay" id="settings-overlay">
-        <div class="settings-modal">
-            <div class="settings-header">
-                <h2>⚙️ Settings</h2>
-                <button class="settings-close" id="settings-close">×</button>
-            </div>
-            
-            <div class="settings-group">
-                <label>Master Volume</label>
-                <div class="settings-slider-container">
-                    <input type="range" class="settings-slider" id="volume-slider" min="0" max="100" value="50">
-                    <span class="settings-value" id="volume-value">50%</span>
-                </div>
-            </div>
-            
-            <div class="settings-group">
-                <label>Music Volume</label>
-                <div class="settings-slider-container">
-                    <input type="range" class="settings-slider" id="music-slider" min="0" max="100" value="30">
-                    <span class="settings-value" id="music-value">30%</span>
-                </div>
-            </div>
-            
-            <div class="settings-group">
-                <label>SFX Volume</label>
-                <div class="settings-slider-container">
-                    <input type="range" class="settings-slider" id="sfx-slider" min="0" max="100" value="70">
-                    <span class="settings-value" id="sfx-value">70%</span>
-                </div>
-            </div>
-            
-            <div class="settings-group">
-                <div class="settings-toggle-container">
-                    <span class="settings-toggle-label">Particles</span>
-                    <div class="toggle-switch active" id="particles-toggle"></div>
-                </div>
-            </div>
-            
-            <div class="settings-group">
-                <div class="settings-toggle-container">
-                    <span class="settings-toggle-label">Screen Shake</span>
-                    <div class="toggle-switch active" id="shake-toggle"></div>
-                </div>
-            </div>
+    <!-- Main content - CENTERED -->
+    <div class="menu-content">
+        <span class="menu-logo-icon">⛏️</span>
+        <h1 class="menu-title">UNEARTH</h1>
+        <p class="menu-subtitle">Dig Deep • Discover History</p>
+
+        <div class="decorative-line"></div>
+
+        <div class="menu-buttons">
+            <button class="menu-btn menu-btn-primary" id="solo-play-btn">
+                🎮 Solo Expedition
+            </button>
+            <button class="menu-btn menu-btn-secondary" id="create-lobby-btn">
+                ⚔️ Create Lobby
+            </button>
+            <button class="menu-btn menu-btn-secondary" id="join-lobby-btn">
+                🌍 Join Lobby
+            </button>
+
+            <button class="menu-btn menu-btn-secondary"
+                    onclick="window.resetTutorial(); window.startTutorial();">
+                📖 How to Play
+            </button>
+            <button class="menu-btn menu-btn-secondary" id="leaderboard-btn">
+                🏆 Leaderboard
+            </button>
         </div>
     </div>
 
-    <!-- Lobby Browser -->
-    <div id="lobby-browser">
-        <div class="screen-header">
-            <h1 class="screen-title">Browse Expeditions</h1>
-            <button class="back-btn" id="browser-back-btn">← Back</button>
+    <!-- Footer -->
+    <div class="menu-footer">Made with ⛏️ by Yunus</div>
+    <div class="version-tag">v1.0.0</div>
+</div>
+
+<!-- Settings Modal -->
+<div class="settings-overlay" id="settings-overlay">
+    <div class="settings-modal">
+        <div class="settings-header">
+            <h2>⚙️ Settings</h2>
+            <button class="settings-close" id="settings-close">×</button>
         </div>
-        <div class="lobby-list-container">
-            <div id="lobby-list">
-                <div class="no-lobbies">No expeditions found. Create one!</div>
+
+        <div class="settings-group">
+            <label>Master Volume</label>
+            <div class="settings-slider-container">
+                <input type="range" class="settings-slider" id="volume-slider" min="0" max="100" value="50">
+                <span class="settings-value" id="volume-value">50%</span>
             </div>
         </div>
-        <div class="browser-actions">
-            <button class="refresh-btn" id="refresh-lobbies-btn">🔄 Refresh</button>
-            <input type="text" id="join-code-input" placeholder="Enter expedition code..." style="flex: 1; padding: 14px; background: rgba(30,18,8,0.8); border: 2px solid #3d2612; border-radius: 6px; color: #e0d0b0; font-size: 16px; outline: none;">
-            <button class="menu-btn menu-btn-primary" id="join-by-code-btn" style="padding: 14px 30px; width: auto;">Join</button>
+
+        <div class="settings-group">
+            <label>Music Volume</label>
+            <div class="settings-slider-container">
+                <input type="range" class="settings-slider" id="music-slider" min="0" max="100" value="30">
+                <span class="settings-value" id="music-value">30%</span>
+            </div>
+        </div>
+
+        <div class="settings-group">
+            <label>SFX Volume</label>
+            <div class="settings-slider-container">
+                <input type="range" class="settings-slider" id="sfx-slider" min="0" max="100" value="70">
+                <span class="settings-value" id="sfx-value">70%</span>
+            </div>
+        </div>
+
+        <div class="settings-group">
+            <div class="settings-toggle-container">
+                <span class="settings-toggle-label">Particles</span>
+                <div class="toggle-switch active" id="particles-toggle"></div>
+            </div>
+        </div>
+
+        <div class="settings-group">
+            <div class="settings-toggle-container">
+                <span class="settings-toggle-label">Screen Shake</span>
+                <div class="toggle-switch active" id="shake-toggle"></div>
+            </div>
         </div>
     </div>
+</div>
 
-    <!-- Create Lobby Screen -->
-    <div id="create-lobby">
-        <div class="screen-header" style="width: 100%; max-width: 550px; margin: 0 auto;">
-            <h1 class="screen-title">Create Expedition</h1>
-            <button class="back-btn" id="create-back-btn">← Back</button>
+<!-- Leaderboard Overlay -->
+<div class="leaderboard-overlay" id="leaderboard-overlay">
+    <div class="leaderboard-modal">
+        <div class="leaderboard-header">
+            <h2>🏆 Leaderboard</h2>
+            <button class="settings-close" id="leaderboard-close">×</button>
         </div>
-        <div style="display: flex; justify-content: center; flex: 1; align-items: flex-start; padding-top: 20px;">
-            <div class="create-form">
+        <div class="leaderboard-list" id="leaderboard-list">
+            <div style="text-align:center;color:#6b5030;padding:40px;">Loading...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Lobby Browser -->
+<div id="lobby-browser">
+    <div class="screen-header">
+        <h1 class="screen-title">Browse Expeditions</h1>
+        <button class="back-btn" id="browser-back-btn">← Back</button>
+    </div>
+    <div class="lobby-list-container">
+        <div id="lobby-list">
+            <div class="no-lobbies">No expeditions found. Create one!</div>
+        </div>
+    </div>
+    <div class="browser-actions">
+        <button class="refresh-btn" id="refresh-lobbies-btn">🔄 Refresh</button>
+        <input type="text" id="join-code-input" placeholder="Enter expedition code..." style="flex: 1; padding: 14px; background: rgba(30,18,8,0.8); border: 2px solid #3d2612; border-radius: 6px; color: #e0d0b0; font-size: 16px; outline: none;">
+        <button class="menu-btn menu-btn-primary" id="join-by-code-btn" style="padding: 14px 30px; width: auto;">Join</button>
+    </div>
+</div>
+
+<!-- Create Lobby Screen -->
+<div id="create-lobby">
+    <div class="screen-header" style="width: 100%; max-width: 550px; margin: 0 auto;">
+        <h1 class="screen-title">Create Expedition</h1>
+        <button class="back-btn" id="create-back-btn">← Back</button>
+    </div>
+    <div style="display: flex; justify-content: center; flex: 1; align-items: flex-start; padding-top: 20px;">
+        <div class="create-form">
+            <div class="form-group">
+                <label>Your Name</label>
+                <input type="text" id="host-name-input" placeholder="Enter your name..." maxlength="20">
+            </div>
+            <div class="form-group">
+                <label>Color</label>
+                <div class="color-picker" id="lobby-color-picker"></div>
+            </div>
+            <div class="form-group">
+                <label>Expedition Name</label>
+                <input type="text" id="lobby-name-input" placeholder="The Great Dig" maxlength="30">
+            </div>
+            <div class="form-row">
                 <div class="form-group">
-                    <label>Your Name</label>
-                    <input type="text" id="host-name-input" placeholder="Enter your name..." maxlength="20">
-                </div>
-                <div class="form-group">
-                    <label>Expedition Name</label>
-                    <input type="text" id="lobby-name-input" placeholder="The Great Dig" maxlength="30">
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Rounds</label>
-                        <select id="rounds-select">
-                            <option value="5" selected>5 Rounds</option>
-                            <option value="10">10 Rounds</option>
-                            <option value="15">15 Rounds</option>
-                            <option value="20">20 Rounds</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Time per Round</label>
-                        <select id="time-select">
-                            <option value="60">1 Minute</option>
-                            <option value="90">1.5 Minutes</option>
-                            <option value="120" selected>2 Minutes</option>
-                            <option value="180">3 Minutes</option>
-                            <option value="0">No Limit</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Max Players</label>
-                        <select id="max-players-select">
-                            <option value="2">2 Players</option>
-                            <option value="4">4 Players</option>
-                            <option value="6" selected>6 Players</option>
-                            <option value="8">8 Players</option>
-                            <option value="10">10 Players</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Visibility</label>
-                        <select id="visibility-select">
-                            <option value="public">Public</option>
-                            <option value="private">Private</option>
-                        </select>
-                    </div>
+                    <label>Rounds</label>
+                    <select id="rounds-select">
+                        <option value="5" selected>5 Rounds</option>
+                        <option value="10">10 Rounds</option>
+                        <option value="15">15 Rounds</option>
+                        <option value="20">20 Rounds</option>
+                    </select>
                 </div>
                 <div class="form-group">
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="password-enabled">
-                        <label for="password-enabled">Require Password</label>
+                    <label>Time per Round</label>
+                    <select id="time-select">
+                        <option value="60">1 Minute</option>
+                        <option value="90">1.5 Minutes</option>
+                        <option value="120" selected>2 Minutes</option>
+                        <option value="180">3 Minutes</option>
+                        <option value="0">No Limit</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Max Players</label>
+                    <select id="max-players-select">
+                        <option value="2">2 Players</option>
+                        <option value="4">4 Players</option>
+                        <option value="6" selected>6 Players</option>
+                        <option value="8">8 Players</option>
+                        <option value="10">10 Players</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Visibility</label>
+                    <select id="visibility-select">
+                        <option value="public">Public</option>
+                        <option value="private">Private</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="password-enabled">
+                    <label for="password-enabled">Require Password</label>
+                </div>
+            </div>
+            <div class="form-group" id="password-group" style="display: none;">
+                <label>Password</label>
+                <input type="password" id="lobby-password-input" placeholder="Enter password...">
+            </div>
+            <button class="create-btn" id="confirm-create-btn">Begin Expedition</button>
+        </div>
+    </div>
+</div>
+
+<!-- Lobby Room Screen -->
+<div id="lobby-room">
+    <div class="screen-header">
+        <h1 class="screen-title" id="room-title">Expedition Base Camp</h1>
+        <div></div>
+    </div>
+    <div class="lobby-room-content">
+        <div class="lobby-main">
+            <div class="lobby-code-display">
+                <label>Expedition Code</label>
+                <div class="lobby-code" id="lobby-code-text">ABCD12</div>
+                <button class="copy-code-btn" id="copy-code-btn">📋 Copy Code</button>
+            </div>
+            <div class="players-panel">
+                <div class="players-header">
+                    <h3>Expedition Team</h3>
+                    <span class="player-count" id="player-count">1/6</span>
+                </div>
+                <div class="players-list" id="players-list"></div>
+            </div>
+        </div>
+        <div class="lobby-sidebar">
+            <div class="settings-panel">
+                <h3>⚙️ Expedition Settings</h3>
+                <div class="setting-item">
+                    <span class="setting-label">Rounds</span>
+                    <span class="setting-value" id="setting-rounds">5</span>                    </div>
+                <div class="setting-item">
+                    <span class="setting-label">Time per Round</span>
+                    <span class="setting-value" id="setting-time">2:00</span>
+                </div>
+                <div class="setting-item">
+                    <span class="setting-label">Max Players</span>
+                    <span class="setting-value" id="setting-max-players">6</span>
+                </div>
+            </div>
+            <button class="start-game-btn" id="start-game-btn">Start Expedition</button>
+            <button class="leave-btn" id="leave-lobby-btn">Leave Expedition</button>
+        </div>
+    </div>
+</div>
+
+<!-- Countdown Overlay -->
+<div class="countdown-overlay" id="countdown-overlay">
+    <div class="countdown-number" id="countdown-number">3</div>
+</div>
+
+<!-- Password Modal -->
+<div class="modal-overlay" id="password-modal" style="display: none;">
+    <div class="modal">
+        <h2>🔒 Password Required</h2>
+        <input type="password" id="modal-password-input" placeholder="Enter expedition password...">
+        <div class="modal-buttons">
+            <button class="modal-cancel" id="modal-cancel-btn">Cancel</button>
+            <button class="modal-confirm" id="modal-confirm-btn">Join</button>
+        </div>
+    </div>
+</div>
+
+<!-- Game Container -->
+<div id="game-container">
+    <canvas id="canvas"></canvas>
+
+    <div id="ui-overlay">
+        <div id="score-panel">
+            <h2>SCORE</h2>
+            <div id="score-value">0</div>
+            <div id="artifacts-found">Artifacts: 0/5</div>
+        </div>
+
+        <div id="round-panel">
+            <div id="round-display">Round 1/10</div>
+            <div id="timer-display">2:00</div>
+        </div>
+
+        <div id="multiplayer-scores" style="display: none;">
+            <h3>Leaderboard</h3>
+            <div id="scores-list"></div>
+        </div>
+
+        <div id="hint">Click on the terrain to dig!</div>
+
+        <div id="debug-panel">
+            <button id="debug-toggle">🔧 Debug</button>
+            <div id="debug-menu">
+                <h3>Select Country</h3>
+                <div id="debug-country-list"></div>
+                <hr style="border-color: rgba(139, 105, 20, 0.3); margin: 15px 0;">
+                <label class="debug-checkbox">
+                    <input type="checkbox" id="wallhack-toggle">
+                    <span>👁️ Show Artifacts</span>
+                </label>
+                <label class="debug-checkbox">
+                    <input type="checkbox" id="sound-toggle" checked>
+                    <span>🔊 Sound Effects</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- In-game top-right buttons -->
+        <div id="ingame-buttons">
+            <button class="ingame-btn" id="ingame-settings-btn" title="Settings (ESC)">⚙️</button>
+        </div>
+
+        <!-- Pause / ESC Menu -->
+        <div id="pause-overlay">
+            <div id="pause-menu">
+                <div class="pause-title">⛏️ PAUSED</div>
+                <button class="pause-btn" id="pause-resume-btn">▶ Resume</button>
+                <button class="pause-btn" id="pause-settings-btn">⚙️ Settings</button>
+                <button class="pause-btn pause-btn-danger" id="pause-quit-btn">🚪 Back to Menu</button>
+                <div class="pause-hint">Press ESC to resume</div>
+
+                <!-- Quit confirmation (hidden by default) -->
+                <div id="quit-confirm" style="display:none;">
+                    <div style="width:100%; height:1px; background:rgba(139,105,20,0.2); margin:6px 0 14px;"></div>
+                    <div style="color:#d48080; font-size:14px; text-align:center; margin-bottom:14px;">
+                        Are you sure? Current progress will be lost.
+                    </div>
+                    <div style="display:flex; gap:10px; width:100%;">
+                        <button class="pause-btn" id="quit-cancel-btn" style="flex:1;">Cancel</button>
+                        <button class="pause-btn pause-btn-danger" id="quit-confirm-btn" style="flex:1;">Leave Game</button>
                     </div>
                 </div>
-                <div class="form-group" id="password-group" style="display: none;">
-                    <label>Password</label>
-                    <input type="password" id="lobby-password-input" placeholder="Enter password...">
-                </div>
-                <button class="create-btn" id="confirm-create-btn">Begin Expedition</button>
+            </div>
+        </div>
+
+        <div id="message"></div>
+
+        <div id="guess-panel">
+            <div style="position: relative;">
+                <input type="text" id="country-input" placeholder="Enter country name..." autocomplete="off">
+                <div class="autocomplete-list" id="autocomplete"></div>
+            </div>
+            <button id="guess-btn">GUESS</button>
+            <button id="next-round-btn">NEXT ROUND</button>
+            <div id="potential-points">
+                Points if correct: <span id="points-value">500</span>
             </div>
         </div>
     </div>
 
-    <!-- Lobby Room Screen -->
-    <div id="lobby-room">
-        <div class="screen-header">
-            <h1 class="screen-title" id="room-title">Expedition Base Camp</h1>
-            <div></div>
-        </div>
-        <div class="lobby-room-content">
-            <div class="lobby-main">
-                <div class="lobby-code-display">
-                    <label>Expedition Code</label>
-                    <div class="lobby-code" id="lobby-code-text">ABCD12</div>
-                    <button class="copy-code-btn" id="copy-code-btn">📋 Copy Code</button>
-                </div>
-                <div class="players-panel">
-                    <div class="players-header">
-                        <h3>Expedition Team</h3>
-                        <span class="player-count" id="player-count">1/6</span>
-                    </div>
-                    <div class="players-list" id="players-list"></div>
-                </div>
-            </div>
-            <div class="lobby-sidebar">
-                <div class="settings-panel">
-                    <h3>⚙️ Expedition Settings</h3>
-                    <div class="setting-item">
-                        <span class="setting-label">Rounds</span>
-                        <span class="setting-value" id="setting-rounds">5</span>                    </div>
-                    <div class="setting-item">
-                        <span class="setting-label">Time per Round</span>
-                        <span class="setting-value" id="setting-time">2:00</span>
-                    </div>
-                    <div class="setting-item">
-                        <span class="setting-label">Max Players</span>
-                        <span class="setting-value" id="setting-max-players">6</span>
-                    </div>
-                </div>
-                <button class="start-game-btn" id="start-game-btn">Start Expedition</button>
-                <button class="leave-btn" id="leave-lobby-btn">Leave Expedition</button>
-            </div>
+    <div id="loading">Loading...</div>
+</div>
+
+<!-- Name Input Modal -->
+<div id="name-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <h2 class="modal-title">Enter Your Name</h2>
+        <input type="text" id="player-name-input" class="modal-input" placeholder="Your name..." maxlength="20" autocomplete="off">
+        <div style="margin: 12px 0 4px; font-family:'Cinzel',serif; font-size:11px; color:#6b5030; letter-spacing:2px; text-transform:uppercase;">Color</div>
+        <div class="color-picker" id="join-color-picker"></div>
+        <div class="modal-buttons">
+            <button class="modal-btn modal-btn-cancel" id="name-cancel-btn">Cancel</button>
+            <button class="modal-btn modal-btn-confirm" id="name-confirm-btn">Join</button>
         </div>
     </div>
+</div>
 
-    <!-- Countdown Overlay -->
-    <div class="countdown-overlay" id="countdown-overlay">
-        <div class="countdown-number" id="countdown-number">3</div>
-    </div>
+<div id="solo-settings-modal">
+    <div class="solo-settings-backdrop"></div>
+    <div class="solo-settings-dialog">
+        <button class="solo-settings-close" id="solo-settings-close">×</button>
 
-    <!-- Password Modal -->
-    <div class="modal-overlay" id="password-modal" style="display: none;">
-        <div class="modal">
-            <h2>🔒 Password Required</h2>
-            <input type="password" id="modal-password-input" placeholder="Enter expedition password...">
-            <div class="modal-buttons">
-                <button class="modal-cancel" id="modal-cancel-btn">Cancel</button>
-                <button class="modal-confirm" id="modal-confirm-btn">Join</button>
-            </div>
-        </div>
-    </div>
+        <h2 class="solo-settings-title">🏺 Solo Expedition</h2>
+        <p class="solo-settings-subtitle">Configure your dig</p>
 
-    <!-- Game Container -->
-    <div id="game-container">
-        <canvas id="canvas"></canvas>
-        
-        <div id="ui-overlay">
-            <div id="score-panel">
-                <h2>SCORE</h2>
-                <div id="score-value">0</div>
-                <div id="artifacts-found">Artifacts: 0/5</div>
-            </div>
-
-            <div id="round-panel">
-                <div id="round-display">Round 1/10</div>
-                <div id="timer-display">2:00</div>
-            </div>
-
-            <div id="multiplayer-scores" style="display: none;">
-                <h3>Leaderboard</h3>
-                <div id="scores-list"></div>
-            </div>
-
-            <div id="hint">Click on the terrain to dig!</div>
-
-            <div id="debug-panel">
-                <button id="debug-toggle">🔧 Debug</button>
-                <div id="debug-menu">
-                    <h3>Select Country</h3>
-                    <div id="debug-country-list"></div>
-                    <hr style="border-color: rgba(139, 105, 20, 0.3); margin: 15px 0;">
-                    <label class="debug-checkbox">
-                        <input type="checkbox" id="wallhack-toggle">
-                        <span>👁️ Show Artifacts</span>
-                    </label>
-                    <label class="debug-checkbox">
-                        <input type="checkbox" id="sound-toggle" checked>
-                        <span>🔊 Sound Effects</span>
-                    </label>
-                </div>
-            </div>
-
-            <div id="message"></div>
-
-            <div id="guess-panel">
-                <div style="position: relative;">
-                    <input type="text" id="country-input" placeholder="Enter country name..." autocomplete="off">
-                    <div class="autocomplete-list" id="autocomplete"></div>
-                </div>
-                <button id="guess-btn">GUESS</button>
-                <button id="next-round-btn">NEXT ROUND</button>
-                <div id="potential-points">
-                    Points if correct: <span id="points-value">500</span>
-                </div>
-            </div>
+        <div class="solo-settings-group">
+            <label class="solo-settings-label">Your Name</label>
+            <input type="text" id="solo-name-input" class="solo-name-input" placeholder="Explorer" maxlength="20">
         </div>
 
-        <div id="loading">Loading...</div>
-    </div>
-
-    <!-- Name Input Modal -->
-    <div id="name-modal" class="modal-overlay" style="display: none;">
-        <div class="modal-content">
-            <h2 class="modal-title">Enter Your Name</h2>
-            <input type="text" id="player-name-input" class="modal-input" placeholder="Your name..." maxlength="20" autocomplete="off">
-            <div class="modal-buttons">
-                <button class="modal-btn modal-btn-cancel" id="name-cancel-btn">Cancel</button>
-                <button class="modal-btn modal-btn-confirm" id="name-confirm-btn">Join</button>
-            </div>
+        <div class="solo-settings-group">
+            <label class="solo-settings-label">Color</label>
+            <div class="color-picker" id="solo-color-picker"></div>
         </div>
-    </div>
 
-    <div id="solo-settings-modal">
-        <div class="solo-settings-backdrop"></div>
-        <div class="solo-settings-dialog">
-            <button class="solo-settings-close" id="solo-settings-close">×</button>
-
-            <h2 class="solo-settings-title">🏺 Solo Expedition</h2>
-            <p class="solo-settings-subtitle">Configure your dig</p>
-
-            <div class="solo-settings-group">
-                <label class="solo-settings-label">Rounds</label>
-                <div class="round-options" id="round-options">
-                    <button class="round-option" data-rounds="3">
-                        3
-                        <span>Quick</span>
-                    </button>
-                    <button class="round-option selected" data-rounds="5">
-                        5
-                        <span>Standard</span>
-                    </button>
-                    <button class="round-option" data-rounds="10">
-                        10
-                        <span>Extended</span>
-                    </button>
-                    <button class="round-option" data-rounds="15">
-                        15
-                        <span>Marathon</span>
-                    </button>
-                </div>
-            </div>
-
-            <div class="solo-settings-group">
-                <label class="solo-settings-label">Time per Round</label>
-                <select class="time-select" id="solo-time-select">
-                    <option value="60">1 Minute</option>
-                    <option value="90">1.5 Minutes</option>
-                    <option value="120" selected>2 Minutes</option>
-                    <option value="180">3 Minutes</option>
-                    <option value="0">No Limit ∞</option>
-                </select>
-            </div>
-
-            <div class="solo-settings-buttons">
-                <button class="solo-settings-btn solo-settings-back" id="solo-settings-back">Back</button>
-                <button class="solo-settings-btn solo-settings-start" id="solo-settings-start">⛏️ Start Dig</button>
-            </div>
-        </div>
-    </div>
-
-
-    <!-- Game Over Screen - Skribbl Style -->
-    <div id="game-over">
-        <div class="game-over-content">
-            <h1 class="results-title">🏆 Results</h1>
-            
-            <!-- Podium for top 3 -->
-            <div class="podium-container">
-                <div class="podium-player second" id="podium-2">
-                    <div class="podium-avatar" style="background: linear-gradient(135deg, #a0a0a0, #707070);">
-                        <span class="avatar-face">😎</span>
-                    </div>
-                    <div class="podium-rank">#2</div>
-                    <div class="podium-name">Player 2</div>
-                    <div class="podium-score">0</div>
-                    <div class="podium-stand stand-2"></div>
-                </div>
-                
-                <div class="podium-player first" id="podium-1">
-                    <div class="podium-crown">👑</div>
-                    <div class="podium-avatar" style="background: linear-gradient(135deg, #ffd700, #b8860b);">
-                        <span class="avatar-face">😄</span>
-                    </div>
-                    <div class="podium-rank">#1</div>
-                    <div class="podium-name">Player 1</div>
-                    <div class="podium-score">0</div>
-                    <div class="podium-stand stand-1"></div>
-                </div>
-                
-                <div class="podium-player third" id="podium-3">
-                    <div class="podium-avatar" style="background: linear-gradient(135deg, #cd7f32, #8b4513);">
-                        <span class="avatar-face">😊</span>
-                    </div>
-                    <div class="podium-rank">#3</div>
-                    <div class="podium-name">Player 3</div>
-                    <div class="podium-score">0</div>
-                    <div class="podium-stand stand-3"></div>
-                </div>
-            </div>
-            
-            <!-- Rest of players -->
-            <div class="other-players" id="other-players">
-                <!-- Dynamically filled -->
-            </div>
-            
-            <!-- Your stats (solo mode) -->
-            <div class="solo-stats" id="solo-stats">
-                <div class="final-score" id="final-score">0</div>
-                <div class="game-over-stats">
-                    <div class="stat-item">
-                        <div class="stat-value" id="stat-correct">0</div>
-                        <div class="stat-label">Correct</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="stat-artifacts">0</div>
-                        <div class="stat-label">Artifacts</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value" id="stat-accuracy">0%</div>
-                        <div class="stat-label">Accuracy</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="game-over-buttons">
-                <button class="game-over-btn play-again-btn" id="play-again-btn">New Expedition</button>
-                <button class="game-over-btn menu-return-btn" id="menu-return-btn">Base Camp</button>
-                <button class="menu-btn" onclick="window.showShareModal()">
-                    🏺 Share Results
+        <div class="solo-settings-group">
+            <label class="solo-settings-label">Rounds</label>
+            <div class="round-options" id="round-options">
+                <button class="round-option" data-rounds="3">
+                    3
+                    <span>Quick</span>
+                </button>
+                <button class="round-option selected" data-rounds="5">
+                    5
+                    <span>Standard</span>
+                </button>
+                <button class="round-option" data-rounds="10">
+                    10
+                    <span>Extended</span>
+                </button>
+                <button class="round-option" data-rounds="15">
+                    15
+                    <span>Marathon</span>
                 </button>
             </div>
         </div>
-    </div>
-    
-    <!-- Round Results Overlay (between rounds) -->
-    <div id="round-results" class="round-results-overlay">
-        <div class="round-results-content">
-            <h2 class="round-results-title">Round Complete!</h2>
-            <div class="correct-answer-display">
-                <span class="answer-label">The answer was</span>
-                <span class="answer-country" id="round-answer">Egypt</span>
-            </div>
-            <div class="round-scores" id="round-scores">
-                <!-- Player scores for this round -->
-            </div>
-            <div class="next-round-timer">
-                Next round in <span id="next-round-countdown">5</span>s
-            </div>
-        </div>
-    </div>
-    
-    <!-- Guessed overlay (shown after you guess, waiting for others) -->
-    <div id="guessed-overlay" class="guessed-overlay">
-        <div style="text-align: center;">
-            <div class="guessed-message" id="guessed-message">✓ Guess Submitted!</div>
-            <div class="waiting-message">Waiting for other players...</div>
-        </div>
-    </div>
 
-    <script type="importmap">
+        <div class="solo-settings-group">
+            <label class="solo-settings-label">Time per Round</label>
+            <select class="time-select" id="solo-time-select">
+                <option value="60">1 Minute</option>
+                <option value="90">1.5 Minutes</option>
+                <option value="120" selected>2 Minutes</option>
+                <option value="180">3 Minutes</option>
+                <option value="0">No Limit ∞</option>
+            </select>
+        </div>
+
+        <div class="solo-settings-buttons">
+            <button class="solo-settings-btn solo-settings-back" id="solo-settings-back">Back</button>
+            <button class="solo-settings-btn solo-settings-start" id="solo-settings-start">⛏️ Start Dig</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- Game Over Screen - Skribbl Style -->
+<div id="game-over">
+    <div class="game-over-content">
+        <h1 class="results-title">🏆 Results</h1>
+
+        <!-- Podium for top 3 -->
+        <div class="podium-container">
+            <div class="podium-player second" id="podium-2">
+                <div class="podium-avatar" style="background: linear-gradient(135deg, #a0a0a0, #707070);">
+                    <span class="avatar-face">😎</span>
+                </div>
+                <div class="podium-rank">#2</div>
+                <div class="podium-name">Player 2</div>
+                <div class="podium-score">0</div>
+                <div class="podium-stand stand-2"></div>
+            </div>
+
+            <div class="podium-player first" id="podium-1">
+                <div class="podium-crown">👑</div>
+                <div class="podium-avatar" style="background: linear-gradient(135deg, #ffd700, #b8860b);">
+                    <span class="avatar-face">😄</span>
+                </div>
+                <div class="podium-rank">#1</div>
+                <div class="podium-name">Player 1</div>
+                <div class="podium-score">0</div>
+                <div class="podium-stand stand-1"></div>
+            </div>
+
+            <div class="podium-player third" id="podium-3">
+                <div class="podium-avatar" style="background: linear-gradient(135deg, #cd7f32, #8b4513);">
+                    <span class="avatar-face">😊</span>
+                </div>
+                <div class="podium-rank">#3</div>
+                <div class="podium-name">Player 3</div>
+                <div class="podium-score">0</div>
+                <div class="podium-stand stand-3"></div>
+            </div>
+        </div>
+
+        <!-- Rest of players -->
+        <div class="other-players" id="other-players">
+            <!-- Dynamically filled -->
+        </div>
+
+        <!-- Your stats (solo mode) -->
+        <div class="solo-stats" id="solo-stats">
+            <div class="final-score" id="final-score">0</div>
+            <div class="game-over-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="stat-correct">0</div>
+                    <div class="stat-label">Correct</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="stat-artifacts">0</div>
+                    <div class="stat-label">Artifacts</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="stat-accuracy">0%</div>
+                    <div class="stat-label">Accuracy</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="leaderboard-rank" style="display:none; text-align:center; color:#ffd700; font-family:'Cinzel',serif; font-size:18px; letter-spacing:2px; margin-bottom:10px;"></div>
+
+        <div class="game-over-buttons">
+            <button class="game-over-btn play-again-btn" id="play-again-btn">New Expedition</button>
+            <button class="game-over-btn menu-return-btn" id="menu-return-btn">Base Camp</button>
+            <button class="menu-btn" onclick="window.showShareModal()">
+                🏺 Share Results
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Round Results Overlay (between rounds) -->
+<div id="round-results" class="round-results-overlay">
+    <div class="round-results-content">
+        <h2 class="round-results-title">Round Complete!</h2>
+        <div class="correct-answer-display">
+            <span class="answer-label">The answer was</span>
+            <span class="answer-country" id="round-answer">Egypt</span>
+        </div>
+        <div class="round-scores" id="round-scores">
+            <!-- Player scores for this round -->
+        </div>
+        <div class="next-round-timer">
+            Next round in <span id="next-round-countdown">5</span>s
+        </div>
+    </div>
+</div>
+
+<!-- Guessed overlay (shown after you guess, waiting for others) -->
+<div id="guessed-overlay" class="guessed-overlay">
+    <div style="text-align: center;">
+        <div class="guessed-message" id="guessed-message">✓ Guess Submitted!</div>
+        <div class="waiting-message">Waiting for other players...</div>
+    </div>
+</div>
+
+<script type="importmap">
     {
         "imports": {
             "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
             "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
         }
     }
-    </script>
+</script>
 
-    <script>
-        // ============================================
-        // MENU INTERACTIONS
-        // ============================================
-        
-        // Create particles
-        function createParticles() {
-            const container = document.getElementById('particles');
-            for (let i = 0; i < 40; i++) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-                const size = Math.random() * 4 + 2;
-                particle.style.width = size + 'px';
-                particle.style.height = size + 'px';
-                particle.style.left = Math.random() * 100 + '%';
-                particle.style.animationDuration = (Math.random() * 20 + 15) + 's';
-                particle.style.animationDelay = (Math.random() * 20) + 's';
-                particle.style.opacity = Math.random() * 0.4 + 0.1;
-                container.appendChild(particle);
-            }
+<script>
+    // ============================================
+    // MENU INTERACTIONS
+    // ============================================
+
+    // Create particles
+    function createParticles() {
+        const container = document.getElementById('particles');
+        for (let i = 0; i < 40; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            const size = Math.random() * 4 + 2;
+            particle.style.width = size + 'px';
+            particle.style.height = size + 'px';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDuration = (Math.random() * 20 + 15) + 's';
+            particle.style.animationDelay = (Math.random() * 20) + 's';
+            particle.style.opacity = Math.random() * 0.4 + 0.1;
+            container.appendChild(particle);
         }
-        
-        // Sound toggle
-        let soundEnabled = true;
-        document.getElementById('sound-toggle-btn').addEventListener('click', function() {
-            soundEnabled = !soundEnabled;
-            this.textContent = soundEnabled ? '🔊' : '🔇';
-            this.classList.toggle('muted', !soundEnabled);
-        });
-        
-        // Settings modal
-        const settingsBtn = document.getElementById('settings-btn');
-        const settingsOverlay = document.getElementById('settings-overlay');
-        const settingsClose = document.getElementById('settings-close');
-        
-        settingsBtn.addEventListener('click', () => {
-            settingsOverlay.classList.add('show');
-        });
-        
-        settingsClose.addEventListener('click', () => {
+    }
+
+    // Sound toggle
+    let soundEnabled = true;
+    document.getElementById('sound-toggle-btn').addEventListener('click', function() {
+        soundEnabled = !soundEnabled;
+        this.textContent = soundEnabled ? '🔊' : '🔇';
+        this.classList.toggle('muted', !soundEnabled);
+    });
+
+    // Settings modal
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsOverlay = document.getElementById('settings-overlay');
+    const settingsClose = document.getElementById('settings-close');
+
+    settingsBtn.addEventListener('click', () => {
+        settingsOverlay.classList.add('show');
+    });
+
+    settingsClose.addEventListener('click', () => {
+        settingsOverlay.classList.remove('show');
+    });
+
+    settingsOverlay.addEventListener('click', (e) => {
+        if (e.target === settingsOverlay) {
             settingsOverlay.classList.remove('show');
-        });
-        
-        settingsOverlay.addEventListener('click', (e) => {
-            if (e.target === settingsOverlay) {
-                settingsOverlay.classList.remove('show');
-            }
-        });
-        
-        // Initialize
-        createParticles();
-        
-        // ============================================
-        // RESULTS SCREEN MANAGEMENT
-        // ============================================
-        
-        const avatarColors = [
-            'avatar-color-1', 'avatar-color-2', 'avatar-color-3', 'avatar-color-4', 'avatar-color-5',
-            'avatar-color-6', 'avatar-color-7', 'avatar-color-8', 'avatar-color-9', 'avatar-color-10'
-        ];
-        
-        const avatarFaces = ['😄', '😎', '😊', '😁', '😉', '🤩', '😆', '🤔', '😏', '🙂'];
-        
-        function getAvatarColor(index) {
-            return avatarColors[index % avatarColors.length];
         }
-        
-        function getAvatarFace(index) {
-            return avatarFaces[index % avatarFaces.length];
-        }
-        
-        // Show final results (Skribbl-style)
-        window.showGameResults = function(data) {
-            const gameOver = document.getElementById('game-over');
-            const soloStats = document.getElementById('solo-stats');
-            const podiumContainer = document.querySelector('.podium-container');
-            const otherPlayers = document.getElementById('other-players');
-            
-            gameOver.style.display = 'flex';
-            
-            // Check if multiplayer or solo
-            if (data.standings && data.standings.length > 1) {
-                // MULTIPLAYER MODE - Show podium
-                soloStats.style.display = 'block'; // Also show stats in multiplayer
-                podiumContainer.style.display = 'flex';
-                otherPlayers.style.display = 'flex';
-                
-                const standings = data.standings;
-                
-                // Update podium (top 3)
-                for (let i = 0; i < 3; i++) {
-                    const player = standings[i];
-                    const podiumEl = document.getElementById(`podium-${i + 1}`);
-                    
-                    if (player && podiumEl) {
-                        podiumEl.style.display = 'flex';
-                        const avatar = podiumEl.querySelector('.podium-avatar');
+    });
+
+    // Initialize
+    createParticles();
+
+    // ============================================
+    // RESULTS SCREEN MANAGEMENT
+    // ============================================
+
+    const avatarColors = [
+        'avatar-color-1', 'avatar-color-2', 'avatar-color-3', 'avatar-color-4', 'avatar-color-5',
+        'avatar-color-6', 'avatar-color-7', 'avatar-color-8', 'avatar-color-9', 'avatar-color-10'
+    ];
+
+    const avatarFaces = ['😄', '😎', '😊', '😁', '😉', '🤩', '😆', '🤔', '😏', '🙂'];
+
+    function getAvatarColor(index) {
+        return avatarColors[index % avatarColors.length];
+    }
+
+    function getAvatarFace(index) {
+        return avatarFaces[index % avatarFaces.length];
+    }
+
+    // Show final results (Skribbl-style)
+    window.showGameResults = function(data) {
+        const gameOver = document.getElementById('game-over');
+        const soloStats = document.getElementById('solo-stats');
+        const podiumContainer = document.querySelector('.podium-container');
+        const otherPlayers = document.getElementById('other-players');
+
+        // Reset leaderboard rank display
+        const rankEl = document.getElementById('leaderboard-rank');
+        if (rankEl) { rankEl.textContent = ''; rankEl.style.display = 'none'; }
+
+        gameOver.style.display = 'flex';
+
+        // Check if multiplayer or solo
+        if (data.standings && data.standings.length > 1) {
+            // MULTIPLAYER MODE - Show podium
+            soloStats.style.display = 'block'; // Also show stats in multiplayer
+            podiumContainer.style.display = 'flex';
+            otherPlayers.style.display = 'flex';
+
+            const standings = data.standings;
+
+            // Update podium (top 3)
+            for (let i = 0; i < 3; i++) {
+                const player = standings[i];
+                const podiumEl = document.getElementById(`podium-${i + 1}`);
+
+                if (player && podiumEl) {
+                    podiumEl.style.display = 'flex';
+                    const avatar = podiumEl.querySelector('.podium-avatar');
+                    // Use player's chosen color if available
+                    if (player.color) {
+                        avatar.className = 'podium-avatar';
+                        avatar.style.background = `linear-gradient(135deg, ${player.color}, ${player.color}cc)`;
+                    } else {
                         avatar.className = `podium-avatar ${getAvatarColor(i)}`;
-                        avatar.querySelector('.avatar-face').textContent = getAvatarFace(i);
-                        podiumEl.querySelector('.podium-name').textContent = player.name;
-                        podiumEl.querySelector('.podium-score').textContent = player.score;
-                    } else if (podiumEl) {
-                        podiumEl.style.display = 'none';
+                        avatar.style.background = '';
                     }
+                    avatar.querySelector('.avatar-face').textContent = player.name.charAt(0).toUpperCase();
+                    podiumEl.querySelector('.podium-name').textContent = player.name;
+                    podiumEl.querySelector('.podium-score').textContent = player.score;
+                } else if (podiumEl) {
+                    podiumEl.style.display = 'none';
                 }
-                
-                // Update other players (#4 onwards)
-                otherPlayers.innerHTML = '';
-                for (let i = 3; i < standings.length; i++) {
-                    const player = standings[i];
-                    const playerEl = document.createElement('div');
-                    playerEl.className = 'other-player';
-                    playerEl.innerHTML = `
-                        <div class="player-avatar-small ${getAvatarColor(i)}">
-                            <span class="avatar-face">${getAvatarFace(i)}</span>
+            }
+
+            // Update other players (#4 onwards)
+            otherPlayers.innerHTML = '';
+            for (let i = 3; i < standings.length; i++) {
+                const player = standings[i];
+                const playerEl = document.createElement('div');
+                playerEl.className = 'other-player';
+                const bgColor = player.color || '';
+                playerEl.innerHTML = `
+                        <div class="player-avatar-small ${bgColor ? '' : getAvatarColor(i)}" ${bgColor ? `style="background:${bgColor}"` : ''}>
+                            <span class="avatar-face">${player.name.charAt(0).toUpperCase()}</span>
                         </div>
                         <div class="player-rank">#${i + 1}</div>
                         <div class="player-name">${player.name}</div>
                         <div class="player-score-small">${player.score}</div>
                     `;
-                    otherPlayers.appendChild(playerEl);
-                }
-                
-                if (standings.length <= 3) {
-                    otherPlayers.style.display = 'none';
-                }
-                
-                // Also update stats for multiplayer
-                document.getElementById('final-score').textContent = data.yourScore || 0;
-                document.getElementById('stat-correct').textContent = data.correctGuesses || 0;
-                document.getElementById('stat-artifacts').textContent = data.totalArtifacts || 0;
-                document.getElementById('stat-accuracy').textContent = 
-                    data.totalGuesses > 0 
-                        ? Math.round((data.correctGuesses / data.totalGuesses) * 100) + '%' 
-                        : '0%';
-                
-            } else {
-                // SOLO MODE - Show stats
-                soloStats.style.display = 'block';
-                podiumContainer.style.display = 'none';
-                otherPlayers.style.display = 'none';
-                
-                document.getElementById('final-score').textContent = data.yourScore || 0;
-                document.getElementById('stat-correct').textContent = data.correctGuesses || 0;
-                document.getElementById('stat-artifacts').textContent = data.totalArtifacts || 0;
-                document.getElementById('stat-accuracy').textContent = 
-                    data.totalGuesses > 0 
-                        ? Math.round((data.correctGuesses / data.totalGuesses) * 100) + '%' 
-                        : '0%';
+                otherPlayers.appendChild(playerEl);
             }
-        };
-        
-        // Show round results (between rounds)
-        window.showRoundResults = function(data) {
-            const overlay = document.getElementById('round-results');
-            const answerEl = document.getElementById('round-answer');
-            const scoresEl = document.getElementById('round-scores');
-            const countdownEl = document.getElementById('next-round-countdown');
-            
-            overlay.classList.add('show');
-            answerEl.textContent = data.correctAnswer;
-            
-            // Build scores list
-            scoresEl.innerHTML = '';
-            if (data.playerResults) {
-                data.playerResults.forEach((result, index) => {
-                    const entry = document.createElement('div');
-                    entry.className = `round-score-entry ${result.correct ? 'correct' : result.timeout ? 'timeout' : 'wrong'}`;
-                    entry.innerHTML = `
+
+            if (standings.length <= 3) {
+                otherPlayers.style.display = 'none';
+            }
+
+            // Also update stats for multiplayer
+            document.getElementById('final-score').textContent = data.yourScore || 0;
+            document.getElementById('stat-correct').textContent = data.correctGuesses || 0;
+            document.getElementById('stat-artifacts').textContent = data.totalArtifacts || 0;
+            document.getElementById('stat-accuracy').textContent =
+                data.totalGuesses > 0
+                    ? Math.round((data.correctGuesses / data.totalGuesses) * 100) + '%'
+                    : '0%';
+
+        } else {
+            // SOLO MODE - Show stats
+            soloStats.style.display = 'block';
+            podiumContainer.style.display = 'none';
+            otherPlayers.style.display = 'none';
+
+            document.getElementById('final-score').textContent = data.yourScore || 0;
+            document.getElementById('stat-correct').textContent = data.correctGuesses || 0;
+            document.getElementById('stat-artifacts').textContent = data.totalArtifacts || 0;
+            document.getElementById('stat-accuracy').textContent =
+                data.totalGuesses > 0
+                    ? Math.round((data.correctGuesses / data.totalGuesses) * 100) + '%'
+                    : '0%';
+        }
+    };
+
+    // Show round results (between rounds)
+    window.showRoundResults = function(data) {
+        const overlay = document.getElementById('round-results');
+        const answerEl = document.getElementById('round-answer');
+        const scoresEl = document.getElementById('round-scores');
+        const countdownEl = document.getElementById('next-round-countdown');
+
+        overlay.classList.add('show');
+        answerEl.textContent = data.correctAnswer;
+
+        // Build scores list
+        scoresEl.innerHTML = '';
+        if (data.playerResults) {
+            data.playerResults.forEach((result, index) => {
+                const entry = document.createElement('div');
+                entry.className = `round-score-entry ${result.correct ? 'correct' : result.timeout ? 'timeout' : 'wrong'}`;
+                const pColor = result.color || '';
+                entry.innerHTML = `
                         <div class="round-player-info">
-                            <div class="round-player-avatar ${getAvatarColor(index)}">${getAvatarFace(index)}</div>
+                            <div class="round-player-avatar ${pColor ? '' : getAvatarColor(index)}" ${pColor ? `style="background:${pColor}"` : ''}>${result.name.charAt(0).toUpperCase()}</div>
                             <span class="round-player-name">${result.name}</span>
                         </div>
                         <span class="round-points ${result.points > 0 ? 'positive' : result.points < 0 ? 'negative' : 'zero'}">
                             ${result.points > 0 ? '+' : ''}${result.points}
                         </span>
                     `;
-                    scoresEl.appendChild(entry);
-                });
-            }
-            
-            // Countdown to next round
-            let countdown = 5;
+                scoresEl.appendChild(entry);
+            });
+        }
+
+        // Countdown to next round
+        let countdown = 5;
+        countdownEl.textContent = countdown;
+
+        const interval = setInterval(() => {
+            countdown--;
             countdownEl.textContent = countdown;
-            
-            const interval = setInterval(() => {
-                countdown--;
-                countdownEl.textContent = countdown;
-                
-                if (countdown <= 0) {
-                    clearInterval(interval);
-                    overlay.classList.remove('show');
-                }
-            }, 1000);
-            
-            return interval; // Return so it can be cleared if needed
-        };
-        
-        // Hide round results
-        window.hideRoundResults = function() {
-            document.getElementById('round-results').classList.remove('show');
-        };
-        
-        // Show "guessed" overlay
-        window.showGuessedOverlay = function(correct) {
-            const overlay = document.getElementById('guessed-overlay');
-            const message = document.getElementById('guessed-message');
-            
-            if (correct) {
-                message.textContent = '✓ Correct!';
-                message.style.color = '#4ade80';
-            } else {
-                message.textContent = '✗ Wrong!';
-                message.style.color = '#ef4444';
-            }
-            
-            overlay.classList.add('show');
-        };
-        
-        // Hide guessed overlay
-        window.hideGuessedOverlay = function() {
-            document.getElementById('guessed-overlay').classList.remove('show');
-        };
-        
-        // Show notification when another player guesses
-        window.showGuessNotification = function(playerName, correct) {
-            const notif = document.createElement('div');
-            notif.className = `guess-notification ${correct ? 'correct' : 'wrong'}`;
-            notif.textContent = correct 
-                ? `${playerName} guessed correctly!` 
-                : `${playerName} guessed wrong`;
-            
-            document.body.appendChild(notif);
-            
-            setTimeout(() => notif.remove(), 3000);
-        };
-        
-        // Update timer with visual feedback
-        window.updateTimer = function(seconds) {
-            const timerEl = document.getElementById('timer-display');
-            const mins = Math.floor(seconds / 60);
-            const secs = seconds % 60;
-            timerEl.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
-            
-            // Remove all classes first
-            timerEl.classList.remove('warning', 'critical');
-            
-            // Add appropriate class based on time remaining
-            if (seconds <= 10) {
-                timerEl.classList.add('critical');
-            } else if (seconds <= 30) {
-                timerEl.classList.add('warning');
-            }
-        };
 
-        document.getElementById('splash-screen').addEventListener('click', function() {
-            // Hide splash screen
-            this.classList.add('hidden');
-
-            // Start menu music (now audio is unlocked)
-            if (window.audioManager) {
-                window.audioManager.startMenuMusic();
+            if (countdown <= 0) {
+                clearInterval(interval);
+                overlay.classList.remove('show');
             }
+        }, 1000);
 
-            // Remove splash screen from DOM after animation
-            setTimeout(() => {
-                this.remove();
-            }, 500);
+        return interval; // Return so it can be cleared if needed
+    };
+
+    // Hide round results
+    window.hideRoundResults = function() {
+        document.getElementById('round-results').classList.remove('show');
+    };
+
+    // Show "guessed" overlay
+    window.showGuessedOverlay = function(correct) {
+        const overlay = document.getElementById('guessed-overlay');
+        const message = document.getElementById('guessed-message');
+
+        if (correct) {
+            message.textContent = '✓ Correct!';
+            message.style.color = '#4ade80';
+        } else {
+            message.textContent = '✗ Wrong!';
+            message.style.color = '#ef4444';
+        }
+
+        overlay.classList.add('show');
+    };
+
+    // Hide guessed overlay
+    window.hideGuessedOverlay = function() {
+        document.getElementById('guessed-overlay').classList.remove('show');
+    };
+
+    // Show notification when another player guesses
+    window.showGuessNotification = function(playerName, correct) {
+        const notif = document.createElement('div');
+        notif.className = `guess-notification ${correct ? 'correct' : 'wrong'}`;
+        notif.textContent = correct
+            ? `${playerName} guessed correctly!`
+            : `${playerName} guessed wrong`;
+
+        document.body.appendChild(notif);
+
+        setTimeout(() => notif.remove(), 3000);
+    };
+
+    // Update timer with visual feedback
+    window.updateTimer = function(seconds) {
+        const timerEl = document.getElementById('timer-display');
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        timerEl.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+        // Remove all classes first
+        timerEl.classList.remove('warning', 'critical');
+
+        // Add appropriate class based on time remaining
+        if (seconds <= 10) {
+            timerEl.classList.add('critical');
+        } else if (seconds <= 30) {
+            timerEl.classList.add('warning');
+        }
+    };
+
+    document.getElementById('splash-screen').addEventListener('click', function() {
+        // Hide splash screen
+        this.classList.add('hidden');
+
+        // Start menu music (now audio is unlocked)
+        if (window.audioManager) {
+            window.audioManager.startMenuMusic();
+        }
+
+        // Remove splash screen from DOM after animation
+        setTimeout(() => {
+            this.remove();
+        }, 500);
+    });
+
+    // Update splash text for mobile
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        const actionEl = document.querySelector('.splash-action');
+        if (actionEl) actionEl.textContent = 'Tap';
+    }
+
+    // Also allow Enter/Space to dismiss
+    document.addEventListener('keydown', function(e) {
+        const splash = document.getElementById('splash-screen');
+        if (splash && !splash.classList.contains('hidden')) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                splash.click();
+            }
+        }
+    });
+
+    // Touch event for splash (ensure mobile works)
+    const splashEl = document.getElementById('splash-screen');
+    if (splashEl) {
+        splashEl.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            this.click();
         });
+    }
+</script>
 
-        // Also allow Enter/Space to dismiss
-        document.addEventListener('keydown', function(e) {
-            const splash = document.getElementById('splash-screen');
-            if (splash && !splash.classList.contains('hidden')) {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    splash.click();
-                }
-            }
-        });
-    </script>
+<script type="module" src="game.js"></script>
 
-    <script type="module" src="game.js"></script>
-
-    <!-- Artifact Inspector Modal - FULLSCREEN -->
-    <div id="artifact-inspector-modal" style="
+<!-- Artifact Inspector Modal - FULLSCREEN -->
+<div id="artifact-inspector-modal" style="
     display: none;
     position: fixed;
     top: 0;
@@ -3465,14 +4063,14 @@
     align-items: center;
     flex-direction: column;
 ">
-        <!-- 3D Canvas - FULLSCREEN -->
-        <canvas id="inspector-canvas" style="
+    <!-- 3D Canvas - FULLSCREEN -->
+    <canvas id="inspector-canvas" style="
         width: 100%;
         height: calc(100% - 80px);
     "></canvas>
 
-        <!-- Bottom bar with close button -->
-        <div style="
+    <!-- Bottom bar with close button -->
+    <div style="
         width: 100%;
         height: 80px;
         display: flex;
@@ -3480,7 +4078,7 @@
         align-items: center;
         background: rgba(0, 0, 0, 0.3);
     ">
-            <button id="close-inspector-btn" style="
+        <button id="close-inspector-btn" style="
             padding: 14px 50px;
             font-size: 16px;
             background: linear-gradient(135deg, #d4af37 0%, #b8960c 100%);
@@ -3494,24 +4092,24 @@
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
         ">Close</button>
-        </div>
     </div>
+</div>
 
-    <script>
-        // Hook up the close button after DOM loads
-        document.addEventListener('DOMContentLoaded', function() {
-            const closeBtn = document.getElementById('close-inspector-btn');
-            if (closeBtn) {
-                closeBtn.addEventListener('click', function() {
-                    if (window.closeArtifactInspector) {
-                        window.closeArtifactInspector();
-                    } else {
-                        document.getElementById('artifact-inspector-modal').style.display = 'none';
-                    }
-                });
-            }
-        });
-    </script>
+<script>
+    // Hook up the close button after DOM loads
+    document.addEventListener('DOMContentLoaded', function() {
+        const closeBtn = document.getElementById('close-inspector-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function() {
+                if (window.closeArtifactInspector) {
+                    window.closeArtifactInspector();
+                } else {
+                    document.getElementById('artifact-inspector-modal').style.display = 'none';
+                }
+            });
+        }
+    });
+</script>
 
 </body>
 </html>

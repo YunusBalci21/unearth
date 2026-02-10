@@ -1,147 +1,513 @@
 // ============================================
-// ARTIFACT SERVICE v2 - With SVG Icons Fallback
+// ARTIFACT SERVICE v3.0 — Release 1.0.0
 // ============================================
-// Uses Met Museum API when available, falls back to stylized SVG icons
+// Met Museum API primary → SVG icon fallback
+// Supports 28 civilizations with culturally-accurate artifacts
+
+// ============================================
+// SVG SHAPE TEMPLATES
+// ============================================
+
+const SVG_SHAPES = {
+    vase: (p, s, bg) => `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="75" rx="18" ry="8" fill="${s}"/><path d="M35 75 Q32 50 38 35 Q44 25 50 22 Q56 25 62 35 Q68 50 65 75 Z" fill="${p}"/><ellipse cx="50" cy="22" rx="10" ry="5" fill="${s}"/><path d="M40 35 Q50 30 60 35" stroke="${s}" stroke-width="2" fill="none"/><path d="M38 55 Q50 50 62 55" stroke="${s}" stroke-width="1.5" fill="none"/></svg>`,
+    coin: (p, s, bg) => `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="${p}" stroke="${s}" stroke-width="4"/><circle cx="50" cy="50" r="28" fill="none" stroke="${s}" stroke-width="2"/><circle cx="50" cy="42" r="10" fill="${s}"/><path d="M42 58 L50 52 L58 58" stroke="${s}" stroke-width="3" fill="none"/><circle cx="30" cy="50" r="3" fill="${s}"/><circle cx="70" cy="50" r="3" fill="${s}"/></svg>`,
+    mask: (p, s, bg) => `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="48" rx="30" ry="35" fill="${p}"/><path d="M20 48 Q50 90 80 48" fill="${s}" opacity="0.5"/><ellipse cx="38" cy="40" rx="8" ry="5" fill="${bg}"/><ellipse cx="62" cy="40" rx="8" ry="5" fill="${bg}"/><ellipse cx="38" cy="40" rx="4" ry="3" fill="${s}"/><ellipse cx="62" cy="40" rx="4" ry="3" fill="${s}"/><path d="M45 60 Q50 65 55 60" stroke="${bg}" stroke-width="2.5" fill="none"/><path d="M20 30 Q50 15 80 30" fill="${p}" stroke="${s}" stroke-width="2"/></svg>`,
+    sword: (p, s, bg) => `<svg viewBox="0 0 100 100"><rect x="47" y="10" width="6" height="50" fill="#ccc" rx="1"/><polygon points="47,10 50,4 53,10" fill="#ddd"/><rect x="38" y="58" width="24" height="5" fill="${p}" rx="2"/><rect x="46" y="63" width="8" height="18" fill="${s}" rx="2"/><circle cx="50" cy="85" r="5" fill="${p}"/><line x1="50" y1="15" x2="50" y2="55" stroke="#eee" stroke-width="1" opacity="0.5"/></svg>`,
+    statue: (p, s, bg) => `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="88" rx="20" ry="5" fill="${s}"/><rect x="40" y="82" width="20" height="6" fill="${s}" rx="1"/><path d="M42 82 L44 55 L56 55 L58 82 Z" fill="${p}"/><circle cx="50" cy="45" r="12" fill="${p}"/><circle cx="46" cy="43" r="2" fill="${bg}"/><circle cx="54" cy="43" r="2" fill="${bg}"/><path d="M30 65 L44 58" stroke="${p}" stroke-width="4" stroke-linecap="round"/><path d="M70 60 L56 58" stroke="${p}" stroke-width="4" stroke-linecap="round"/></svg>`,
+    helmet: (p, s, bg) => `<svg viewBox="0 0 100 100"><path d="M25 60 Q25 20 50 15 Q75 20 75 60" fill="${p}"/><rect x="22" y="55" width="56" height="8" fill="${s}" rx="2"/><path d="M48 15 L48 8 Q50 5 52 8 L52 15" fill="${s}"/><path d="M30 45 L40 42 L40 52 L30 55 Z" fill="${bg}" opacity="0.8"/><rect x="33" y="43" width="12" height="2" fill="${s}"/></svg>`,
+    shield: (p, s, bg) => `<svg viewBox="0 0 100 100"><path d="M50 10 L80 25 L80 55 Q80 80 50 92 Q20 80 20 55 L20 25 Z" fill="${p}" stroke="${s}" stroke-width="3"/><path d="M50 20 L70 30 L70 52 Q70 72 50 82 Q30 72 30 52 L30 30 Z" fill="${s}" opacity="0.3"/><circle cx="50" cy="50" r="12" fill="${s}"/><circle cx="50" cy="50" r="6" fill="${p}"/></svg>`,
+    scroll: (p, s, bg) => `<svg viewBox="0 0 100 100"><rect x="25" y="20" width="50" height="60" fill="#f5e6c8" rx="2"/><ellipse cx="25" cy="20" rx="6" ry="4" fill="${p}"/><ellipse cx="75" cy="20" rx="6" ry="4" fill="${p}"/><ellipse cx="25" cy="80" rx="6" ry="4" fill="${p}"/><ellipse cx="75" cy="80" rx="6" ry="4" fill="${p}"/><line x1="33" y1="32" x2="67" y2="32" stroke="${s}" stroke-width="2"/><line x1="33" y1="42" x2="67" y2="42" stroke="${s}" stroke-width="2"/><line x1="33" y1="52" x2="60" y2="52" stroke="${s}" stroke-width="2"/><line x1="33" y1="62" x2="55" y2="62" stroke="${s}" stroke-width="2"/><circle cx="50" cy="72" r="4" fill="${p}"/></svg>`,
+    crown: (p, s, bg) => `<svg viewBox="0 0 100 100"><path d="M20 65 L20 35 L35 50 L50 25 L65 50 L80 35 L80 65 Z" fill="${p}"/><rect x="18" y="62" width="64" height="10" fill="${s}" rx="2"/><circle cx="50" cy="30" r="5" fill="${s}"/><circle cx="35" cy="44" r="4" fill="${s}"/><circle cx="65" cy="44" r="4" fill="${s}"/><rect x="18" y="72" width="64" height="5" fill="${p}" rx="1"/></svg>`,
+    jewel: (p, s, bg) => `<svg viewBox="0 0 100 100"><polygon points="50,15 70,35 65,65 35,65 30,35" fill="${p}" stroke="${s}" stroke-width="2"/><polygon points="50,15 60,35 50,30 40,35" fill="${s}" opacity="0.5"/><polygon points="60,35 65,65 50,55" fill="${s}" opacity="0.3"/><line x1="40" y1="35" x2="60" y2="35" stroke="${s}" stroke-width="1"/><line x1="37" y1="50" x2="63" y2="50" stroke="${s}" stroke-width="1"/><path d="M30 80 Q50 90 70 80" stroke="${p}" stroke-width="3" fill="none"/><circle cx="50" cy="82" r="3" fill="${p}"/></svg>`,
+    pillar: (p, s, bg) => `<svg viewBox="0 0 100 100"><rect x="35" y="25" width="30" height="55" fill="${p}"/><rect x="30" y="18" width="40" height="8" fill="${s}" rx="2"/><rect x="30" y="79" width="40" height="8" fill="${s}" rx="2"/><rect x="27" y="86" width="46" height="6" fill="${p}" rx="1"/><rect x="27" y="12" width="46" height="6" fill="${p}" rx="1"/><line x1="42" y1="26" x2="42" y2="79" stroke="${s}" stroke-width="1.5" opacity="0.4"/><line x1="50" y1="26" x2="50" y2="79" stroke="${s}" stroke-width="1.5" opacity="0.4"/><line x1="58" y1="26" x2="58" y2="79" stroke="${s}" stroke-width="1.5" opacity="0.4"/></svg>`,
+    animal: (p, s, bg) => `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="25" ry="18" fill="${p}"/><circle cx="30" cy="40" r="12" fill="${p}"/><circle cx="27" cy="37" r="3" fill="${bg}"/><circle cx="27" cy="37" r="1.5" fill="${s}"/><path d="M22 33 L18 25 L26 30" fill="${s}"/><path d="M34 33 L35 24 L28 30" fill="${s}"/><path d="M75 55 Q85 50 88 55 Q85 60 75 55" fill="${s}"/><line x1="35" y1="72" x2="35" y2="85" stroke="${p}" stroke-width="5"/><line x1="50" y1="72" x2="50" y2="85" stroke="${p}" stroke-width="5"/><line x1="60" y1="70" x2="60" y2="83" stroke="${p}" stroke-width="5"/></svg>`,
+    instrument: (p, s, bg) => `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="65" rx="22" ry="18" fill="${p}" stroke="${s}" stroke-width="2"/><ellipse cx="50" cy="65" rx="8" ry="6" fill="${bg}"/><rect x="47" y="15" width="6" height="50" fill="${s}" rx="2"/><rect x="40" y="12" width="20" height="6" fill="${p}" rx="2"/><line x1="42" y1="18" x2="42" y2="48" stroke="${p}" stroke-width="1"/><line x1="50" y1="18" x2="50" y2="48" stroke="${p}" stroke-width="1"/><line x1="58" y1="18" x2="58" y2="48" stroke="${p}" stroke-width="1"/></svg>`,
+    chalice: (p, s, bg) => `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="30" rx="22" ry="14" fill="${p}" stroke="${s}" stroke-width="2"/><path d="M35 35 Q40 55 48 60 L48 72 L52 72 L52 60 Q60 55 65 35" fill="${p}"/><ellipse cx="50" cy="30" rx="16" ry="9" fill="${s}" opacity="0.4"/><rect x="38" y="72" width="24" height="4" fill="${s}" rx="1"/><ellipse cx="50" cy="78" rx="16" ry="5" fill="${p}" stroke="${s}" stroke-width="1.5"/></svg>`,
+    totem: (p, s, bg) => `<svg viewBox="0 0 100 100"><rect x="35" y="10" width="30" height="80" fill="${p}" rx="4"/><circle cx="50" cy="25" r="10" fill="${s}"/><circle cx="46" cy="23" r="3" fill="${bg}"/><circle cx="54" cy="23" r="3" fill="${bg}"/><path d="M44 30 Q50 36 56 30" stroke="${bg}" stroke-width="2" fill="none"/><rect x="38" y="40" width="24" height="15" fill="${s}" rx="2"/><path d="M38 48 L30 45 L30 52 Z" fill="${s}"/><path d="M62 48 L70 45 L70 52 Z" fill="${s}"/><circle cx="50" cy="68" r="8" fill="${s}"/><path d="M44 68 L50 60 L56 68" fill="${p}"/></svg>`,
+    pottery: (p, s, bg) => `<svg viewBox="0 0 100 100"><path d="M30 80 Q28 55 35 40 Q42 30 50 28 Q58 30 65 40 Q72 55 70 80 Z" fill="${p}"/><ellipse cx="50" cy="80" rx="20" ry="6" fill="${s}"/><ellipse cx="50" cy="28" rx="12" ry="6" fill="${p}" stroke="${s}" stroke-width="1.5"/><path d="M35 45 Q50 40 65 45" stroke="${s}" stroke-width="2" fill="none"/><path d="M33 58 Q50 52 67 58" stroke="${s}" stroke-width="2" fill="none"/><path d="M32 70 Q50 64 68 70" stroke="${s}" stroke-width="2" fill="none"/></svg>`,
+    temple: (p, s, bg) => `<svg viewBox="0 0 100 100"><polygon points="50,12 82,32 18,32" fill="${s}"/><rect x="20" y="32" width="60" height="5" fill="${p}"/><rect x="25" y="37" width="8" height="38" fill="${p}"/><rect x="40" y="37" width="8" height="38" fill="${p}"/><rect x="55" y="37" width="8" height="38" fill="${p}"/><rect x="67" y="37" width="8" height="38" fill="${p}"/><rect x="18" y="75" width="64" height="8" fill="${s}"/><rect x="15" y="83" width="70" height="5" fill="${p}"/></svg>`,
+    textile: (p, s, bg) => `<svg viewBox="0 0 100 100"><rect x="15" y="15" width="70" height="70" fill="${p}" rx="2"/><rect x="18" y="18" width="64" height="64" fill="${bg}" opacity="0.2" rx="1"/><path d="M20 30 L80 30 M20 50 L80 50 M20 70 L80 70" stroke="${s}" stroke-width="2"/><path d="M30 20 L30 80 M50 20 L50 80 M70 20 L70 80" stroke="${s}" stroke-width="2"/><circle cx="30" cy="30" r="4" fill="${s}"/><circle cx="50" cy="50" r="4" fill="${s}"/><circle cx="70" cy="70" r="4" fill="${s}"/><circle cx="70" cy="30" r="4" fill="${p}"/><circle cx="30" cy="70" r="4" fill="${p}"/></svg>`,
+    drum: (p, s, bg) => `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="30" rx="28" ry="12" fill="${p}" stroke="${s}" stroke-width="2"/><rect x="22" y="30" width="56" height="35" fill="${p}"/><ellipse cx="50" cy="65" rx="28" ry="12" fill="${s}" stroke="${s}" stroke-width="2"/><ellipse cx="50" cy="30" rx="20" ry="7" fill="${s}" opacity="0.3"/><line x1="22" y1="30" x2="22" y2="65" stroke="${s}" stroke-width="2"/><line x1="78" y1="30" x2="78" y2="65" stroke="${s}" stroke-width="2"/><path d="M28 35 L28 62" stroke="${s}" stroke-width="1.5" stroke-dasharray="4,4"/><path d="M72 35 L72 62" stroke="${s}" stroke-width="1.5" stroke-dasharray="4,4"/></svg>`,
+    boat: (p, s, bg) => `<svg viewBox="0 0 100 100"><path d="M15 60 Q20 75 50 78 Q80 75 85 60 Z" fill="${p}" stroke="${s}" stroke-width="2"/><rect x="48" y="25" width="4" height="35" fill="${s}"/><path d="M52 28 L52 55 L72 50 Z" fill="${s}" opacity="0.7"/><path d="M10 65 Q30 58 50 65 Q70 58 90 65" stroke="${s}" stroke-width="2" fill="none" opacity="0.5"/><circle cx="50" cy="67" r="4" fill="${s}"/></svg>`,
+};
+
+function generateSVG(shape, primary, secondary, bg) {
+    const generator = SVG_SHAPES[shape] || SVG_SHAPES.vase;
+    const svg = generator(primary, secondary, bg);
+    return `data:image/svg+xml;base64,${btoa(svg)}`;
+}
+
+
+// ============================================
+// COUNTRY CONFIGURATIONS
+// ============================================
+
+const COUNTRY_DATA = {
+    'Egypt': {
+        queries: ['Egyptian sculpture', 'Egyptian jewelry', 'Pharaoh', 'Mummy mask', 'Hieroglyphic', 'Scarab', 'Egyptian gold', 'Ankh', 'Egyptian cat statue'],
+        colors: { primary: '#D4AF37', secondary: '#8B6914', bg: '#2C1810' },
+        artifacts: [
+            { id: 'eg1', title: 'Pharaoh Death Mask', period: 'New Kingdom', culture: 'Egyptian', shape: 'mask' },
+            { id: 'eg2', title: 'Scarab Amulet', period: 'Middle Kingdom', culture: 'Egyptian', shape: 'jewel' },
+            { id: 'eg3', title: 'Canopic Jar', period: 'New Kingdom', culture: 'Egyptian', shape: 'vase' },
+            { id: 'eg4', title: 'Eye of Horus Pendant', period: 'Late Period', culture: 'Egyptian', shape: 'jewel' },
+            { id: 'eg5', title: 'Sphinx Statuette', period: 'Old Kingdom', culture: 'Egyptian', shape: 'animal' },
+            { id: 'eg6', title: 'Hieroglyph Tablet', period: '2500 BC', culture: 'Egyptian', shape: 'scroll' },
+            { id: 'eg7', title: 'Bastet Cat Figure', period: 'Late Period', culture: 'Egyptian', shape: 'animal' },
+            { id: 'eg8', title: 'Ankh Symbol', period: 'Ancient Egypt', culture: 'Egyptian', shape: 'totem' },
+        ]
+    },
+    'Greece': {
+        queries: ['Greek vase', 'Greek sculpture', 'Amphora', 'Greek coin', 'Greek bronze', 'Hellenistic', 'Attic pottery'],
+        colors: { primary: '#FFFFFF', secondary: '#1E90FF', bg: '#1A237E' },
+        artifacts: [
+            { id: 'gr1', title: 'Attic Amphora', period: '5th Century BC', culture: 'Greek', shape: 'vase' },
+            { id: 'gr2', title: 'Corinthian Helmet', period: 'Classical', culture: 'Greek', shape: 'helmet' },
+            { id: 'gr3', title: 'Laurel Wreath', period: 'Classical', culture: 'Greek', shape: 'crown' },
+            { id: 'gr4', title: 'Ionic Column Fragment', period: 'Classical', culture: 'Greek', shape: 'pillar' },
+            { id: 'gr5', title: 'Lyre', period: 'Archaic', culture: 'Greek', shape: 'instrument' },
+            { id: 'gr6', title: 'Drachma Coin', period: '4th Century BC', culture: 'Greek', shape: 'coin' },
+            { id: 'gr7', title: 'Owl of Athena', period: 'Classical', culture: 'Greek', shape: 'animal' },
+            { id: 'gr8', title: 'Theater Mask', period: 'Classical', culture: 'Greek', shape: 'mask' },
+        ]
+    },
+    'China': {
+        queries: ['Chinese porcelain', 'Chinese jade', 'Ming dynasty', 'Tang dynasty', 'Chinese Buddha', 'Chinese bronze vessel', 'Song dynasty ceramics'],
+        colors: { primary: '#FF0000', secondary: '#FFD700', bg: '#8B0000' },
+        artifacts: [
+            { id: 'ch1', title: 'Ming Dynasty Vase', period: 'Ming Dynasty', culture: 'Chinese', shape: 'vase' },
+            { id: 'ch2', title: 'Jade Bi Disc', period: 'Han Dynasty', culture: 'Chinese', shape: 'coin' },
+            { id: 'ch3', title: 'Terracotta Warrior', period: 'Qin Dynasty', culture: 'Chinese', shape: 'statue' },
+            { id: 'ch4', title: 'Bronze Ritual Bell', period: 'Zhou Dynasty', culture: 'Chinese', shape: 'chalice' },
+            { id: 'ch5', title: 'Dragon Figurine', period: 'Tang Dynasty', culture: 'Chinese', shape: 'animal' },
+            { id: 'ch6', title: 'Calligraphy Scroll', period: 'Song Dynasty', culture: 'Chinese', shape: 'scroll' },
+            { id: 'ch7', title: 'Silk Textile Fragment', period: 'Tang Dynasty', culture: 'Chinese', shape: 'textile' },
+            { id: 'ch8', title: 'Buddha Statue', period: 'Tang Dynasty', culture: 'Chinese', shape: 'statue' },
+        ]
+    },
+    'Japan': {
+        queries: ['Japanese sword', 'Ukiyo-e print', 'Japanese ceramics', 'Edo period art', 'Noh theater mask', 'Japanese lacquer', 'samurai armor', 'Japanese woodblock'],
+        colors: { primary: '#FFFFFF', secondary: '#BC002D', bg: '#2D2D2D' },
+        artifacts: [
+            { id: 'jp1', title: 'Samurai Kabuto', period: 'Edo Period', culture: 'Japanese', shape: 'helmet' },
+            { id: 'jp2', title: 'Katana Blade', period: 'Muromachi', culture: 'Japanese', shape: 'sword' },
+            { id: 'jp3', title: 'Noh Theater Mask', period: 'Edo Period', culture: 'Japanese', shape: 'mask' },
+            { id: 'jp4', title: 'Raku Tea Bowl', period: 'Momoyama', culture: 'Japanese', shape: 'pottery' },
+            { id: 'jp5', title: 'Torii Gate Model', period: 'Traditional', culture: 'Japanese', shape: 'temple' },
+            { id: 'jp6', title: 'Daruma Doll', period: 'Edo Period', culture: 'Japanese', shape: 'totem' },
+            { id: 'jp7', title: 'Shamisen', period: 'Edo Period', culture: 'Japanese', shape: 'instrument' },
+            { id: 'jp8', title: 'Maneki-neko', period: 'Edo Period', culture: 'Japanese', shape: 'animal' },
+        ]
+    },
+    'Mexico': {
+        queries: ['Aztec sculpture', 'Maya jade', 'Olmec head', 'Aztec mask', 'Maya ceramic', 'Feathered serpent', 'Mesoamerican art'],
+        colors: { primary: '#00A86B', secondary: '#FFD700', bg: '#4A0E0E' },
+        artifacts: [
+            { id: 'mx1', title: 'Aztec Sun Stone', period: 'Aztec Empire', culture: 'Aztec', shape: 'coin' },
+            { id: 'mx2', title: 'Jade Death Mask', period: 'Maya Classic', culture: 'Maya', shape: 'mask' },
+            { id: 'mx3', title: 'Quetzalcoatl Head', period: 'Aztec Empire', culture: 'Aztec', shape: 'totem' },
+            { id: 'mx4', title: 'Olmec Colossal Head', period: '1500-400 BC', culture: 'Olmec', shape: 'statue' },
+            { id: 'mx5', title: 'Eagle Warrior', period: 'Aztec Empire', culture: 'Aztec', shape: 'statue' },
+            { id: 'mx6', title: 'Obsidian Blade', period: 'Aztec Empire', culture: 'Aztec', shape: 'sword' },
+            { id: 'mx7', title: 'Jaguar Vessel', period: 'Maya Classic', culture: 'Maya', shape: 'pottery' },
+            { id: 'mx8', title: 'Maya Calendar Stone', period: 'Maya Classic', culture: 'Maya', shape: 'totem' },
+        ]
+    },
+    'Italy': {
+        queries: ['Roman bust', 'Roman coin', 'Roman mosaic', 'Roman glass', 'Pompeii', 'Roman bronze', 'Roman marble'],
+        colors: { primary: '#FFD700', secondary: '#8B0000', bg: '#1A1A2E' },
+        artifacts: [
+            { id: 'rm1', title: 'Centurion Helmet', period: 'Imperial Rome', culture: 'Roman', shape: 'helmet' },
+            { id: 'rm2', title: 'Gladius Sword', period: 'Imperial Rome', culture: 'Roman', shape: 'sword' },
+            { id: 'rm3', title: 'Laurel Crown', period: 'Roman Republic', culture: 'Roman', shape: 'crown' },
+            { id: 'rm4', title: 'Denarius Coin', period: 'Imperial Rome', culture: 'Roman', shape: 'coin' },
+            { id: 'rm5', title: 'Eagle Aquila Standard', period: 'Imperial Rome', culture: 'Roman', shape: 'totem' },
+            { id: 'rm6', title: 'Legionary Shield', period: 'Imperial Rome', culture: 'Roman', shape: 'shield' },
+            { id: 'rm7', title: 'Mosaic Fragment', period: '2nd Century AD', culture: 'Roman', shape: 'textile' },
+            { id: 'rm8', title: 'Bust of Caesar', period: 'Roman Republic', culture: 'Roman', shape: 'statue' },
+        ]
+    },
+    'India': {
+        queries: ['Hindu deity sculpture', 'Shiva bronze', 'Ganesha statue', 'Mughal art', 'Indian miniature', 'Gupta period', 'Chola bronze'],
+        colors: { primary: '#FF9933', secondary: '#138808', bg: '#2E1A47' },
+        artifacts: [
+            { id: 'in1', title: 'Nataraja Bronze', period: 'Chola Dynasty', culture: 'Indian', shape: 'statue' },
+            { id: 'in2', title: 'Ganesha Statue', period: 'Medieval India', culture: 'Indian', shape: 'statue' },
+            { id: 'in3', title: 'Mughal Dagger', period: 'Mughal Empire', culture: 'Indian', shape: 'sword' },
+            { id: 'in4', title: 'Lotus Ornament', period: 'Traditional', culture: 'Indian', shape: 'jewel' },
+            { id: 'in5', title: 'Temple Bell', period: 'Medieval India', culture: 'Indian', shape: 'chalice' },
+            { id: 'in6', title: 'Buddha Head', period: 'Gupta Period', culture: 'Indian', shape: 'mask' },
+            { id: 'in7', title: 'Peacock Brooch', period: 'Mughal Empire', culture: 'Indian', shape: 'jewel' },
+            { id: 'in8', title: 'Sitar', period: 'Mughal Empire', culture: 'Indian', shape: 'instrument' },
+        ]
+    },
+    'Peru': {
+        queries: ['Inca gold', 'Moche portrait vessel', 'Nazca pottery', 'Peruvian textile', 'Chimu silver', 'Andean art', 'Wari textile'],
+        colors: { primary: '#FFD700', secondary: '#C41E3A', bg: '#3D2914' },
+        artifacts: [
+            { id: 'pe1', title: 'Inca Gold Mask', period: 'Inca Empire', culture: 'Inca', shape: 'mask' },
+            { id: 'pe2', title: 'Moche Portrait Vessel', period: 'Moche Culture', culture: 'Moche', shape: 'vase' },
+            { id: 'pe3', title: 'Tumi Ceremonial Knife', period: 'Chimu Culture', culture: 'Chimu', shape: 'sword' },
+            { id: 'pe4', title: 'Quipu Knot Record', period: 'Inca Empire', culture: 'Inca', shape: 'textile' },
+            { id: 'pe5', title: 'Nazca Lines Bird', period: 'Nazca Culture', culture: 'Nazca', shape: 'animal' },
+            { id: 'pe6', title: 'Llama Figurine', period: 'Inca Empire', culture: 'Inca', shape: 'animal' },
+            { id: 'pe7', title: 'Sun Disc of Inti', period: 'Inca Empire', culture: 'Inca', shape: 'coin' },
+            { id: 'pe8', title: 'Andean Textile', period: 'Wari Culture', culture: 'Wari', shape: 'textile' },
+        ]
+    },
+    'Iraq': {
+        queries: ['Assyrian relief', 'Babylonian art', 'Sumerian sculpture', 'Cuneiform tablet', 'Cylinder seal', 'Akkadian', 'Mesopotamian art'],
+        colors: { primary: '#C9A227', secondary: '#4A3728', bg: '#1A1410' },
+        artifacts: [
+            { id: 'ms1', title: 'Lamassu Statue', period: 'Assyrian Empire', culture: 'Assyrian', shape: 'animal' },
+            { id: 'ms2', title: 'Cuneiform Tablet', period: 'Sumerian', culture: 'Sumerian', shape: 'scroll' },
+            { id: 'ms3', title: 'Cylinder Seal', period: 'Akkadian', culture: 'Akkadian', shape: 'totem' },
+            { id: 'ms4', title: 'Ishtar Gate Lion', period: 'Neo-Babylonian', culture: 'Babylonian', shape: 'animal' },
+            { id: 'ms5', title: 'Ziggurat Model', period: 'Sumerian', culture: 'Sumerian', shape: 'temple' },
+            { id: 'ms6', title: 'Code of Hammurabi', period: 'Old Babylonian', culture: 'Babylonian', shape: 'pillar' },
+            { id: 'ms7', title: 'Royal Harp', period: 'Sumerian', culture: 'Sumerian', shape: 'instrument' },
+            { id: 'ms8', title: 'Lion Hunt Relief', period: 'Assyrian Empire', culture: 'Assyrian', shape: 'shield' },
+        ]
+    },
+    'France': {
+        queries: ['French medieval art', 'French porcelain', 'Limoges enamel', 'French tapestry', 'Gothic sculpture French', 'Versailles art'],
+        colors: { primary: '#002395', secondary: '#ED2939', bg: '#F5F0E1' },
+        artifacts: [
+            { id: 'fr1', title: 'Fleur-de-Lis Crown', period: 'Medieval', culture: 'French', shape: 'crown' },
+            { id: 'fr2', title: 'Gothic Cathedral Window', period: '13th Century', culture: 'French', shape: 'shield' },
+            { id: 'fr3', title: 'Sevres Porcelain Vase', period: '18th Century', culture: 'French', shape: 'vase' },
+            { id: 'fr4', title: 'Crusader Sword', period: 'Medieval', culture: 'French', shape: 'sword' },
+            { id: 'fr5', title: 'Bayeux Tapestry Fragment', period: '11th Century', culture: 'Norman', shape: 'textile' },
+            { id: 'fr6', title: 'Limoges Enamel Chalice', period: '12th Century', culture: 'French', shape: 'chalice' },
+            { id: 'fr7', title: 'Napoleon Medal', period: '19th Century', culture: 'French', shape: 'coin' },
+            { id: 'fr8', title: 'Gargoyle Head', period: 'Gothic Period', culture: 'French', shape: 'mask' },
+        ]
+    },
+    'United Kingdom': {
+        queries: ['British medieval art', 'Anglo-Saxon jewelry', 'Tudor portrait', 'British silver', 'Celtic art British', 'English pottery'],
+        colors: { primary: '#C8102E', secondary: '#012169', bg: '#F0E6D3' },
+        artifacts: [
+            { id: 'uk1', title: 'Tudor Crown', period: '16th Century', culture: 'English', shape: 'crown' },
+            { id: 'uk2', title: 'Anglo-Saxon Brooch', period: '7th Century', culture: 'Anglo-Saxon', shape: 'jewel' },
+            { id: 'uk3', title: 'Longbow', period: 'Medieval', culture: 'English', shape: 'sword' },
+            { id: 'uk4', title: 'Celtic Torque', period: 'Iron Age', culture: 'Celtic', shape: 'jewel' },
+            { id: 'uk5', title: 'Wedgwood Vase', period: '18th Century', culture: 'English', shape: 'vase' },
+            { id: 'uk6', title: 'Knight Shield', period: 'Medieval', culture: 'English', shape: 'shield' },
+            { id: 'uk7', title: 'Magna Carta Seal', period: '1215 AD', culture: 'English', shape: 'coin' },
+            { id: 'uk8', title: 'Stone Circle Fragment', period: 'Neolithic', culture: 'British', shape: 'pillar' },
+        ]
+    },
+    'Spain': {
+        queries: ['Spanish colonial art', 'Moorish art Spain', 'Spanish armor', 'Hispano-Moresque', 'Spanish silver', 'Reconquista'],
+        colors: { primary: '#AA151B', secondary: '#F1BF00', bg: '#2C1A0E' },
+        artifacts: [
+            { id: 'es1', title: 'Conquistador Helmet', period: '16th Century', culture: 'Spanish', shape: 'helmet' },
+            { id: 'es2', title: 'Moorish Tile Pattern', period: 'Al-Andalus', culture: 'Moorish', shape: 'textile' },
+            { id: 'es3', title: 'Toledo Steel Sword', period: 'Medieval', culture: 'Spanish', shape: 'sword' },
+            { id: 'es4', title: 'Hispano-Moresque Plate', period: '15th Century', culture: 'Spanish', shape: 'pottery' },
+            { id: 'es5', title: 'Bull Figurine', period: 'Traditional', culture: 'Spanish', shape: 'animal' },
+            { id: 'es6', title: 'Royal Doubloon', period: 'Colonial Era', culture: 'Spanish', shape: 'coin' },
+            { id: 'es7', title: 'Flamenco Castanets', period: 'Traditional', culture: 'Spanish', shape: 'instrument' },
+            { id: 'es8', title: 'Reconquista Shield', period: 'Medieval', culture: 'Spanish', shape: 'shield' },
+        ]
+    },
+    'Germany': {
+        queries: ['German medieval art', 'Meissen porcelain', 'German armor', 'Holy Roman Empire', 'German silver'],
+        colors: { primary: '#FFCC00', secondary: '#000000', bg: '#DD0000' },
+        artifacts: [
+            { id: 'de1', title: 'Teutonic Knight Helmet', period: 'Medieval', culture: 'German', shape: 'helmet' },
+            { id: 'de2', title: 'Meissen Porcelain Stein', period: '18th Century', culture: 'German', shape: 'chalice' },
+            { id: 'de3', title: 'Gutenberg Printing Block', period: '15th Century', culture: 'German', shape: 'scroll' },
+            { id: 'de4', title: 'Imperial Eagle Emblem', period: 'Holy Roman Empire', culture: 'German', shape: 'shield' },
+            { id: 'de5', title: 'Hanseatic Trade Coin', period: 'Medieval', culture: 'German', shape: 'coin' },
+            { id: 'de6', title: 'Zweihander Sword', period: '16th Century', culture: 'German', shape: 'sword' },
+            { id: 'de7', title: 'Imperial Crown', period: 'Holy Roman Empire', culture: 'German', shape: 'crown' },
+            { id: 'de8', title: 'Cuckoo Clock Figurine', period: '18th Century', culture: 'German', shape: 'totem' },
+        ]
+    },
+    'Turkey': {
+        queries: ['Ottoman art', 'Turkish ceramics', 'Iznik pottery', 'Ottoman jewelry', 'Turkish calligraphy', 'Seljuk art'],
+        colors: { primary: '#E30A17', secondary: '#FFFFFF', bg: '#1A0A0A' },
+        artifacts: [
+            { id: 'tr1', title: 'Ottoman Sultan Turban', period: 'Ottoman Empire', culture: 'Ottoman', shape: 'crown' },
+            { id: 'tr2', title: 'Iznik Ceramic Tile', period: '16th Century', culture: 'Ottoman', shape: 'textile' },
+            { id: 'tr3', title: 'Janissary Kilij Sword', period: 'Ottoman Empire', culture: 'Ottoman', shape: 'sword' },
+            { id: 'tr4', title: 'Turkish Coffee Pot', period: '17th Century', culture: 'Ottoman', shape: 'vase' },
+            { id: 'tr5', title: 'Calligraphy Scroll', period: 'Ottoman Empire', culture: 'Ottoman', shape: 'scroll' },
+            { id: 'tr6', title: 'Seljuk Lion Statue', period: 'Seljuk Period', culture: 'Seljuk', shape: 'animal' },
+            { id: 'tr7', title: 'Whirling Dervish Figure', period: 'Ottoman Empire', culture: 'Ottoman', shape: 'statue' },
+            { id: 'tr8', title: 'Ottoman Coin', period: '18th Century', culture: 'Ottoman', shape: 'coin' },
+        ]
+    },
+    'Iran': {
+        queries: ['Persian art', 'Achaemenid gold', 'Safavid art', 'Persian carpet', 'Iranian ceramic', 'Persepolis', 'Persian miniature'],
+        colors: { primary: '#239F40', secondary: '#DA0000', bg: '#1A1A2E' },
+        artifacts: [
+            { id: 'ir1', title: 'Persepolis Griffin', period: 'Achaemenid', culture: 'Persian', shape: 'animal' },
+            { id: 'ir2', title: 'Persian Carpet Fragment', period: 'Safavid', culture: 'Persian', shape: 'textile' },
+            { id: 'ir3', title: 'Immortal Guard Shield', period: 'Achaemenid', culture: 'Persian', shape: 'shield' },
+            { id: 'ir4', title: 'Rhyton Drinking Horn', period: 'Achaemenid', culture: 'Persian', shape: 'chalice' },
+            { id: 'ir5', title: 'Persian Miniature Painting', period: 'Safavid', culture: 'Persian', shape: 'scroll' },
+            { id: 'ir6', title: 'Daric Gold Coin', period: 'Achaemenid', culture: 'Persian', shape: 'coin' },
+            { id: 'ir7', title: 'Shamshir Sword', period: 'Safavid', culture: 'Persian', shape: 'sword' },
+            { id: 'ir8', title: 'Ceramic Starplate', period: '12th Century', culture: 'Persian', shape: 'pottery' },
+        ]
+    },
+    'Morocco': {
+        queries: ['Moroccan art', 'Berber jewelry', 'Moroccan ceramic', 'Islamic art Morocco', 'Fez pottery', 'Moorish art'],
+        colors: { primary: '#C1272D', secondary: '#006233', bg: '#1A120E' },
+        artifacts: [
+            { id: 'ma1', title: 'Berber Silver Fibula', period: 'Traditional', culture: 'Berber', shape: 'jewel' },
+            { id: 'ma2', title: 'Zellige Tile Mosaic', period: 'Medieval', culture: 'Moroccan', shape: 'textile' },
+            { id: 'ma3', title: 'Moroccan Tea Pot', period: 'Traditional', culture: 'Moroccan', shape: 'vase' },
+            { id: 'ma4', title: 'Berber Tribal Mask', period: 'Traditional', culture: 'Berber', shape: 'mask' },
+            { id: 'ma5', title: 'Khamsa Hand Amulet', period: 'Traditional', culture: 'Moroccan', shape: 'totem' },
+            { id: 'ma6', title: 'Fez Ceramic Bowl', period: 'Medieval', culture: 'Moroccan', shape: 'pottery' },
+            { id: 'ma7', title: 'Minaret Model', period: 'Medieval', culture: 'Moroccan', shape: 'temple' },
+            { id: 'ma8', title: 'Amazigh Drum', period: 'Traditional', culture: 'Berber', shape: 'drum' },
+        ]
+    },
+    'South Korea': {
+        queries: ['Korean ceramics', 'Goryeo celadon', 'Korean art', 'Joseon dynasty', 'Korean bronze', 'Korean Buddhist art'],
+        colors: { primary: '#FFFFFF', secondary: '#003478', bg: '#CD2E3A' },
+        artifacts: [
+            { id: 'kr1', title: 'Goryeo Celadon Vase', period: 'Goryeo Dynasty', culture: 'Korean', shape: 'vase' },
+            { id: 'kr2', title: 'Joseon Royal Crown', period: 'Joseon Dynasty', culture: 'Korean', shape: 'crown' },
+            { id: 'kr3', title: 'Silla Gold Earrings', period: 'Silla Kingdom', culture: 'Korean', shape: 'jewel' },
+            { id: 'kr4', title: 'Hwarang Sword', period: 'Silla Kingdom', culture: 'Korean', shape: 'sword' },
+            { id: 'kr5', title: 'Buddhist Temple Bell', period: 'Goryeo Dynasty', culture: 'Korean', shape: 'chalice' },
+            { id: 'kr6', title: 'Gayageum Instrument', period: 'Joseon Dynasty', culture: 'Korean', shape: 'instrument' },
+            { id: 'kr7', title: 'Turtle Ship Model', period: 'Joseon Dynasty', culture: 'Korean', shape: 'boat' },
+            { id: 'kr8', title: 'White Porcelain Moon Jar', period: 'Joseon Dynasty', culture: 'Korean', shape: 'pottery' },
+        ]
+    },
+    'Thailand': {
+        queries: ['Thai Buddha', 'Thai art', 'Sukhothai sculpture', 'Thai ceramics', 'Ayutthaya art'],
+        colors: { primary: '#FFD700', secondary: '#A51931', bg: '#0D1E47' },
+        artifacts: [
+            { id: 'th1', title: 'Sukhothai Buddha Head', period: 'Sukhothai Period', culture: 'Thai', shape: 'mask' },
+            { id: 'th2', title: 'Ayutthaya Gold Crown', period: 'Ayutthaya Kingdom', culture: 'Thai', shape: 'crown' },
+            { id: 'th3', title: 'Naga Serpent Figure', period: 'Traditional', culture: 'Thai', shape: 'animal' },
+            { id: 'th4', title: 'Celadon Elephant', period: 'Sukhothai Period', culture: 'Thai', shape: 'animal' },
+            { id: 'th5', title: 'Thai Temple Finial', period: 'Rattanakosin', culture: 'Thai', shape: 'temple' },
+            { id: 'th6', title: 'Khon Dance Mask', period: 'Traditional', culture: 'Thai', shape: 'mask' },
+            { id: 'th7', title: 'Sawankhalok Pottery', period: 'Sukhothai', culture: 'Thai', shape: 'pottery' },
+            { id: 'th8', title: 'Spirit House Model', period: 'Traditional', culture: 'Thai', shape: 'temple' },
+        ]
+    },
+    'Cambodia': {
+        queries: ['Khmer sculpture', 'Angkor Wat', 'Cambodian art', 'Khmer bronze', 'Angkor relief'],
+        colors: { primary: '#032EA1', secondary: '#E00025', bg: '#1A1410' },
+        artifacts: [
+            { id: 'kh1', title: 'Angkor Wat Apsara', period: 'Angkor Period', culture: 'Khmer', shape: 'statue' },
+            { id: 'kh2', title: 'Khmer Naga Head', period: 'Angkor Period', culture: 'Khmer', shape: 'animal' },
+            { id: 'kh3', title: 'Bayon Face Tower', period: 'Angkor Period', culture: 'Khmer', shape: 'mask' },
+            { id: 'kh4', title: 'Vishnu Bronze', period: 'Pre-Angkor', culture: 'Khmer', shape: 'statue' },
+            { id: 'kh5', title: 'Khmer Lion Guardian', period: 'Angkor Period', culture: 'Khmer', shape: 'animal' },
+            { id: 'kh6', title: 'Temple Pediment', period: 'Angkor Period', culture: 'Khmer', shape: 'temple' },
+            { id: 'kh7', title: 'Khmer Linga Shrine', period: 'Angkor Period', culture: 'Khmer', shape: 'pillar' },
+            { id: 'kh8', title: 'Stoneware Vessel', period: 'Angkor Period', culture: 'Khmer', shape: 'vase' },
+        ]
+    },
+    'Indonesia': {
+        queries: ['Indonesian art', 'Javanese sculpture', 'Balinese art', 'Borobudur', 'Indonesian textile', 'wayang puppet'],
+        colors: { primary: '#CE1126', secondary: '#FFFFFF', bg: '#1A2E0A' },
+        artifacts: [
+            { id: 'id1', title: 'Borobudur Buddha', period: '9th Century', culture: 'Javanese', shape: 'statue' },
+            { id: 'id2', title: 'Wayang Puppet', period: 'Traditional', culture: 'Javanese', shape: 'totem' },
+            { id: 'id3', title: 'Batik Textile', period: 'Traditional', culture: 'Indonesian', shape: 'textile' },
+            { id: 'id4', title: 'Keris Dagger', period: 'Majapahit', culture: 'Javanese', shape: 'sword' },
+            { id: 'id5', title: 'Barong Mask', period: 'Traditional', culture: 'Balinese', shape: 'mask' },
+            { id: 'id6', title: 'Gamelan Gong', period: 'Traditional', culture: 'Javanese', shape: 'drum' },
+            { id: 'id7', title: 'Garuda Statue', period: 'Majapahit', culture: 'Javanese', shape: 'animal' },
+            { id: 'id8', title: 'Prambanan Relief', period: '9th Century', culture: 'Javanese', shape: 'scroll' },
+        ]
+    },
+    'Nigeria': {
+        queries: ['Nigerian art', 'Benin bronze', 'Nok sculpture', 'Yoruba art', 'Igbo art', 'Nigerian mask'],
+        colors: { primary: '#008751', secondary: '#FFFFFF', bg: '#1A0E00' },
+        artifacts: [
+            { id: 'ng1', title: 'Benin Bronze Head', period: 'Benin Kingdom', culture: 'Edo', shape: 'mask' },
+            { id: 'ng2', title: 'Nok Terracotta', period: '500 BC', culture: 'Nok', shape: 'statue' },
+            { id: 'ng3', title: 'Yoruba Gelede Mask', period: 'Traditional', culture: 'Yoruba', shape: 'mask' },
+            { id: 'ng4', title: 'Igbo Ukwu Bronze', period: '9th Century', culture: 'Igbo', shape: 'chalice' },
+            { id: 'ng5', title: 'Benin Leopard', period: 'Benin Kingdom', culture: 'Edo', shape: 'animal' },
+            { id: 'ng6', title: 'Talking Drum', period: 'Traditional', culture: 'Yoruba', shape: 'drum' },
+            { id: 'ng7', title: 'Ife Bronze Head', period: '12th Century', culture: 'Yoruba', shape: 'statue' },
+            { id: 'ng8', title: 'Adire Textile', period: 'Traditional', culture: 'Yoruba', shape: 'textile' },
+        ]
+    },
+    'Ethiopia': {
+        queries: ['Ethiopian art', 'Aksumite art', 'Ethiopian cross', 'Lalibela', 'Ethiopian manuscript', 'Coptic art Ethiopia'],
+        colors: { primary: '#009739', secondary: '#FCDD09', bg: '#DA121A' },
+        artifacts: [
+            { id: 'et1', title: 'Aksumite Obelisk', period: 'Aksumite Empire', culture: 'Aksumite', shape: 'pillar' },
+            { id: 'et2', title: 'Processional Cross', period: 'Medieval', culture: 'Ethiopian', shape: 'totem' },
+            { id: 'et3', title: 'Lalibela Church Model', period: '12th Century', culture: 'Ethiopian', shape: 'temple' },
+            { id: 'et4', title: 'Geez Prayer Scroll', period: 'Medieval', culture: 'Ethiopian', shape: 'scroll' },
+            { id: 'et5', title: 'Queen of Sheba Coin', period: 'Aksumite Empire', culture: 'Aksumite', shape: 'coin' },
+            { id: 'et6', title: 'Coffee Jebena Pot', period: 'Traditional', culture: 'Ethiopian', shape: 'vase' },
+            { id: 'et7', title: 'Lion of Judah Statue', period: 'Solomonic Dynasty', culture: 'Ethiopian', shape: 'animal' },
+            { id: 'et8', title: 'Meskel Drum', period: 'Traditional', culture: 'Ethiopian', shape: 'drum' },
+        ]
+    },
+    'Russia': {
+        queries: ['Russian art', 'Faberge', 'Russian icon painting', 'Scythian gold', 'Russian silver', 'Imperial Russia art'],
+        colors: { primary: '#FFFFFF', secondary: '#0039A6', bg: '#D52B1E' },
+        artifacts: [
+            { id: 'ru1', title: 'Faberge Egg', period: 'Imperial Russia', culture: 'Russian', shape: 'jewel' },
+            { id: 'ru2', title: 'Scythian Gold Comb', period: '4th Century BC', culture: 'Scythian', shape: 'crown' },
+            { id: 'ru3', title: 'Orthodox Icon Panel', period: 'Medieval', culture: 'Russian', shape: 'scroll' },
+            { id: 'ru4', title: 'Matryoshka Doll', period: '19th Century', culture: 'Russian', shape: 'totem' },
+            { id: 'ru5', title: 'Imperial Samovar', period: '19th Century', culture: 'Russian', shape: 'chalice' },
+            { id: 'ru6', title: 'Cossack Shashka Saber', period: '18th Century', culture: 'Russian', shape: 'sword' },
+            { id: 'ru7', title: 'Onion Dome Model', period: 'Medieval', culture: 'Russian', shape: 'temple' },
+            { id: 'ru8', title: 'Imperial Ruble', period: 'Imperial Russia', culture: 'Russian', shape: 'coin' },
+        ]
+    },
+    'Ireland': {
+        queries: ['Irish art', 'Celtic jewelry', 'Irish gold', 'Book of Kells', 'Irish bronze age', 'Celtic Irish art'],
+        colors: { primary: '#169B62', secondary: '#FF883E', bg: '#1A2E1A' },
+        artifacts: [
+            { id: 'ie1', title: 'Celtic Gold Torque', period: 'Iron Age', culture: 'Celtic', shape: 'jewel' },
+            { id: 'ie2', title: 'Book of Kells Page', period: '9th Century', culture: 'Irish', shape: 'scroll' },
+            { id: 'ie3', title: 'Celtic Cross', period: 'Early Medieval', culture: 'Irish', shape: 'totem' },
+            { id: 'ie4', title: 'Tara Brooch', period: '8th Century', culture: 'Irish', shape: 'jewel' },
+            { id: 'ie5', title: 'Ardagh Chalice', period: '8th Century', culture: 'Irish', shape: 'chalice' },
+            { id: 'ie6', title: 'Newgrange Spiral Stone', period: 'Neolithic', culture: 'Irish', shape: 'pillar' },
+            { id: 'ie7', title: 'Irish War Horn', period: 'Bronze Age', culture: 'Irish', shape: 'instrument' },
+            { id: 'ie8', title: 'Claddagh Ring', period: '17th Century', culture: 'Irish', shape: 'jewel' },
+        ]
+    },
+    'Netherlands': {
+        queries: ['Dutch golden age', 'Delft pottery', 'Dutch art', 'Netherlands art', 'Dutch silver'],
+        colors: { primary: '#AE1C28', secondary: '#21468B', bg: '#F5E6C8' },
+        artifacts: [
+            { id: 'nl1', title: 'Delft Blue Tile', period: '17th Century', culture: 'Dutch', shape: 'textile' },
+            { id: 'nl2', title: 'VOC Trade Coin', period: 'Golden Age', culture: 'Dutch', shape: 'coin' },
+            { id: 'nl3', title: 'Golden Age Chalice', period: '17th Century', culture: 'Dutch', shape: 'chalice' },
+            { id: 'nl4', title: 'Dutch Ship Model', period: 'Golden Age', culture: 'Dutch', shape: 'boat' },
+            { id: 'nl5', title: 'Delft Vase', period: '17th Century', culture: 'Dutch', shape: 'vase' },
+            { id: 'nl6', title: 'Windmill Figurine', period: '18th Century', culture: 'Dutch', shape: 'temple' },
+            { id: 'nl7', title: 'Tulip Mania Medal', period: '1637', culture: 'Dutch', shape: 'coin' },
+            { id: 'nl8', title: 'Dutch Master Frame', period: 'Golden Age', culture: 'Dutch', shape: 'scroll' },
+        ]
+    },
+    'Colombia': {
+        queries: ['Colombian gold', 'Muisca art', 'Quimbaya gold', 'pre-Columbian Colombia', 'Tairona art'],
+        colors: { primary: '#FCD116', secondary: '#003893', bg: '#CE1126' },
+        artifacts: [
+            { id: 'co1', title: 'Muisca Gold Raft', period: 'Muisca Period', culture: 'Muisca', shape: 'boat' },
+            { id: 'co2', title: 'Quimbaya Gold Figure', period: 'Quimbaya Culture', culture: 'Quimbaya', shape: 'statue' },
+            { id: 'co3', title: 'Tairona Gold Pendant', period: 'Tairona Culture', culture: 'Tairona', shape: 'jewel' },
+            { id: 'co4', title: 'San Agustin Statue', period: '1st Century AD', culture: 'San Agustin', shape: 'statue' },
+            { id: 'co5', title: 'Poporo Lime Container', period: 'Quimbaya Culture', culture: 'Quimbaya', shape: 'vase' },
+            { id: 'co6', title: 'Calima Gold Mask', period: 'Calima Culture', culture: 'Calima', shape: 'mask' },
+            { id: 'co7', title: 'Tierradentro Urn', period: '6th Century', culture: 'Tierradentro', shape: 'pottery' },
+            { id: 'co8', title: 'Tumaco Figurine', period: 'Tumaco Culture', culture: 'Tumaco', shape: 'totem' },
+        ]
+    },
+    'Brazil': {
+        queries: ['Brazilian indigenous art', 'Marajoara pottery', 'Tupi art', 'Brazilian colonial art', 'Amazonian art'],
+        colors: { primary: '#009C3B', secondary: '#FFDF00', bg: '#002776' },
+        artifacts: [
+            { id: 'br1', title: 'Marajoara Urn', period: 'Marajoara Culture', culture: 'Marajoara', shape: 'vase' },
+            { id: 'br2', title: 'Tupi Feather Headdress', period: 'Pre-Colonial', culture: 'Tupi', shape: 'crown' },
+            { id: 'br3', title: 'Amazonian War Club', period: 'Pre-Colonial', culture: 'Indigenous', shape: 'sword' },
+            { id: 'br4', title: 'Muiraquita Amulet', period: 'Pre-Colonial', culture: 'Amazonian', shape: 'jewel' },
+            { id: 'br5', title: 'Santarem Pottery', period: 'Tapajos Culture', culture: 'Tapajos', shape: 'pottery' },
+            { id: 'br6', title: 'Tupi Body Paint Pattern', period: 'Pre-Colonial', culture: 'Tupi', shape: 'textile' },
+            { id: 'br7', title: 'Kayapo Mask', period: 'Traditional', culture: 'Kayapo', shape: 'mask' },
+            { id: 'br8', title: 'Maraca Funerary Urn', period: 'Pre-Colonial', culture: 'Maraca', shape: 'totem' },
+        ]
+    },
+    'United States': {
+        queries: ['Native American art', 'Navajo weaving', 'Pueblo pottery', 'Plains Indian art', 'American folk art'],
+        colors: { primary: '#3C3B6E', secondary: '#B22234', bg: '#F5E6C8' },
+        artifacts: [
+            { id: 'us1', title: 'Navajo Turquoise Necklace', period: 'Traditional', culture: 'Navajo', shape: 'jewel' },
+            { id: 'us2', title: 'Pueblo Pottery', period: 'Traditional', culture: 'Pueblo', shape: 'pottery' },
+            { id: 'us3', title: 'Plains War Bonnet', period: '19th Century', culture: 'Lakota', shape: 'crown' },
+            { id: 'us4', title: 'Totem Pole Fragment', period: 'Traditional', culture: 'Pacific NW', shape: 'totem' },
+            { id: 'us5', title: 'Clovis Point Arrowhead', period: '11000 BC', culture: 'Paleo-Indian', shape: 'sword' },
+            { id: 'us6', title: 'Kachina Doll', period: 'Traditional', culture: 'Hopi', shape: 'statue' },
+            { id: 'us7', title: 'Shell Gorget', period: 'Mississippian', culture: 'Mississippian', shape: 'coin' },
+            { id: 'us8', title: 'Navajo Rug', period: 'Traditional', culture: 'Navajo', shape: 'textile' },
+        ]
+    },
+    'Australia': {
+        queries: ['Aboriginal art', 'Australian indigenous art', 'bark painting', 'Oceanic art Australia'],
+        colors: { primary: '#D2691E', secondary: '#FFD700', bg: '#2C1810' },
+        artifacts: [
+            { id: 'au1', title: 'Aboriginal Dot Painting', period: 'Traditional', culture: 'Aboriginal', shape: 'textile' },
+            { id: 'au2', title: 'Boomerang', period: 'Traditional', culture: 'Aboriginal', shape: 'sword' },
+            { id: 'au3', title: 'Didgeridoo', period: 'Traditional', culture: 'Aboriginal', shape: 'instrument' },
+            { id: 'au4', title: 'Bark Shield', period: 'Traditional', culture: 'Aboriginal', shape: 'shield' },
+            { id: 'au5', title: 'Churinga Stone', period: 'Traditional', culture: 'Aboriginal', shape: 'coin' },
+            { id: 'au6', title: 'Wandjina Spirit Mask', period: 'Traditional', culture: 'Aboriginal', shape: 'mask' },
+            { id: 'au7', title: 'Message Stick', period: 'Traditional', culture: 'Aboriginal', shape: 'totem' },
+            { id: 'au8', title: 'Rock Art Panel', period: '20000+ BC', culture: 'Aboriginal', shape: 'scroll' },
+        ]
+    },
+    // ── Scandinavia ──
+    'Norway': {
+        queries: ['Viking ship', 'Norwegian stave church', 'Viking sword Norway', 'Oseberg ship', 'Norse brooch', 'Viking age Norway'],
+        colors: { primary: '#C0C0C0', secondary: '#002868', bg: '#1A1A2E' },
+        artifacts: [
+            { id: 'no1', title: 'Oseberg Ship Prow', period: '9th Century AD', culture: 'Norse', shape: 'boat' },
+            { id: 'no2', title: 'Viking Sword', period: '9th Century AD', culture: 'Norse', shape: 'sword' },
+            { id: 'no3', title: 'Rune Stone', period: '10th Century AD', culture: 'Norse', shape: 'scroll' },
+            { id: 'no4', title: 'Stave Church Carving', period: '12th Century AD', culture: 'Norse', shape: 'temple' },
+            { id: 'no5', title: 'Tortoise Brooch', period: '9th Century AD', culture: 'Norse', shape: 'jewel' },
+            { id: 'no6', title: 'Iron Helmet', period: '10th Century AD', culture: 'Norse', shape: 'helmet' },
+            { id: 'no7', title: 'Drinking Horn', period: '9th Century AD', culture: 'Norse', shape: 'chalice' },
+            { id: 'no8', title: 'Whalebone Plaque', period: '8th Century AD', culture: 'Norse', shape: 'textile' },
+        ]
+    },
+    'Sweden': {
+        queries: ['Vendel helmet', 'Swedish rune stone', 'Gotland picture stone', 'Swedish Viking art', 'Birka artifact', 'Swedish gold bracteate'],
+        colors: { primary: '#FECC02', secondary: '#006AA7', bg: '#1A2040' },
+        artifacts: [
+            { id: 'se1', title: 'Vendel Helmet', period: '7th Century AD', culture: 'Swedish', shape: 'helmet' },
+            { id: 'se2', title: 'Gotland Picture Stone', period: '5th Century AD', culture: 'Swedish', shape: 'scroll' },
+            { id: 'se3', title: 'Gold Bracteate', period: '6th Century AD', culture: 'Swedish', shape: 'coin' },
+            { id: 'se4', title: 'Birka Trade Weight', period: '9th Century AD', culture: 'Swedish', shape: 'jewel' },
+            { id: 'se5', title: 'Valsgärde Shield', period: '7th Century AD', culture: 'Swedish', shape: 'shield' },
+            { id: 'se6', title: 'Rock Carving Panel', period: '1500 BC', culture: 'Swedish', shape: 'textile' },
+            { id: 'se7', title: 'Bronze Lur', period: '800 BC', culture: 'Swedish', shape: 'instrument' },
+            { id: 'se8', title: 'Uppland Rune Stone', period: '11th Century AD', culture: 'Swedish', shape: 'totem' },
+        ]
+    },
+    'Denmark': {
+        queries: ['Jelling stone', 'Danish Viking art', 'Gundestrup cauldron', 'Danish bronze age', 'Sun chariot Denmark', 'Danish bog find'],
+        colors: { primary: '#C8102E', secondary: '#FFFFFF', bg: '#2A1520' },
+        artifacts: [
+            { id: 'dk1', title: 'Jelling Rune Stone', period: '10th Century AD', culture: 'Danish', shape: 'scroll' },
+            { id: 'dk2', title: 'Gundestrup Cauldron', period: '1st Century BC', culture: 'Danish', shape: 'chalice' },
+            { id: 'dk3', title: 'Sun Chariot', period: '1400 BC', culture: 'Danish', shape: 'boat' },
+            { id: 'dk4', title: 'Golden Horns of Gallehus', period: '5th Century AD', culture: 'Danish', shape: 'instrument' },
+            { id: 'dk5', title: 'Tollund Man Rope', period: '4th Century BC', culture: 'Danish', shape: 'textile' },
+            { id: 'dk6', title: 'Mammen Axe', period: '10th Century AD', culture: 'Danish', shape: 'sword' },
+            { id: 'dk7', title: 'Bronze Age Razor', period: '1300 BC', culture: 'Danish', shape: 'coin' },
+            { id: 'dk8', title: 'Trundholm Disc', period: '1400 BC', culture: 'Danish', shape: 'shield' },
+        ]
+    },
+};
+
+
+// ============================================
+// ARTIFACT SERVICE CLASS
+// ============================================
 
 class ArtifactService {
     constructor() {
         this.apiBase = 'https://collectionapi.metmuseum.org/public/collection/v1';
         this.usedIds = new Set();
-        this.apiAvailable = true; // Will be set to false if API fails repeatedly
+        this.apiAvailable = true;
         this.apiFailCount = 0;
-
-        // Search queries for variety
-        this.countryQueries = {
-            'Egypt': ['Egyptian sculpture', 'Egyptian jewelry', 'Pharaoh', 'Mummy mask', 'Hieroglyphic', 'Scarab', 'Egyptian gold', 'Ankh', 'Egyptian cat'],
-            'Greece': ['Greek vase', 'Greek sculpture', 'Amphora', 'Greek coin', 'Greek bronze', 'Hellenistic', 'Greek marble'],
-            'China': ['Chinese porcelain', 'Chinese jade', 'Ming dynasty', 'Tang dynasty', 'Chinese Buddha', 'Chinese dragon', 'Chinese bronze'],
-            'Japan': ['Japanese samurai', 'Katana', 'Ukiyo-e', 'Hokusai', 'Noh mask', 'Japanese armor', 'Edo period'],
-            'Mexico': ['Aztec', 'Maya', 'Olmec', 'Aztec mask', 'Maya jade', 'Feathered serpent', 'Aztec warrior'],
-            'Rome': ['Roman bust', 'Roman coin', 'Roman mosaic', 'Roman glass', 'Pompeii', 'Roman jewelry', 'Roman bronze'],
-            'India': ['Hindu deity', 'Shiva', 'Ganesha', 'Mughal', 'Indian bronze', 'Vishnu', 'Krishna'],
-            'Peru': ['Inca', 'Moche', 'Nazca', 'Peruvian gold', 'Inca silver', 'Moche portrait', 'Andean textile'],
-            'Mesopotamia': ['Assyrian relief', 'Babylonian', 'Sumerian', 'Cuneiform', 'Cylinder seal', 'Akkadian']
-        };
-
-        // SVG Icons - Transparent, lightweight, always available!
-        // These are stylized representations perfect for games
-        this.artifactIcons = {
-            'Egypt': [
-                { id: 'eg1', title: 'Pharaoh Mask', period: 'Ancient Egypt', culture: 'Egyptian', icon: 'pharaoh-mask' },
-                { id: 'eg2', title: 'Scarab Amulet', period: 'New Kingdom', culture: 'Egyptian', icon: 'scarab' },
-                { id: 'eg3', title: 'Ankh Symbol', period: 'Ancient Egypt', culture: 'Egyptian', icon: 'ankh' },
-                { id: 'eg4', title: 'Canopic Jar', period: 'Ancient Egypt', culture: 'Egyptian', icon: 'canopic-jar' },
-                { id: 'eg5', title: 'Eye of Horus', period: 'Ancient Egypt', culture: 'Egyptian', icon: 'eye-of-horus' },
-                { id: 'eg6', title: 'Sphinx Statue', period: 'Old Kingdom', culture: 'Egyptian', icon: 'sphinx' },
-                { id: 'eg7', title: 'Pyramid Model', period: 'Ancient Egypt', culture: 'Egyptian', icon: 'pyramid' },
-                { id: 'eg8', title: 'Cat Statue', period: 'Late Period', culture: 'Egyptian', icon: 'cat-statue' },
-                { id: 'eg9', title: 'Hieroglyph Tablet', period: 'Ancient Egypt', culture: 'Egyptian', icon: 'hieroglyph' },
-                { id: 'eg10', title: 'Nefertiti Bust', period: 'New Kingdom', culture: 'Egyptian', icon: 'nefertiti' },
-            ],
-            'Greece': [
-                { id: 'gr1', title: 'Amphora Vase', period: '5th Century BC', culture: 'Greek', icon: 'amphora' },
-                { id: 'gr2', title: 'Spartan Helmet', period: 'Classical', culture: 'Greek', icon: 'spartan-helmet' },
-                { id: 'gr3', title: 'Laurel Wreath', period: 'Classical', culture: 'Greek', icon: 'laurel-wreath' },
-                { id: 'gr4', title: 'Greek Column', period: 'Classical', culture: 'Greek', icon: 'column' },
-                { id: 'gr5', title: 'Lyre', period: 'Ancient Greece', culture: 'Greek', icon: 'lyre' },
-                { id: 'gr6', title: 'Olympic Discus', period: 'Classical', culture: 'Greek', icon: 'discus' },
-                { id: 'gr7', title: 'Owl of Athena', period: 'Classical', culture: 'Greek', icon: 'owl' },
-                { id: 'gr8', title: 'Trident', period: 'Ancient Greece', culture: 'Greek', icon: 'trident' },
-                { id: 'gr9', title: 'Greek Theater Mask', period: 'Classical', culture: 'Greek', icon: 'theater-mask' },
-                { id: 'gr10', title: 'Drachma Coin', period: '4th Century BC', culture: 'Greek', icon: 'coin' },
-            ],
-            'China': [
-                { id: 'ch1', title: 'Dragon Vase', period: 'Ming Dynasty', culture: 'Chinese', icon: 'dragon-vase' },
-                { id: 'ch2', title: 'Jade Disc', period: 'Han Dynasty', culture: 'Chinese', icon: 'jade-disc' },
-                { id: 'ch3', title: 'Terracotta Warrior', period: 'Qin Dynasty', culture: 'Chinese', icon: 'terracotta' },
-                { id: 'ch4', title: 'Bronze Bell', period: 'Zhou Dynasty', culture: 'Chinese', icon: 'bronze-bell' },
-                { id: 'ch5', title: 'Silk Fan', period: 'Tang Dynasty', culture: 'Chinese', icon: 'fan' },
-                { id: 'ch6', title: 'Pagoda Model', period: 'Song Dynasty', culture: 'Chinese', icon: 'pagoda' },
-                { id: 'ch7', title: 'Buddha Statue', period: 'Tang Dynasty', culture: 'Chinese', icon: 'buddha' },
-                { id: 'ch8', title: 'Chinese Lantern', period: 'Ming Dynasty', culture: 'Chinese', icon: 'lantern' },
-                { id: 'ch9', title: 'Tea Set', period: 'Qing Dynasty', culture: 'Chinese', icon: 'tea-set' },
-                { id: 'ch10', title: 'Calligraphy Scroll', period: 'Song Dynasty', culture: 'Chinese', icon: 'scroll' },
-            ],
-            'Japan': [
-                { id: 'jp1', title: 'Samurai Helmet', period: 'Edo Period', culture: 'Japanese', icon: 'samurai-helmet' },
-                { id: 'jp2', title: 'Katana Sword', period: 'Muromachi', culture: 'Japanese', icon: 'katana' },
-                { id: 'jp3', title: 'Noh Mask', period: 'Edo Period', culture: 'Japanese', icon: 'noh-mask' },
-                { id: 'jp4', title: 'Daruma Doll', period: 'Edo Period', culture: 'Japanese', icon: 'daruma' },
-                { id: 'jp5', title: 'Torii Gate Model', period: 'Traditional', culture: 'Japanese', icon: 'torii' },
-                { id: 'jp6', title: 'Origami Crane', period: 'Edo Period', culture: 'Japanese', icon: 'origami' },
-                { id: 'jp7', title: 'Sake Bottle', period: 'Edo Period', culture: 'Japanese', icon: 'sake' },
-                { id: 'jp8', title: 'Bonsai Tree', period: 'Traditional', culture: 'Japanese', icon: 'bonsai' },
-                { id: 'jp9', title: 'Maneki-neko', period: 'Edo Period', culture: 'Japanese', icon: 'lucky-cat' },
-                { id: 'jp10', title: 'Koi Fish Painting', period: 'Edo Period', culture: 'Japanese', icon: 'koi' },
-            ],
-            'Mexico': [
-                { id: 'mx1', title: 'Aztec Sun Stone', period: 'Aztec Empire', culture: 'Aztec', icon: 'sun-stone' },
-                { id: 'mx2', title: 'Jade Mask', period: 'Maya Classic', culture: 'Maya', icon: 'jade-mask' },
-                { id: 'mx3', title: 'Quetzalcoatl Head', period: 'Aztec Empire', culture: 'Aztec', icon: 'quetzalcoatl' },
-                { id: 'mx4', title: 'Olmec Head', period: '1500-400 BC', culture: 'Olmec', icon: 'olmec-head' },
-                { id: 'mx5', title: 'Maya Calendar', period: 'Maya Classic', culture: 'Maya', icon: 'maya-calendar' },
-                { id: 'mx6', title: 'Eagle Warrior', period: 'Aztec Empire', culture: 'Aztec', icon: 'eagle-warrior' },
-                { id: 'mx7', title: 'Obsidian Knife', period: 'Aztec Empire', culture: 'Aztec', icon: 'obsidian-knife' },
-                { id: 'mx8', title: 'Cacao Pod', period: 'Mesoamerican', culture: 'Maya', icon: 'cacao' },
-                { id: 'mx9', title: 'Jaguar Statue', period: 'Maya Classic', culture: 'Maya', icon: 'jaguar' },
-                { id: 'mx10', title: 'Pyramid Model', period: 'Maya Classic', culture: 'Maya', icon: 'maya-pyramid' },
-            ],
-            'Rome': [
-                { id: 'rm1', title: 'Roman Helmet', period: 'Imperial Rome', culture: 'Roman', icon: 'roman-helmet' },
-                { id: 'rm2', title: 'Gladius Sword', period: 'Imperial Rome', culture: 'Roman', icon: 'gladius' },
-                { id: 'rm3', title: 'Laurel Crown', period: 'Roman Republic', culture: 'Roman', icon: 'laurel-crown' },
-                { id: 'rm4', title: 'Roman Coin', period: 'Imperial Rome', culture: 'Roman', icon: 'roman-coin' },
-                { id: 'rm5', title: 'Eagle Standard', period: 'Imperial Rome', culture: 'Roman', icon: 'aquila' },
-                { id: 'rm6', title: 'Roman Shield', period: 'Imperial Rome', culture: 'Roman', icon: 'scutum' },
-                { id: 'rm7', title: 'Oil Lamp', period: 'Imperial Rome', culture: 'Roman', icon: 'oil-lamp' },
-                { id: 'rm8', title: 'Mosaic Tile', period: 'Imperial Rome', culture: 'Roman', icon: 'mosaic' },
-                { id: 'rm9', title: 'Amphora', period: 'Roman Republic', culture: 'Roman', icon: 'roman-amphora' },
-                { id: 'rm10', title: 'Bust of Caesar', period: 'Roman Republic', culture: 'Roman', icon: 'caesar-bust' },
-            ],
-            'India': [
-                { id: 'in1', title: 'Shiva Nataraja', period: 'Chola Dynasty', culture: 'Indian', icon: 'shiva' },
-                { id: 'in2', title: 'Ganesha Statue', period: 'Medieval India', culture: 'Indian', icon: 'ganesha' },
-                { id: 'in3', title: 'Lotus Flower', period: 'Traditional', culture: 'Indian', icon: 'lotus' },
-                { id: 'in4', title: 'Mughal Dagger', period: 'Mughal Empire', culture: 'Indian', icon: 'mughal-dagger' },
-                { id: 'in5', title: 'Elephant Statue', period: 'Medieval India', culture: 'Indian', icon: 'elephant' },
-                { id: 'in6', title: 'Buddha Head', period: 'Gupta Period', culture: 'Indian', icon: 'buddha-head' },
-                { id: 'in7', title: 'Temple Bell', period: 'Medieval India', culture: 'Indian', icon: 'temple-bell' },
-                { id: 'in8', title: 'Peacock Ornament', period: 'Mughal Empire', culture: 'Indian', icon: 'peacock' },
-                { id: 'in9', title: 'Om Symbol', period: 'Traditional', culture: 'Indian', icon: 'om' },
-                { id: 'in10', title: 'Sitar', period: 'Mughal Empire', culture: 'Indian', icon: 'sitar' },
-            ],
-            'Peru': [
-                { id: 'pe1', title: 'Inca Gold Mask', period: 'Inca Empire', culture: 'Inca', icon: 'inca-mask' },
-                { id: 'pe2', title: 'Moche Portrait', period: 'Moche Culture', culture: 'Moche', icon: 'moche-portrait' },
-                { id: 'pe3', title: 'Nazca Lines Bird', period: 'Nazca Culture', culture: 'Nazca', icon: 'nazca-bird' },
-                { id: 'pe4', title: 'Tumi Knife', period: 'Chimu Culture', culture: 'Chimu', icon: 'tumi' },
-                { id: 'pe5', title: 'Llama Figure', period: 'Inca Empire', culture: 'Inca', icon: 'llama' },
-                { id: 'pe6', title: 'Quipu', period: 'Inca Empire', culture: 'Inca', icon: 'quipu' },
-                { id: 'pe7', title: 'Textile Pattern', period: 'Wari Culture', culture: 'Wari', icon: 'wari-textile' },
-                { id: 'pe8', title: 'Sun Disc', period: 'Inca Empire', culture: 'Inca', icon: 'inti' },
-                { id: 'pe9', title: 'Ceramic Vessel', period: 'Moche Culture', culture: 'Moche', icon: 'moche-vessel' },
-                { id: 'pe10', title: 'Condor Figure', period: 'Nazca Culture', culture: 'Nazca', icon: 'condor' },
-            ],
-            'Mesopotamia': [
-                { id: 'ms1', title: 'Winged Bull', period: 'Assyrian Empire', culture: 'Assyrian', icon: 'lamassu' },
-                { id: 'ms2', title: 'Cuneiform Tablet', period: 'Sumerian', culture: 'Sumerian', icon: 'cuneiform' },
-                { id: 'ms3', title: 'Cylinder Seal', period: 'Akkadian', culture: 'Akkadian', icon: 'cylinder-seal' },
-                { id: 'ms4', title: 'Ishtar Gate Lion', period: 'Babylonian', culture: 'Babylonian', icon: 'ishtar-lion' },
-                { id: 'ms5', title: 'Ziggurat Model', period: 'Sumerian', culture: 'Sumerian', icon: 'ziggurat' },
-                { id: 'ms6', title: 'Code of Hammurabi', period: 'Babylonian', culture: 'Babylonian', icon: 'hammurabi' },
-                { id: 'ms7', title: 'Gilgamesh Relief', period: 'Akkadian', culture: 'Akkadian', icon: 'gilgamesh' },
-                { id: 'ms8', title: 'Royal Harp', period: 'Sumerian', culture: 'Sumerian', icon: 'harp' },
-                { id: 'ms9', title: 'Lion Hunt Relief', period: 'Assyrian Empire', culture: 'Assyrian', icon: 'lion-hunt' },
-                { id: 'ms10', title: 'Star of Shamash', period: 'Babylonian', culture: 'Babylonian', icon: 'shamash' },
-            ]
-        };
     }
 
-    /**
-     * Get artifacts - tries API first, falls back to icons
-     */
     async getArtifacts(country, count = 5, preferIcons = true) {
-        // If preferIcons or API has failed too many times, use icons
         if (preferIcons || !this.apiAvailable) {
             return this.getIconArtifacts(country, count);
         }
@@ -149,41 +515,36 @@ class ArtifactService {
         try {
             const artifacts = await this.fetchFromAPI(country, count);
             if (artifacts && artifacts.length >= count) {
-                this.apiFailCount = 0; // Reset fail count on success
+                this.apiFailCount = 0;
                 return artifacts;
             }
         } catch (error) {
             console.warn('[ArtifactService] API error:', error.message);
             this.apiFailCount++;
-
-            // After 3 failures, switch to icons for this session
             if (this.apiFailCount >= 3) {
-                console.log('[ArtifactService] Switching to icon mode');
+                console.log('[ArtifactService] Switching to icon mode after repeated failures');
                 this.apiAvailable = false;
             }
         }
 
-        // Fallback to icons
         return this.getIconArtifacts(country, count);
     }
 
-    /**
-     * Get SVG icon artifacts (always works, transparent background!)
-     */
     getIconArtifacts(country, count) {
-        const icons = this.artifactIcons[country];
-        if (!icons) return [];
+        const config = COUNTRY_DATA[country];
+        if (!config) {
+            console.warn(`[ArtifactService] Unknown country: ${country}, using generic fallback`);
+            return this.getGenericArtifacts(country, count);
+        }
 
-        // Filter out used ones
+        const icons = config.artifacts;
         let available = icons.filter(a => !this.usedIds.has(a.id));
 
-        // Reset if running low
         if (available.length < count) {
             icons.forEach(a => this.usedIds.delete(a.id));
             available = [...icons];
         }
 
-        // Shuffle
         for (let i = available.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [available[i], available[j]] = [available[j], available[i]];
@@ -192,162 +553,40 @@ class ArtifactService {
         const selected = available.slice(0, count);
         selected.forEach(a => this.usedIds.add(a.id));
 
-        // Add SVG image URLs
+        const { primary, secondary, bg } = config.colors;
         return selected.map(artifact => ({
             ...artifact,
-            image: this.generateSVGDataUrl(artifact.icon, country),
+            image: generateSVG(artifact.shape, primary, secondary, bg),
             isIcon: true
         }));
     }
 
-    /**
-     * Generate SVG data URL for an artifact icon
-     */
-    generateSVGDataUrl(iconType, country) {
-        const colors = {
-            'Egypt': { primary: '#D4AF37', secondary: '#8B6914', bg: '#2C1810' },
-            'Greece': { primary: '#FFFFFF', secondary: '#1E90FF', bg: '#1A237E' },
-            'China': { primary: '#FF0000', secondary: '#FFD700', bg: '#8B0000' },
-            'Japan': { primary: '#FFFFFF', secondary: '#BC002D', bg: '#2D2D2D' },
-            'Mexico': { primary: '#00A86B', secondary: '#FFD700', bg: '#4A0E0E' },
-            'Rome': { primary: '#FFD700', secondary: '#8B0000', bg: '#1A1A2E' },
-            'India': { primary: '#FF9933', secondary: '#138808', bg: '#2E1A47' },
-            'Peru': { primary: '#FFD700', secondary: '#C41E3A', bg: '#3D2914' },
-            'Mesopotamia': { primary: '#C9A227', secondary: '#4A3728', bg: '#1A1410' }
-        };
-
-        const c = colors[country] || colors['Egypt'];
-
-        // Simple iconic SVGs for each artifact type
-        const svgs = {
-            // Egypt
-            'pharaoh-mask': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="45" rx="30" ry="35" fill="${c.primary}"/><path d="M20 45 Q50 90 80 45" fill="${c.secondary}"/><circle cx="40" cy="40" r="5" fill="${c.bg}"/><circle cx="60" cy="40" r="5" fill="${c.bg}"/><path d="M20 30 L50 10 L80 30" fill="${c.primary}" stroke="${c.secondary}" stroke-width="2"/></svg>`,
-            'scarab': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="25" ry="30" fill="${c.primary}"/><circle cx="50" cy="25" r="15" fill="${c.primary}"/><path d="M25 50 Q10 30 25 20" stroke="${c.secondary}" stroke-width="4" fill="none"/><path d="M75 50 Q90 30 75 20" stroke="${c.secondary}" stroke-width="4" fill="none"/></svg>`,
-            'ankh': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="25" rx="15" ry="20" fill="none" stroke="${c.primary}" stroke-width="8"/><line x1="50" y1="45" x2="50" y2="90" stroke="${c.primary}" stroke-width="8"/><line x1="30" y1="60" x2="70" y2="60" stroke="${c.primary}" stroke-width="8"/></svg>`,
-            'canopic-jar': `<svg viewBox="0 0 100 100"><path d="M35 30 Q35 80 50 85 Q65 80 65 30" fill="${c.primary}"/><ellipse cx="50" cy="30" rx="15" ry="8" fill="${c.secondary}"/><circle cx="50" cy="15" r="12" fill="${c.primary}"/><circle cx="45" cy="13" r="2" fill="${c.bg}"/><circle cx="55" cy="13" r="2" fill="${c.bg}"/></svg>`,
-            'eye-of-horus': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="40" rx="35" ry="20" fill="${c.primary}"/><circle cx="50" cy="40" r="12" fill="${c.bg}"/><circle cx="50" cy="40" r="6" fill="${c.secondary}"/><path d="M15 40 Q30 70 50 80" stroke="${c.primary}" stroke-width="6" fill="none"/><path d="M50 55 L50 80" stroke="${c.primary}" stroke-width="4"/></svg>`,
-            'sphinx': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="70" rx="35" ry="15" fill="${c.primary}"/><path d="M30 70 L30 40 Q50 20 70 40 L70 70" fill="${c.primary}"/><circle cx="42" cy="45" r="3" fill="${c.bg}"/><circle cx="58" cy="45" r="3" fill="${c.bg}"/></svg>`,
-            'pyramid': `<svg viewBox="0 0 100 100"><polygon points="50,15 85,85 15,85" fill="${c.primary}" stroke="${c.secondary}" stroke-width="2"/><line x1="50" y1="15" x2="50" y2="85" stroke="${c.secondary}" stroke-width="1"/></svg>`,
-            'cat-statue': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="75" rx="20" ry="10" fill="${c.primary}"/><path d="M35 75 L35 40 Q50 30 65 40 L65 75" fill="${c.primary}"/><polygon points="35,40 25,20 40,35" fill="${c.primary}"/><polygon points="65,40 75,20 60,35" fill="${c.primary}"/><circle cx="42" cy="45" r="3" fill="${c.secondary}"/><circle cx="58" cy="45" r="3" fill="${c.secondary}"/></svg>`,
-            'hieroglyph': `<svg viewBox="0 0 100 100"><rect x="20" y="15" width="60" height="70" fill="${c.secondary}" rx="5"/><circle cx="35" cy="35" r="8" fill="${c.primary}"/><rect x="50" y="30" width="20" height="10" fill="${c.primary}"/><path d="M30 55 L45 55 L45 70 L30 70 Z" fill="${c.primary}"/><path d="M55 50 L70 65" stroke="${c.primary}" stroke-width="4"/></svg>`,
-            'nefertiti': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="20" ry="25" fill="${c.primary}"/><path d="M30 30 L50 10 L70 30 L70 45 L30 45 Z" fill="${c.secondary}"/><circle cx="43" cy="50" r="3" fill="${c.bg}"/><circle cx="57" cy="50" r="3" fill="${c.bg}"/><path d="M45 62 Q50 65 55 62" stroke="${c.bg}" stroke-width="2" fill="none"/></svg>`,
-
-            // Greece
-            'amphora': `<svg viewBox="0 0 100 100"><path d="M35 25 Q30 50 35 80 Q50 90 65 80 Q70 50 65 25" fill="${c.secondary}"/><ellipse cx="50" cy="25" rx="15" ry="8" fill="${c.secondary}"/><path d="M35 35 Q20 30 25 45" stroke="${c.secondary}" stroke-width="5" fill="none"/><path d="M65 35 Q80 30 75 45" stroke="${c.secondary}" stroke-width="5" fill="none"/><rect x="38" y="40" width="24" height="30" fill="${c.primary}" opacity="0.3"/></svg>`,
-            'spartan-helmet': `<svg viewBox="0 0 100 100"><path d="M25 70 Q25 30 50 20 Q75 30 75 70" fill="${c.primary}"/><rect x="45" y="15" width="10" height="40" fill="${c.secondary}"/><path d="M30 70 L30 85 L70 85 L70 70" fill="${c.primary}"/><rect x="35" y="55" width="30" height="8" fill="${c.bg}"/></svg>`,
-            'laurel-wreath': `<svg viewBox="0 0 100 100"><path d="M50 80 Q20 60 25 30 Q30 20 40 25" stroke="${c.secondary}" stroke-width="3" fill="none"/><path d="M50 80 Q80 60 75 30 Q70 20 60 25" stroke="${c.secondary}" stroke-width="3" fill="none"/><ellipse cx="30" cy="40" rx="8" ry="15" fill="${c.secondary}" transform="rotate(-30 30 40)"/><ellipse cx="70" cy="40" rx="8" ry="15" fill="${c.secondary}" transform="rotate(30 70 40)"/><ellipse cx="35" cy="55" rx="8" ry="15" fill="${c.secondary}" transform="rotate(-15 35 55)"/><ellipse cx="65" cy="55" rx="8" ry="15" fill="${c.secondary}" transform="rotate(15 65 55)"/></svg>`,
-            'column': `<svg viewBox="0 0 100 100"><rect x="30" y="20" width="40" height="60" fill="${c.primary}"/><rect x="25" y="15" width="50" height="8" fill="${c.primary}"/><rect x="25" y="77" width="50" height="8" fill="${c.primary}"/><line x1="38" y1="23" x2="38" y2="77" stroke="${c.bg}" stroke-width="2"/><line x1="50" y1="23" x2="50" y2="77" stroke="${c.bg}" stroke-width="2"/><line x1="62" y1="23" x2="62" y2="77" stroke="${c.bg}" stroke-width="2"/></svg>`,
-            'lyre': `<svg viewBox="0 0 100 100"><path d="M30 80 Q20 40 35 20" stroke="${c.primary}" stroke-width="5" fill="none"/><path d="M70 80 Q80 40 65 20" stroke="${c.primary}" stroke-width="5" fill="none"/><path d="M35 20 Q50 10 65 20" stroke="${c.primary}" stroke-width="5" fill="none"/><rect x="25" y="75" width="50" height="10" fill="${c.primary}" rx="3"/><line x1="35" y1="25" x2="35" y2="75" stroke="${c.secondary}" stroke-width="1"/><line x1="50" y1="20" x2="50" y2="75" stroke="${c.secondary}" stroke-width="1"/><line x1="65" y1="25" x2="65" y2="75" stroke="${c.secondary}" stroke-width="1"/></svg>`,
-            'discus': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="50" rx="35" ry="35" fill="${c.primary}"/><ellipse cx="50" cy="50" rx="25" ry="25" fill="${c.secondary}"/><ellipse cx="50" cy="50" rx="10" ry="10" fill="${c.primary}"/></svg>`,
-            'owl': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="25" ry="30" fill="${c.primary}"/><circle cx="40" cy="45" r="12" fill="${c.secondary}"/><circle cx="60" cy="45" r="12" fill="${c.secondary}"/><circle cx="40" cy="45" r="6" fill="${c.bg}"/><circle cx="60" cy="45" r="6" fill="${c.bg}"/><polygon points="50,55 45,65 55,65" fill="${c.secondary}"/><polygon points="30,35 40,40 35,30" fill="${c.primary}"/><polygon points="70,35 60,40 65,30" fill="${c.primary}"/></svg>`,
-            'trident': `<svg viewBox="0 0 100 100"><line x1="50" y1="20" x2="50" y2="90" stroke="${c.primary}" stroke-width="6"/><line x1="30" y1="35" x2="30" y2="15" stroke="${c.primary}" stroke-width="4"/><line x1="50" y1="35" x2="50" y2="10" stroke="${c.primary}" stroke-width="4"/><line x1="70" y1="35" x2="70" y2="15" stroke="${c.primary}" stroke-width="4"/><path d="M30 35 L50 35 L70 35" stroke="${c.primary}" stroke-width="4"/><circle cx="30" cy="15" r="4" fill="${c.secondary}"/><circle cx="50" cy="10" r="4" fill="${c.secondary}"/><circle cx="70" cy="15" r="4" fill="${c.secondary}"/></svg>`,
-            'theater-mask': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="50" rx="30" ry="35" fill="${c.primary}"/><ellipse cx="38" cy="40" rx="8" ry="10" fill="${c.bg}"/><ellipse cx="62" cy="40" rx="8" ry="10" fill="${c.bg}"/><path d="M35 65 Q50 80 65 65" stroke="${c.bg}" stroke-width="4" fill="none"/></svg>`,
-            'coin': `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="35" fill="${c.primary}"/><circle cx="50" cy="50" r="28" fill="${c.secondary}"/><circle cx="50" cy="45" r="15" fill="${c.primary}"/><path d="M45 70 L55 70" stroke="${c.primary}" stroke-width="3"/></svg>`,
-
-            // China
-            'dragon-vase': `<svg viewBox="0 0 100 100"><path d="M35 25 Q30 50 35 80 Q50 90 65 80 Q70 50 65 25" fill="${c.primary}"/><ellipse cx="50" cy="25" rx="15" ry="8" fill="${c.secondary}"/><path d="M40 45 Q50 35 60 45 Q55 55 50 50 Q45 55 40 45" fill="${c.secondary}"/></svg>`,
-            'jade-disc': `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="35" fill="${c.primary}"/><circle cx="50" cy="50" r="12" fill="${c.bg}"/><circle cx="50" cy="50" r="25" fill="none" stroke="${c.secondary}" stroke-width="3"/></svg>`,
-            'terracotta': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="75" rx="20" ry="8" fill="${c.primary}"/><path d="M35 75 L35 35 Q50 25 65 35 L65 75" fill="${c.primary}"/><circle cx="50" cy="30" r="12" fill="${c.secondary}"/><circle cx="45" cy="28" r="2" fill="${c.bg}"/><circle cx="55" cy="28" r="2" fill="${c.bg}"/></svg>`,
-            'bronze-bell': `<svg viewBox="0 0 100 100"><path d="M30 75 Q30 40 50 30 Q70 40 70 75" fill="${c.primary}"/><ellipse cx="50" cy="75" rx="20" ry="8" fill="${c.secondary}"/><circle cx="50" cy="20" r="8" fill="${c.primary}"/><circle cx="50" cy="65" r="5" fill="${c.secondary}"/></svg>`,
-            'fan': `<svg viewBox="0 0 100 100"><path d="M50 85 L20 30 Q50 10 80 30 Z" fill="${c.primary}"/><line x1="50" y1="85" x2="35" y2="35" stroke="${c.secondary}" stroke-width="1"/><line x1="50" y1="85" x2="50" y2="25" stroke="${c.secondary}" stroke-width="1"/><line x1="50" y1="85" x2="65" y2="35" stroke="${c.secondary}" stroke-width="1"/></svg>`,
-            'pagoda': `<svg viewBox="0 0 100 100"><polygon points="50,10 70,30 30,30" fill="${c.primary}"/><rect x="35" y="30" width="30" height="15" fill="${c.secondary}"/><polygon points="50,35 65,50 35,50" fill="${c.primary}"/><rect x="38" y="50" width="24" height="12" fill="${c.secondary}"/><polygon points="50,55 62,65 38,65" fill="${c.primary}"/><rect x="40" y="65" width="20" height="20" fill="${c.secondary}"/></svg>`,
-            'buddha': `<svg viewBox="0 0 100 100"><circle cx="50" cy="35" r="20" fill="${c.primary}"/><ellipse cx="50" cy="70" rx="25" ry="20" fill="${c.primary}"/><circle cx="43" cy="32" r="2" fill="${c.bg}"/><circle cx="57" cy="32" r="2" fill="${c.bg}"/><path d="M45 40 Q50 43 55 40" stroke="${c.bg}" stroke-width="2" fill="none"/></svg>`,
-            'lantern': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="50" rx="25" ry="30" fill="${c.primary}"/><rect x="40" y="15" width="20" height="10" fill="${c.secondary}"/><rect x="40" y="75" width="20" height="10" fill="${c.secondary}"/><line x1="50" y1="5" x2="50" y2="15" stroke="${c.secondary}" stroke-width="3"/></svg>`,
-            'tea-set': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="70" rx="30" ry="10" fill="${c.secondary}"/><path d="M30 65 Q30 45 50 40 Q70 45 70 65" fill="${c.primary}"/><ellipse cx="50" cy="40" rx="10" ry="5" fill="${c.bg}"/><path d="M70 50 Q85 50 80 65" stroke="${c.primary}" stroke-width="4" fill="none"/></svg>`,
-            'scroll': `<svg viewBox="0 0 100 100"><rect x="25" y="25" width="50" height="50" fill="${c.secondary}"/><circle cx="25" cy="25" r="8" fill="${c.primary}"/><circle cx="75" cy="25" r="8" fill="${c.primary}"/><circle cx="25" cy="75" r="8" fill="${c.primary}"/><circle cx="75" cy="75" r="8" fill="${c.primary}"/><line x1="35" y1="40" x2="65" y2="40" stroke="${c.bg}" stroke-width="2"/><line x1="35" y1="50" x2="65" y2="50" stroke="${c.bg}" stroke-width="2"/><line x1="35" y1="60" x2="55" y2="60" stroke="${c.bg}" stroke-width="2"/></svg>`,
-
-            // Japan
-            'samurai-helmet': `<svg viewBox="0 0 100 100"><path d="M20 60 Q20 30 50 20 Q80 30 80 60" fill="${c.primary}"/><path d="M25 60 L75 60 L70 75 L30 75 Z" fill="${c.secondary}"/><path d="M35 20 L50 5 L65 20" fill="${c.primary}"/><ellipse cx="50" cy="45" rx="25" ry="10" fill="${c.bg}" opacity="0.3"/></svg>`,
-            'katana': `<svg viewBox="0 0 100 100"><path d="M20 80 Q25 75 75 25" stroke="${c.primary}" stroke-width="4" fill="none"/><path d="M75 25 L80 20" stroke="${c.secondary}" stroke-width="2"/><rect x="18" y="76" width="8" height="12" fill="${c.secondary}" transform="rotate(-45 22 82)"/></svg>`,
-            'noh-mask': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="50" rx="30" ry="35" fill="${c.primary}"/><path d="M35 40 L42 45 L35 50" fill="${c.bg}"/><path d="M65 40 L58 45 L65 50" fill="${c.bg}"/><ellipse cx="50" cy="65" rx="10" ry="5" fill="${c.secondary}"/></svg>`,
-            'daruma': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="30" ry="35" fill="${c.primary}"/><circle cx="50" cy="45" r="20" fill="${c.secondary}"/><circle cx="42" cy="42" r="6" fill="${c.primary}"/><circle cx="58" cy="42" r="6" fill="${c.primary}"/><circle cx="42" cy="42" r="3" fill="${c.bg}"/><circle cx="58" cy="42" r="3" fill="${c.bg}"/></svg>`,
-            'torii': `<svg viewBox="0 0 100 100"><rect x="20" y="25" width="8" height="60" fill="${c.primary}"/><rect x="72" y="25" width="8" height="60" fill="${c.primary}"/><rect x="15" y="20" width="70" height="8" fill="${c.primary}"/><rect x="18" y="35" width="64" height="5" fill="${c.primary}"/><path d="M15 20 L50 10 L85 20" fill="${c.secondary}"/></svg>`,
-            'origami': `<svg viewBox="0 0 100 100"><polygon points="50,20 80,50 65,50 65,80 35,80 35,50 20,50" fill="${c.primary}"/><polygon points="50,20 35,50 65,50" fill="${c.secondary}"/></svg>`,
-            'sake': `<svg viewBox="0 0 100 100"><path d="M35 30 L35 75 Q50 85 65 75 L65 30" fill="${c.primary}"/><ellipse cx="50" cy="30" rx="15" ry="8" fill="${c.secondary}"/><rect x="45" y="20" width="10" height="15" fill="${c.primary}"/></svg>`,
-            'bonsai': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="80" rx="25" ry="8" fill="${c.secondary}"/><rect x="45" y="60" width="10" height="20" fill="${c.primary}"/><circle cx="50" cy="45" r="20" fill="${c.secondary}"/><circle cx="35" cy="50" r="12" fill="${c.secondary}"/><circle cx="65" cy="50" r="12" fill="${c.secondary}"/></svg>`,
-            'lucky-cat': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="65" rx="25" ry="25" fill="${c.primary}"/><circle cx="50" cy="40" r="20" fill="${c.primary}"/><polygon points="32,30 38,45 28,40" fill="${c.primary}"/><polygon points="68,30 62,45 72,40" fill="${c.primary}"/><circle cx="42" cy="38" r="4" fill="${c.bg}"/><circle cx="58" cy="38" r="4" fill="${c.bg}"/><path d="M75 50 L85 30" stroke="${c.primary}" stroke-width="6"/></svg>`,
-            'koi': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="50" rx="35" ry="20" fill="${c.primary}"/><polygon points="85,50 95,35 95,65" fill="${c.secondary}"/><circle cx="30" cy="45" r="4" fill="${c.bg}"/><path d="M15 50 Q25 40 35 50" stroke="${c.secondary}" stroke-width="2" fill="none"/></svg>`,
-
-            // Mexico
-            'sun-stone': `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="${c.primary}"/><circle cx="50" cy="50" r="30" fill="${c.secondary}"/><circle cx="50" cy="50" r="15" fill="${c.primary}"/><circle cx="50" cy="50" r="8" fill="${c.bg}"/></svg>`,
-            'jade-mask': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="50" rx="30" ry="35" fill="${c.primary}"/><ellipse cx="38" cy="42" rx="8" ry="6" fill="${c.bg}"/><ellipse cx="62" cy="42" rx="8" ry="6" fill="${c.bg}"/><ellipse cx="50" cy="65" rx="12" ry="6" fill="${c.bg}"/><rect x="35" y="20" width="30" height="8" fill="${c.secondary}"/></svg>`,
-            'quetzalcoatl': `<svg viewBox="0 0 100 100"><circle cx="50" cy="40" r="20" fill="${c.primary}"/><path d="M30 40 Q20 50 25 60 Q35 55 30 40" fill="${c.secondary}"/><path d="M70 40 Q80 50 75 60 Q65 55 70 40" fill="${c.secondary}"/><path d="M50 60 Q50 80 40 90" stroke="${c.primary}" stroke-width="8" fill="none"/><circle cx="43" cy="38" r="3" fill="${c.bg}"/><circle cx="57" cy="38" r="3" fill="${c.bg}"/></svg>`,
-            'olmec-head': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="30" ry="35" fill="${c.primary}"/><ellipse cx="50" cy="25" rx="25" ry="15" fill="${c.secondary}"/><ellipse cx="40" cy="50" rx="5" ry="4" fill="${c.bg}"/><ellipse cx="60" cy="50" rx="5" ry="4" fill="${c.bg}"/><ellipse cx="50" cy="70" rx="10" ry="6" fill="${c.bg}"/></svg>`,
-            'maya-calendar': `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="${c.primary}"/><circle cx="50" cy="50" r="32" fill="${c.secondary}"/><circle cx="50" cy="50" r="20" fill="${c.primary}"/><circle cx="50" cy="50" r="10" fill="${c.secondary}"/><line x1="50" y1="10" x2="50" y2="25" stroke="${c.bg}" stroke-width="2"/><line x1="50" y1="75" x2="50" y2="90" stroke="${c.bg}" stroke-width="2"/><line x1="10" y1="50" x2="25" y2="50" stroke="${c.bg}" stroke-width="2"/><line x1="75" y1="50" x2="90" y2="50" stroke="${c.bg}" stroke-width="2"/></svg>`,
-            'eagle-warrior': `<svg viewBox="0 0 100 100"><circle cx="50" cy="45" r="20" fill="${c.primary}"/><path d="M30 35 L20 25 L35 35" fill="${c.secondary}"/><path d="M70 35 L80 25 L65 35" fill="${c.secondary}"/><ellipse cx="50" cy="75" rx="15" ry="20" fill="${c.primary}"/><circle cx="43" cy="42" r="3" fill="${c.bg}"/><circle cx="57" cy="42" r="3" fill="${c.bg}"/><path d="M45 52 L50 58 L55 52" fill="${c.secondary}"/></svg>`,
-            'obsidian-knife': `<svg viewBox="0 0 100 100"><polygon points="50,15 60,70 50,85 40,70" fill="${c.primary}"/><rect x="40" y="70" width="20" height="20" fill="${c.secondary}"/></svg>`,
-            'cacao': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="50" rx="20" ry="35" fill="${c.primary}"/><line x1="50" y1="20" x2="50" y2="80" stroke="${c.secondary}" stroke-width="2"/><ellipse cx="40" cy="40" rx="5" ry="8" fill="${c.secondary}"/><ellipse cx="60" cy="55" rx="5" ry="8" fill="${c.secondary}"/></svg>`,
-            'jaguar': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="60" rx="30" ry="20" fill="${c.primary}"/><circle cx="50" cy="35" r="18" fill="${c.primary}"/><polygon points="35,25 30,15 40,22" fill="${c.primary}"/><polygon points="65,25 70,15 60,22" fill="${c.primary}"/><circle cx="42" cy="32" r="4" fill="${c.secondary}"/><circle cx="58" cy="32" r="4" fill="${c.secondary}"/><circle cx="42" cy="32" r="2" fill="${c.bg}"/><circle cx="58" cy="32" r="2" fill="${c.bg}"/></svg>`,
-            'maya-pyramid': `<svg viewBox="0 0 100 100"><polygon points="50,15 85,85 15,85" fill="${c.primary}"/><rect x="35" y="25" width="30" height="10" fill="${c.secondary}"/><rect x="30" y="40" width="40" height="10" fill="${c.secondary}"/><rect x="25" y="55" width="50" height="10" fill="${c.secondary}"/><rect x="20" y="70" width="60" height="10" fill="${c.secondary}"/></svg>`,
-
-            // Rome
-            'roman-helmet': `<svg viewBox="0 0 100 100"><path d="M20 65 Q20 30 50 25 Q80 30 80 65" fill="${c.primary}"/><rect x="45" y="10" width="10" height="20" fill="${c.secondary}"/><ellipse cx="50" cy="10" rx="15" ry="5" fill="${c.secondary}"/><path d="M25 65 L75 65 L70 80 L30 80 Z" fill="${c.primary}"/></svg>`,
-            'gladius': `<svg viewBox="0 0 100 100"><rect x="47" y="15" width="6" height="50" fill="${c.primary}"/><polygon points="47,15 53,15 50,5" fill="${c.primary}"/><rect x="40" y="65" width="20" height="8" fill="${c.secondary}"/><rect x="45" y="73" width="10" height="15" fill="${c.secondary}"/></svg>`,
-            'laurel-crown': `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="30" fill="none" stroke="${c.primary}" stroke-width="5"/><ellipse cx="30" cy="35" rx="8" ry="15" fill="${c.secondary}" transform="rotate(-30 30 35)"/><ellipse cx="70" cy="35" rx="8" ry="15" fill="${c.secondary}" transform="rotate(30 70 35)"/><ellipse cx="30" cy="65" rx="8" ry="15" fill="${c.secondary}" transform="rotate(30 30 65)"/><ellipse cx="70" cy="65" rx="8" ry="15" fill="${c.secondary}" transform="rotate(-30 70 65)"/></svg>`,
-            'roman-coin': `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="38" fill="${c.primary}"/><circle cx="50" cy="50" r="32" fill="${c.secondary}"/><circle cx="50" cy="45" r="15" fill="${c.primary}"/><text x="50" y="75" text-anchor="middle" fill="${c.primary}" font-size="12">SPQR</text></svg>`,
-            'aquila': `<svg viewBox="0 0 100 100"><polygon points="50,15 60,40 90,35 65,55 75,85 50,65 25,85 35,55 10,35 40,40" fill="${c.primary}"/><circle cx="50" cy="45" r="8" fill="${c.secondary}"/></svg>`,
-            'scutum': `<svg viewBox="0 0 100 100"><path d="M25 20 Q25 80 50 90 Q75 80 75 20 Q50 15 25 20" fill="${c.primary}"/><path d="M35 30 Q35 70 50 78 Q65 70 65 30 Q50 25 35 30" fill="${c.secondary}"/><circle cx="50" cy="50" r="10" fill="${c.primary}"/></svg>`,
-            'oil-lamp': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="60" rx="25" ry="15" fill="${c.primary}"/><path d="M75 55 Q90 50 85 60 Q90 70 75 65" fill="${c.primary}"/><ellipse cx="50" cy="55" rx="8" ry="5" fill="${c.bg}"/><path d="M50 45 Q55 35 50 25" stroke="${c.secondary}" stroke-width="3" fill="none"/></svg>`,
-            'mosaic': `<svg viewBox="0 0 100 100"><rect x="20" y="20" width="60" height="60" fill="${c.bg}"/><rect x="25" y="25" width="12" height="12" fill="${c.primary}"/><rect x="42" y="25" width="12" height="12" fill="${c.secondary}"/><rect x="59" y="25" width="12" height="12" fill="${c.primary}"/><rect x="25" y="42" width="12" height="12" fill="${c.secondary}"/><rect x="42" y="42" width="12" height="12" fill="${c.primary}"/><rect x="59" y="42" width="12" height="12" fill="${c.secondary}"/><rect x="25" y="59" width="12" height="12" fill="${c.primary}"/><rect x="42" y="59" width="12" height="12" fill="${c.secondary}"/><rect x="59" y="59" width="12" height="12" fill="${c.primary}"/></svg>`,
-            'roman-amphora': `<svg viewBox="0 0 100 100"><path d="M38 25 Q32 50 35 80 Q50 90 65 80 Q68 50 62 25" fill="${c.primary}"/><ellipse cx="50" cy="25" rx="12" ry="6" fill="${c.secondary}"/><path d="M38 30 Q25 25 28 40" stroke="${c.primary}" stroke-width="5" fill="none"/><path d="M62 30 Q75 25 72 40" stroke="${c.primary}" stroke-width="5" fill="none"/></svg>`,
-            'caesar-bust': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="40" rx="20" ry="25" fill="${c.primary}"/><path d="M30 65 Q30 85 50 90 Q70 85 70 65" fill="${c.primary}"/><circle cx="42" cy="35" r="3" fill="${c.bg}"/><circle cx="58" cy="35" r="3" fill="${c.bg}"/><path d="M30 25 Q50 15 70 25" fill="${c.secondary}"/></svg>`,
-
-            // India
-            'shiva': `<svg viewBox="0 0 100 100"><circle cx="50" cy="35" r="15" fill="${c.primary}"/><ellipse cx="50" cy="65" rx="20" ry="25" fill="${c.primary}"/><circle cx="50" cy="50" r="30" fill="none" stroke="${c.secondary}" stroke-width="3"/><path d="M25 70 L15 55" stroke="${c.primary}" stroke-width="4"/><path d="M75 70 L85 55" stroke="${c.primary}" stroke-width="4"/><path d="M30 80 L20 90" stroke="${c.primary}" stroke-width="4"/><path d="M70 80 L80 90" stroke="${c.primary}" stroke-width="4"/></svg>`,
-            'ganesha': `<svg viewBox="0 0 100 100"><circle cx="50" cy="45" r="25" fill="${c.primary}"/><ellipse cx="50" cy="80" rx="20" ry="15" fill="${c.primary}"/><path d="M50 55 Q40 70 35 80" stroke="${c.primary}" stroke-width="8" fill="none"/><circle cx="40" cy="40" r="4" fill="${c.bg}"/><circle cx="55" cy="40" r="4" fill="${c.bg}"/><polygon points="35,30 25,15 40,25" fill="${c.primary}"/><polygon points="65,30 75,15 60,25" fill="${c.primary}"/></svg>`,
-            'lotus': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="70" rx="8" ry="20" fill="${c.primary}"/><ellipse cx="35" cy="65" rx="8" ry="18" fill="${c.secondary}" transform="rotate(-20 35 65)"/><ellipse cx="65" cy="65" rx="8" ry="18" fill="${c.secondary}" transform="rotate(20 65 65)"/><ellipse cx="25" cy="60" rx="6" ry="15" fill="${c.primary}" transform="rotate(-40 25 60)"/><ellipse cx="75" cy="60" rx="6" ry="15" fill="${c.primary}" transform="rotate(40 75 60)"/><circle cx="50" cy="75" r="8" fill="${c.secondary}"/></svg>`,
-            'mughal-dagger': `<svg viewBox="0 0 100 100"><path d="M50 15 Q55 40 50 70" stroke="${c.primary}" stroke-width="6" fill="none"/><path d="M50 70 L45 75 Q50 90 55 75 Z" fill="${c.secondary}"/><ellipse cx="50" cy="78" rx="12" ry="6" fill="${c.secondary}"/></svg>`,
-            'elephant': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="30" ry="25" fill="${c.primary}"/><circle cx="35" cy="40" r="15" fill="${c.primary}"/><path d="M25 50 Q15 65 20 80" stroke="${c.primary}" stroke-width="8" fill="none"/><circle cx="30" cy="38" r="3" fill="${c.bg}"/><polygon points="22,30 15,20 28,28" fill="${c.primary}"/></svg>`,
-            'buddha-head': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="25" ry="30" fill="${c.primary}"/><path d="M25 40 Q50 20 75 40" fill="${c.secondary}"/><circle cx="40" cy="50" r="3" fill="${c.bg}"/><circle cx="60" cy="50" r="3" fill="${c.bg}"/><path d="M45 65 Q50 68 55 65" stroke="${c.bg}" stroke-width="2" fill="none"/><circle cx="50" cy="35" r="5" fill="${c.secondary}"/></svg>`,
-            'temple-bell': `<svg viewBox="0 0 100 100"><path d="M30 70 Q30 35 50 25 Q70 35 70 70" fill="${c.primary}"/><ellipse cx="50" cy="70" rx="20" ry="8" fill="${c.secondary}"/><rect x="45" y="15" width="10" height="15" fill="${c.secondary}"/><circle cx="50" cy="60" r="5" fill="${c.secondary}"/></svg>`,
-            'peacock': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="70" rx="15" ry="20" fill="${c.primary}"/><circle cx="50" cy="45" r="12" fill="${c.primary}"/><path d="M20 30 Q50 10 80 30 Q50 50 20 30" fill="${c.secondary}"/><circle cx="35" cy="25" r="5" fill="${c.primary}"/><circle cx="50" cy="20" r="5" fill="${c.primary}"/><circle cx="65" cy="25" r="5" fill="${c.primary}"/><circle cx="45" cy="43" r="2" fill="${c.bg}"/><circle cx="55" cy="43" r="2" fill="${c.bg}"/></svg>`,
-            'om': `<svg viewBox="0 0 100 100"><path d="M30 60 Q25 40 40 35 Q55 30 50 50 Q45 65 55 70 Q70 75 75 55 Q80 35 65 30" stroke="${c.primary}" stroke-width="5" fill="none"/><circle cx="70" cy="25" r="5" fill="${c.primary}"/><path d="M60 20 Q65 15 70 20" stroke="${c.primary}" stroke-width="3" fill="none"/></svg>`,
-            'sitar': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="75" rx="20" ry="15" fill="${c.primary}"/><rect x="47" y="20" width="6" height="55" fill="${c.secondary}"/><ellipse cx="50" cy="20" rx="10" ry="8" fill="${c.primary}"/><line x1="45" y1="30" x2="45" y2="70" stroke="${c.primary}" stroke-width="1"/><line x1="50" y1="28" x2="50" y2="70" stroke="${c.primary}" stroke-width="1"/><line x1="55" y1="30" x2="55" y2="70" stroke="${c.primary}" stroke-width="1"/></svg>`,
-
-            // Peru
-            'inca-mask': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="50" rx="30" ry="35" fill="${c.primary}"/><rect x="35" y="35" width="10" height="8" fill="${c.bg}"/><rect x="55" y="35" width="10" height="8" fill="${c.bg}"/><rect x="40" y="60" width="20" height="10" fill="${c.bg}"/><rect x="20" y="40" width="10" height="20" fill="${c.secondary}"/><rect x="70" y="40" width="10" height="20" fill="${c.secondary}"/></svg>`,
-            'moche-portrait': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="28" ry="35" fill="${c.primary}"/><ellipse cx="42" cy="45" rx="6" ry="5" fill="${c.bg}"/><ellipse cx="58" cy="45" rx="6" ry="5" fill="${c.bg}"/><path d="M40 65 Q50 75 60 65" fill="${c.bg}"/><rect x="30" y="18" width="40" height="15" fill="${c.secondary}"/></svg>`,
-            'nazca-bird': `<svg viewBox="0 0 100 100"><path d="M20 50 L50 30 L80 50 L50 45 Z" fill="${c.primary}" stroke="${c.secondary}" stroke-width="2"/><path d="M50 45 L50 80" stroke="${c.primary}" stroke-width="3"/><path d="M50 80 L40 90" stroke="${c.primary}" stroke-width="3"/><path d="M50 80 L60 90" stroke="${c.primary}" stroke-width="3"/><circle cx="45" cy="35" r="3" fill="${c.secondary}"/></svg>`,
-            'tumi': `<svg viewBox="0 0 100 100"><path d="M30 40 Q50 20 70 40 L65 80 L35 80 Z" fill="${c.primary}"/><circle cx="50" cy="35" r="12" fill="${c.secondary}"/><circle cx="50" cy="35" r="6" fill="${c.primary}"/><rect x="40" y="80" width="20" height="10" fill="${c.secondary}"/></svg>`,
-            'llama': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="60" rx="25" ry="18" fill="${c.primary}"/><path d="M35 60 L35 85" stroke="${c.primary}" stroke-width="6"/><path d="M65 60 L65 85" stroke="${c.primary}" stroke-width="6"/><circle cx="60" cy="40" r="12" fill="${c.primary}"/><polygon points="55,30 50,15 58,28" fill="${c.primary}"/><polygon points="68,32 75,18 70,30" fill="${c.primary}"/><circle cx="58" cy="38" r="2" fill="${c.bg}"/></svg>`,
-            'quipu': `<svg viewBox="0 0 100 100"><rect x="20" y="25" width="60" height="8" fill="${c.primary}"/><path d="M30 33 L30 80" stroke="${c.secondary}" stroke-width="3"/><path d="M45 33 L45 70" stroke="${c.primary}" stroke-width="3"/><path d="M60 33 L60 85" stroke="${c.secondary}" stroke-width="3"/><path d="M75 33 L75 65" stroke="${c.primary}" stroke-width="3"/><circle cx="30" cy="50" r="4" fill="${c.primary}"/><circle cx="60" cy="60" r="4" fill="${c.primary}"/></svg>`,
-            'wari-textile': `<svg viewBox="0 0 100 100"><rect x="20" y="20" width="60" height="60" fill="${c.secondary}"/><rect x="25" y="25" width="15" height="15" fill="${c.primary}"/><rect x="42" y="25" width="15" height="15" fill="${c.bg}"/><rect x="59" y="25" width="15" height="15" fill="${c.primary}"/><rect x="25" y="42" width="15" height="15" fill="${c.bg}"/><rect x="42" y="42" width="15" height="15" fill="${c.primary}"/><rect x="59" y="42" width="15" height="15" fill="${c.bg}"/><rect x="25" y="59" width="15" height="15" fill="${c.primary}"/><rect x="42" y="59" width="15" height="15" fill="${c.bg}"/><rect x="59" y="59" width="15" height="15" fill="${c.primary}"/></svg>`,
-            'inti': `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="20" fill="${c.primary}"/><line x1="50" y1="10" x2="50" y2="25" stroke="${c.primary}" stroke-width="4"/><line x1="50" y1="75" x2="50" y2="90" stroke="${c.primary}" stroke-width="4"/><line x1="10" y1="50" x2="25" y2="50" stroke="${c.primary}" stroke-width="4"/><line x1="75" y1="50" x2="90" y2="50" stroke="${c.primary}" stroke-width="4"/><line x1="22" y1="22" x2="32" y2="32" stroke="${c.secondary}" stroke-width="3"/><line x1="68" y1="68" x2="78" y2="78" stroke="${c.secondary}" stroke-width="3"/><line x1="78" y1="22" x2="68" y2="32" stroke="${c.secondary}" stroke-width="3"/><line x1="22" y1="78" x2="32" y2="68" stroke="${c.secondary}" stroke-width="3"/></svg>`,
-            'moche-vessel': `<svg viewBox="0 0 100 100"><path d="M35 35 Q30 60 35 80 Q50 90 65 80 Q70 60 65 35" fill="${c.primary}"/><ellipse cx="50" cy="35" rx="15" ry="10" fill="${c.secondary}"/><circle cx="50" cy="55" r="10" fill="${c.secondary}"/><circle cx="45" cy="52" r="2" fill="${c.bg}"/><circle cx="55" cy="52" r="2" fill="${c.bg}"/></svg>`,
-            'condor': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="50" rx="10" ry="15" fill="${c.primary}"/><path d="M40 45 L10 55 L15 50 L10 45 L40 50" fill="${c.secondary}"/><path d="M60 45 L90 55 L85 50 L90 45 L60 50" fill="${c.secondary}"/><circle cx="50" cy="38" r="8" fill="${c.primary}"/><circle cx="48" cy="36" r="2" fill="${c.bg}"/><path d="M50 42 L48 48 L52 48 Z" fill="${c.secondary}"/></svg>`,
-
-            // Mesopotamia
-            'lamassu': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="65" rx="28" ry="22" fill="${c.primary}"/><circle cx="50" cy="35" r="18" fill="${c.primary}"/><path d="M35 25 L25 10 L40 22" fill="${c.secondary}"/><path d="M65 25 L75 10 L60 22" fill="${c.secondary}"/><rect x="25" y="65" width="8" height="25" fill="${c.primary}"/><rect x="67" y="65" width="8" height="25" fill="${c.primary}"/><circle cx="43" cy="32" r="3" fill="${c.bg}"/><circle cx="57" cy="32" r="3" fill="${c.bg}"/><path d="M75 50 Q90 45 85 60" fill="${c.secondary}"/></svg>`,
-            'cuneiform': `<svg viewBox="0 0 100 100"><rect x="20" y="20" width="60" height="60" fill="${c.secondary}" rx="3"/><path d="M30 35 L45 35 L40 40" fill="${c.primary}"/><path d="M50 35 L65 35 L60 40" fill="${c.primary}"/><path d="M35 50 L50 50 L45 55" fill="${c.primary}"/><path d="M55 50 L70 50 L65 55" fill="${c.primary}"/><path d="M30 65 L45 65 L40 70" fill="${c.primary}"/><path d="M50 65 L65 65 L60 70" fill="${c.primary}"/></svg>`,
-            'cylinder-seal': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="25" rx="15" ry="8" fill="${c.primary}"/><rect x="35" y="25" width="30" height="50" fill="${c.secondary}"/><ellipse cx="50" cy="75" rx="15" ry="8" fill="${c.primary}"/><line x1="40" y1="35" x2="40" y2="65" stroke="${c.primary}" stroke-width="2"/><line x1="50" y1="33" x2="50" y2="67" stroke="${c.primary}" stroke-width="2"/><line x1="60" y1="35" x2="60" y2="65" stroke="${c.primary}" stroke-width="2"/></svg>`,
-            'ishtar-lion': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="55" rx="30" ry="20" fill="${c.primary}"/><circle cx="35" cy="40" r="15" fill="${c.primary}"/><path d="M25 30 Q35 15 45 30" fill="${c.secondary}"/><circle cx="30" cy="38" r="3" fill="${c.bg}"/><path d="M25 45 Q20 50 25 55" fill="${c.primary}"/><path d="M80 55 Q90 50 85 65" stroke="${c.primary}" stroke-width="5" fill="none"/><rect x="25" y="70" width="8" height="15" fill="${c.primary}"/><rect x="67" y="70" width="8" height="15" fill="${c.primary}"/></svg>`,
-            'ziggurat': `<svg viewBox="0 0 100 100"><rect x="15" y="70" width="70" height="15" fill="${c.primary}"/><rect x="22" y="55" width="56" height="15" fill="${c.secondary}"/><rect x="29" y="40" width="42" height="15" fill="${c.primary}"/><rect x="36" y="25" width="28" height="15" fill="${c.secondary}"/><rect x="43" y="15" width="14" height="10" fill="${c.primary}"/></svg>`,
-            'hammurabi': `<svg viewBox="0 0 100 100"><rect x="30" y="15" width="40" height="70" fill="${c.secondary}" rx="5"/><path d="M40 25 Q50 20 60 25 L60 35 Q50 40 40 35 Z" fill="${c.primary}"/><line x1="35" y1="45" x2="65" y2="45" stroke="${c.primary}" stroke-width="2"/><line x1="35" y1="52" x2="65" y2="52" stroke="${c.primary}" stroke-width="2"/><line x1="35" y1="59" x2="65" y2="59" stroke="${c.primary}" stroke-width="2"/><line x1="35" y1="66" x2="65" y2="66" stroke="${c.primary}" stroke-width="2"/><line x1="35" y1="73" x2="55" y2="73" stroke="${c.primary}" stroke-width="2"/></svg>`,
-            'gilgamesh': `<svg viewBox="0 0 100 100"><ellipse cx="50" cy="70" rx="25" ry="20" fill="${c.primary}"/><circle cx="50" cy="40" r="20" fill="${c.primary}"/><path d="M30 30 Q50 10 70 30" fill="${c.secondary}"/><circle cx="42" cy="38" r="4" fill="${c.bg}"/><circle cx="58" cy="38" r="4" fill="${c.bg}"/><rect x="60" y="55" width="25" height="8" fill="${c.secondary}"/><path d="M45 50 Q50 55 55 50" stroke="${c.secondary}" stroke-width="3" fill="none"/></svg>`,
-            'harp': `<svg viewBox="0 0 100 100"><path d="M30 80 L30 30 Q50 15 70 30" stroke="${c.primary}" stroke-width="6" fill="none"/><path d="M70 30 L70 80" stroke="${c.primary}" stroke-width="4"/><line x1="30" y1="40" x2="70" y2="35" stroke="${c.secondary}" stroke-width="1"/><line x1="30" y1="50" x2="70" y2="43" stroke="${c.secondary}" stroke-width="1"/><line x1="30" y1="60" x2="70" y2="52" stroke="${c.secondary}" stroke-width="1"/><line x1="30" y1="70" x2="70" y2="62" stroke="${c.secondary}" stroke-width="1"/><circle cx="70" cy="25" r="8" fill="${c.secondary}"/></svg>`,
-            'lion-hunt': `<svg viewBox="0 0 100 100"><rect x="15" y="25" width="70" height="50" fill="${c.secondary}"/><circle cx="35" cy="45" r="12" fill="${c.primary}"/><ellipse cx="35" cy="55" rx="15" ry="10" fill="${c.primary}"/><path d="M60 40 L60 60 M55 45 L65 55 M55 55 L65 45" stroke="${c.primary}" stroke-width="3"/><path d="M70 50 Q80 45 85 55" stroke="${c.primary}" stroke-width="4" fill="none"/></svg>`,
-            'shamash': `<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="20" fill="${c.primary}"/><path d="M50 15 L55 30 L50 25 L45 30 Z" fill="${c.secondary}"/><path d="M50 85 L55 70 L50 75 L45 70 Z" fill="${c.secondary}"/><path d="M15 50 L30 55 L25 50 L30 45 Z" fill="${c.secondary}"/><path d="M85 50 L70 55 L75 50 L70 45 Z" fill="${c.secondary}"/><path d="M25 25 L38 35 L33 33 L35 38 Z" fill="${c.secondary}"/><path d="M75 75 L62 65 L67 67 L65 62 Z" fill="${c.secondary}"/><path d="M75 25 L62 35 L67 33 L65 38 Z" fill="${c.secondary}"/><path d="M25 75 L38 65 L33 67 L35 62 Z" fill="${c.secondary}"/></svg>`,
-
-            // Generic fallback
-            'default': `<svg viewBox="0 0 100 100"><rect x="20" y="20" width="60" height="60" fill="${c.primary}" rx="10"/><circle cx="50" cy="50" r="20" fill="${c.secondary}"/><text x="50" y="55" text-anchor="middle" fill="${c.bg}" font-size="16">?</text></svg>`
-        };
-
-        const svg = svgs[iconType] || svgs['default'];
-        return `data:image/svg+xml;base64,${btoa(svg)}`;
+    getGenericArtifacts(country, count) {
+        const shapes = ['vase', 'coin', 'mask', 'sword', 'statue', 'scroll', 'jewel', 'pottery'];
+        const artifacts = [];
+        for (let i = 0; i < count; i++) {
+            artifacts.push({
+                id: `gen_${country}_${i}`,
+                title: `Ancient ${country} Artifact ${i + 1}`,
+                period: 'Ancient',
+                culture: country,
+                image: generateSVG(shapes[i % shapes.length], '#C9A227', '#4A3728', '#1A1410'),
+                isIcon: true
+            });
+        }
+        return artifacts;
     }
 
-    /**
-     * Fetch from Met Museum API
-     */
     async fetchFromAPI(country, count) {
-        const queries = this.countryQueries[country];
-        if (!queries) throw new Error('Unknown country');
+        const config = COUNTRY_DATA[country];
+        if (!config || !config.queries) throw new Error('No queries for country');
 
+        const queries = config.queries;
         const randomQuery = queries[Math.floor(Math.random() * queries.length)];
-        console.log(`[ArtifactService] Searching: "${randomQuery}"`);
+        console.log(`[ArtifactService] Searching Met Museum: "${randomQuery}"`);
 
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+        const timeout = setTimeout(() => controller.abort(), 10000);
 
         try {
             const searchUrl = `${this.apiBase}/search?hasImages=true&q=${encodeURIComponent(randomQuery)}`;
@@ -357,29 +596,22 @@ class ArtifactService {
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             const data = await response.json();
-            if (!data.objectIDs || data.objectIDs.length === 0) {
-                throw new Error('No results');
-            }
+            if (!data.objectIDs || data.objectIDs.length === 0) throw new Error('No results');
 
-            // Shuffle and pick random
             const shuffled = [...data.objectIDs].sort(() => Math.random() - 0.5);
-            const candidates = shuffled.filter(id => !this.usedIds.has(id)).slice(0, count * 2);
+            const candidates = shuffled.filter(id => !this.usedIds.has(id)).slice(0, count * 3);
 
             const artifacts = [];
             for (const id of candidates) {
                 if (artifacts.length >= count) break;
-
                 try {
                     const detail = await this.fetchArtifactDetail(id);
                     if (detail) {
                         this.usedIds.add(id);
                         artifacts.push(detail);
                     }
-                } catch (e) {
-                    // Skip
-                }
+                } catch (e) { /* skip */ }
             }
-
             return artifacts;
         } finally {
             clearTimeout(timeout);
@@ -394,8 +626,6 @@ class ArtifactService {
         if (!data.primaryImageSmall && !data.primaryImage) return null;
 
         const originalImage = data.primaryImageSmall || data.primaryImage;
-
-        // Convert: https://images.metmuseum.org/... -> /met-img/...
         let proxiedImage = originalImage;
         try {
             const u = new URL(originalImage);
@@ -408,11 +638,10 @@ class ArtifactService {
             period: data.objectDate || 'Ancient',
             culture: data.culture || 'Unknown',
             image: proxiedImage,
-            originalImage: originalImage,
+            originalImage,
             isIcon: false
         };
     }
-
 
     reset() {
         this.usedIds.clear();
@@ -421,14 +650,13 @@ class ArtifactService {
     }
 
     getCountries() {
-        return Object.keys(this.artifactIcons);
+        return Object.keys(COUNTRY_DATA);
     }
 
-    // Force icon mode (for testing or preference)
     setIconMode(enabled) {
         this.apiAvailable = !enabled;
     }
 }
 
 const artifactService = new ArtifactService();
-export { ArtifactService, artifactService };
+export { ArtifactService, artifactService, COUNTRY_DATA };

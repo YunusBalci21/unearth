@@ -104,9 +104,9 @@ function showLobbyUI() {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(lobby);
-    
+
     // Add lobby styles
     const style = document.createElement('style');
     style.textContent = `
@@ -220,7 +220,7 @@ function showLobbyUI() {
         }
     `;
     document.head.appendChild(style);
-    
+
     // Event listeners
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -230,7 +230,7 @@ function showLobbyUI() {
             document.getElementById(`${btn.dataset.tab}-tab`).classList.remove('hidden');
         });
     });
-    
+
     document.getElementById('create-btn').addEventListener('click', createRoom);
     document.getElementById('join-btn').addEventListener('click', joinRoom);
     document.getElementById('start-btn').addEventListener('click', startGame);
@@ -242,7 +242,7 @@ function createRoom() {
         alert('Please enter your name');
         return;
     }
-    
+
     socket.emit('create-room', name, (response) => {
         if (response.success) {
             roomCode = response.roomCode;
@@ -255,12 +255,12 @@ function createRoom() {
 function joinRoom() {
     const name = document.getElementById('join-name').value.trim();
     const code = document.getElementById('room-code-input').value.trim().toUpperCase();
-    
+
     if (!name || !code) {
         alert('Please enter your name and room code');
         return;
     }
-    
+
     socket.emit('join-room', { roomCode: code, playerName: name }, (response) => {
         if (response.success) {
             roomCode = response.roomCode;
@@ -278,19 +278,19 @@ function showRoomInfo(code, playerList) {
     document.querySelector('.lobby-tabs').classList.add('hidden');
     document.getElementById('room-info').classList.remove('hidden');
     document.getElementById('display-room-code').textContent = code;
-    
+
     if (isHost) {
         document.getElementById('start-btn').classList.remove('hidden');
         document.querySelector('.waiting-text').classList.add('hidden');
     }
-    
+
     updatePlayerList(playerList);
 }
 
 function updatePlayerList(playerList) {
     const container = document.getElementById('player-list');
     if (!container) return;
-    
+
     container.innerHTML = playerList.map(p => `
         <div class="player-item ${p.isHost ? 'host' : ''}">
             <span>${p.name}</span>
@@ -319,12 +319,12 @@ function hideLobbyUI() {
 function startMultiplayerRound(data) {
     // Use the data from server to set up the round
     // data contains: round, terrain, digSpots, artifacts
-    
+
     // Update game state with server data
     window.currentCountryName = data.terrain;
     window.serverDigSpots = data.digSpots;
     window.serverArtifacts = data.artifacts;
-    
+
     // Call the main game's startNewRound but override with server data
     // You'll need to modify the main game.js to accept this
 }
@@ -388,16 +388,16 @@ function showRoundResults(correctAnswer, leaderboard) {
         z-index: 1000;
     `;
     document.body.appendChild(overlay);
-    
+
     setTimeout(() => overlay.remove(), 4500);
 }
 
 function showGameOver(leaderboard) {
     const overlay = document.createElement('div');
     overlay.className = 'gameover-overlay';
-    
+
     const winner = leaderboard[0];
-    
+
     overlay.innerHTML = `
         <div class="gameover-panel">
             <h1>🏆 Game Over! 🏆</h1>

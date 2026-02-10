@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { modelLoader } from './modelLoader.js';
 import { audioManager } from './audioManager.js';
 import { initMenuSystem, submitMultiplayerGuess, isMultiplayerGame, showGameOver } from './menuController.js';
 import { artifactService } from './artifactService.js';
@@ -15,78 +14,46 @@ import { shareResults } from './shareResults.js';
 // ============================================
 
 const COUNTRIES = [
-    {
-        name: 'Egypt',
-        terrain: {
-            color: 0xd4a574,
-            roughness: 0.9,
-            type: 'sand'
-        }
-    },
-    {
-        name: 'Greece',
-        terrain: {
-            color: 0x8b7355,
-            roughness: 0.8,
-            type: 'dirt'
-        }
-    },
-    {
-        name: 'China',
-        terrain: {
-            color: 0x654321,
-            roughness: 0.7,
-            type: 'soil'
-        }
-    },
-    {
-        name: 'Mexico',
-        terrain: {
-            color: 0xc2b280,
-            roughness: 0.85,
-            type: 'sand'
-        }
-    },
-    {
-        name: 'Japan',
-        terrain: {
-            color: 0x3d2817,
-            roughness: 0.6,
-            type: 'soil'
-        }
-    },
-    {
-        name: 'Rome',
-        terrain: {
-            color: 0x9b7653,
-            roughness: 0.75,
-            type: 'dirt'
-        }
-    },
-    {
-        name: 'India',
-        terrain: {
-            color: 0xb5651d,
-            roughness: 0.7,
-            type: 'soil'
-        }
-    },
-    {
-        name: 'Peru',
-        terrain: {
-            color: 0xa0826d,
-            roughness: 0.85,
-            type: 'sand'
-        }
-    },
-    {
-        name: 'Mesopotamia',
-        terrain: {
-            color: 0xc4a35a,
-            roughness: 0.9,
-            type: 'sand'
-        }
-    }
+    // ── Original civilizations ──
+    { name: 'Egypt', terrain: { color: 0xd4a574, roughness: 0.9, type: 'sand' } },
+    { name: 'Greece', terrain: { color: 0x8b7355, roughness: 0.8, type: 'dirt' } },
+    { name: 'China', terrain: { color: 0x654321, roughness: 0.7, type: 'soil' } },
+    { name: 'Mexico', terrain: { color: 0xc2b280, roughness: 0.85, type: 'sand' } },
+    { name: 'Japan', terrain: { color: 0x3d2817, roughness: 0.6, type: 'soil' } },
+    { name: 'Italy', terrain: { color: 0x9b7653, roughness: 0.75, type: 'dirt' } },
+    { name: 'India', terrain: { color: 0xb5651d, roughness: 0.7, type: 'soil' } },
+    { name: 'Peru', terrain: { color: 0xa0826d, roughness: 0.85, type: 'sand' } },
+    { name: 'Iraq', terrain: { color: 0xc4a35a, roughness: 0.9, type: 'sand' } },
+    // ── Europe ──
+    { name: 'France', terrain: { color: 0x8b7d6b, roughness: 0.7, type: 'dirt' } },
+    { name: 'United Kingdom', terrain: { color: 0x6b5b4f, roughness: 0.65, type: 'soil' } },
+    { name: 'Spain', terrain: { color: 0xb8956a, roughness: 0.8, type: 'sand' } },
+    { name: 'Germany', terrain: { color: 0x7a6952, roughness: 0.7, type: 'dirt' } },
+    { name: 'Netherlands', terrain: { color: 0x5c5040, roughness: 0.6, type: 'soil' } },
+    { name: 'Ireland', terrain: { color: 0x4a5d3a, roughness: 0.6, type: 'soil' } },
+    { name: 'Russia', terrain: { color: 0x6e6050, roughness: 0.7, type: 'soil' } },
+    // ── Middle East / Central Asia ──
+    { name: 'Turkey', terrain: { color: 0xa08060, roughness: 0.8, type: 'dirt' } },
+    { name: 'Iran', terrain: { color: 0xb89070, roughness: 0.85, type: 'sand' } },
+    { name: 'Morocco', terrain: { color: 0xc49a6c, roughness: 0.9, type: 'sand' } },
+    // ── East & Southeast Asia ──
+    { name: 'South Korea', terrain: { color: 0x5a4a3a, roughness: 0.65, type: 'soil' } },
+    { name: 'Thailand', terrain: { color: 0x7a5a3a, roughness: 0.7, type: 'soil' } },
+    { name: 'Cambodia', terrain: { color: 0x8a6a4a, roughness: 0.75, type: 'dirt' } },
+    { name: 'Indonesia', terrain: { color: 0x5a3a2a, roughness: 0.65, type: 'soil' } },
+    // ── Africa ──
+    { name: 'Nigeria', terrain: { color: 0x8b4513, roughness: 0.7, type: 'soil' } },
+    { name: 'Ethiopia', terrain: { color: 0xa07050, roughness: 0.8, type: 'dirt' } },
+    // ── Americas ──
+    { name: 'Colombia', terrain: { color: 0x7a5a3a, roughness: 0.75, type: 'soil' } },
+    { name: 'Brazil', terrain: { color: 0x5a3a1a, roughness: 0.65, type: 'soil' } },
+    { name: 'United States', terrain: { color: 0x9a7a5a, roughness: 0.8, type: 'sand' } },
+    // ── Oceania ──
+    { name: 'Australia', terrain: { color: 0xc87533, roughness: 0.9, type: 'sand' } },
+    // ── Scandinavia ──
+    { name: 'Norway', terrain: { color: 0x5a5a5a, roughness: 0.75, type: 'dirt' } },
+    { name: 'Sweden', terrain: { color: 0x4a5a4a, roughness: 0.7, type: 'soil' } },
+    { name: 'Denmark', terrain: { color: 0x6a5a4a, roughness: 0.65, type: 'soil' } },
 ];
 
 const ALL_COUNTRIES = [
@@ -94,12 +61,13 @@ const ALL_COUNTRIES = [
     'Belgium', 'Brazil', 'Cambodia', 'Canada', 'Chile', 'China', 'Colombia',
     'Croatia', 'Cuba', 'Czech Republic', 'Denmark', 'Egypt', 'Ethiopia',
     'Finland', 'France', 'Germany', 'Greece', 'Hungary', 'Iceland', 'India',
-    'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Japan',
-    'Jordan', 'Kenya', 'South Korea', 'Mexico', 'Morocco', 'Netherlands',
-    'New Zealand', 'Nigeria', 'Norway', 'Pakistan', 'Peru', 'Philippines',
-    'Poland', 'Portugal', 'Romania', 'Russia', 'Saudi Arabia', 'Singapore',
-    'South Africa', 'Spain', 'Sweden', 'Switzerland', 'Thailand', 'Turkey',
-    'Ukraine', 'United Kingdom', 'United States', 'Vietnam'
+    'Indonesia', 'Iraq', 'Iran', 'Ireland', 'Israel', 'Italy', 'Japan',
+    'Jordan', 'Kenya', 'South Korea', 'Mexico', 'Morocco',
+    'Netherlands', 'New Zealand', 'Nigeria', 'Norway', 'Pakistan', 'Peru',
+    'Philippines', 'Poland', 'Portugal', 'Romania', 'Russia',
+    'Saudi Arabia', 'Singapore', 'South Africa', 'Spain', 'Sweden',
+    'Switzerland', 'Thailand', 'Turkey', 'Ukraine', 'United Kingdom',
+    'United States', 'Vietnam'
 ];
 
 // Platform settings
@@ -183,7 +151,11 @@ async function init() {
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
 
-    // Controls - RIGHT MOUSE for orbit
+    // Mobile detection
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+        || ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+    // Controls - RIGHT MOUSE for orbit (desktop) or ONE FINGER for orbit (mobile)
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
@@ -192,11 +164,27 @@ async function init() {
     controls.minDistance = 3;
     controls.maxDistance = 15;
     controls.target.set(0, 1, 0);
-    controls.mouseButtons = {
-        LEFT: null, // Disable left mouse for orbit
-        MIDDLE: THREE.MOUSE.DOLLY,
-        RIGHT: THREE.MOUSE.ROTATE
-    };
+
+    if (isMobile) {
+        // Mobile: two-finger rotate, pinch zoom
+        controls.touches = {
+            ONE: THREE.TOUCH.ROTATE,
+            TWO: THREE.TOUCH.DOLLY_PAN
+        };
+        controls.mouseButtons = {
+            LEFT: THREE.MOUSE.ROTATE,
+            MIDDLE: THREE.MOUSE.DOLLY,
+            RIGHT: THREE.MOUSE.PAN
+        };
+        controls.enablePan = false;
+        controls.rotateSpeed = 0.6;
+    } else {
+        controls.mouseButtons = {
+            LEFT: null, // Disable left mouse for orbit on desktop
+            MIDDLE: THREE.MOUSE.DOLLY,
+            RIGHT: THREE.MOUSE.ROTATE
+        };
+    }
 
     // Create lobby environment
     createArchaeologyRoom();
@@ -213,12 +201,72 @@ async function init() {
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     canvas.addEventListener('mousemove', onCanvasMouseMove);
 
+    // Touch support for mobile
+    if (isMobile) {
+        let touchStart = null;
+        let touchStartTime = 0;
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                touchStartTime = Date.now();
+            }
+        }, { passive: true });
+
+        canvas.addEventListener('touchend', (e) => {
+            if (!touchStart) return;
+            const touch = e.changedTouches[0];
+            const dx = touch.clientX - touchStart.x;
+            const dy = touch.clientY - touchStart.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const elapsed = Date.now() - touchStartTime;
+
+            // Short tap with minimal movement = dig
+            if (dist < 20 && elapsed < 300) {
+                onCanvasClick({
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+            }
+            touchStart = null;
+        }, { passive: true });
+
+        // Update hint text for mobile
+        const hint = document.getElementById('hint');
+        if (hint) hint.textContent = 'Tap on the terrain to dig!';
+    }
+
+    // Prevent double-tap zoom on mobile
+    document.addEventListener('dblclick', (e) => e.preventDefault());
+
+    // Prevent pull-to-refresh and overscroll on mobile
+    document.body.addEventListener('touchmove', (e) => {
+        // Allow scrolling in scrollable containers (autocomplete, leaderboard, etc.)
+        const scrollable = e.target.closest('.autocomplete-list, .leaderboard-list, .game-over-content, .settings-content, .lobby-list-container');
+        if (!scrollable) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+
+    // Fix iOS viewport height (100vh bug)
+    function setMobileVH() {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+    setMobileVH();
+    window.addEventListener('resize', setMobileVH);
+    window.addEventListener('orientationchange', () => {
+        setTimeout(setMobileVH, 100);
+    });
+
     // UI Events
     setupUI();
 
-    // Preload models (keeping for shovel/fallback, artifacts come from API)
+    // Pause menu
+    initPauseMenu();
+
+    // Preload artifacts
     document.getElementById('loading').textContent = 'Preparing artifacts...';
-    // await modelLoader.preloadAll(); // Not used atm.
 
     // Preload audio
     document.getElementById('loading').textContent = 'Loading sounds...';
@@ -245,10 +293,17 @@ async function init() {
         currentStreak = 0;
         bestStreak = 0;
 
+        // Reset multiplayer timer state
+        isMultiplayerTimer = false;
+        serverRoundStart = 0;
+        lastDisplayedTime = -1;
+
         document.getElementById('score-value').textContent = '0';
 
-        // Start game
-        startNewRound();
+        // Only start solo round flow — multiplayer waits for server round_start
+        if (!settings.isMultiplayer) {
+            startNewRound();
+        }
     });
 
     // Menu music is started by splash screen click (ensures audio is unlocked)
@@ -300,6 +355,11 @@ function initSoloSettingsModal() {
         e.stopPropagation();
         e.stopImmediatePropagation();
         modal.classList.add('show');
+        // Restore saved name
+        const nameInput = document.getElementById('solo-name-input');
+        if (nameInput) {
+            nameInput.value = localStorage.getItem('unearth_name') || '';
+        }
         audioManager.playClick();
     });
 
@@ -342,6 +402,11 @@ function initSoloSettingsModal() {
     if (startBtn) {
         startBtn.addEventListener('click', function() {
             const timePerRound = timeSelect ? parseInt(timeSelect.value) : 120;
+
+            // Save player name for leaderboard
+            const nameInput = document.getElementById('solo-name-input');
+            const playerName = (nameInput && nameInput.value.trim()) || 'Explorer';
+            localStorage.setItem('unearth_name', playerName);
 
             console.log('[SoloSettings] Starting game with', selectedRounds, 'rounds,', timePerRound, 'sec/round');
 
@@ -1419,7 +1484,21 @@ function onCanvasClick(event) {
     if (intersects.length > 0) {
         const point = intersects[0].point;
         animateShovelDig(point);
+
+        // Touch ripple feedback on mobile
+        if (event.clientX && event.clientY) {
+            showDigRipple(event.clientX, event.clientY);
+        }
     }
+}
+
+function showDigRipple(x, y) {
+    const ripple = document.createElement('div');
+    ripple.className = 'dig-ripple';
+    ripple.style.left = x + 'px';
+    ripple.style.top = y + 'px';
+    document.body.appendChild(ripple);
+    ripple.addEventListener('animationend', () => ripple.remove());
 }
 
 /**
@@ -1836,15 +1915,173 @@ function closeArtifactInspector() {
 // Expose to window for HTML onclick
 window.closeArtifactInspector = closeArtifactInspector;
 
-// ESC key to close inspector
+// ESC key to close inspector OR toggle pause menu
+let isPaused = false;
+
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-        const modal = document.getElementById('artifact-inspector-modal');
-        if (modal && modal.style.display === 'flex') {
+        // Priority 1: Close artifact inspector if open
+        const inspectorModal = document.getElementById('artifact-inspector-modal');
+        if (inspectorModal && inspectorModal.style.display === 'flex') {
             closeArtifactInspector();
+            return;
+        }
+
+        // Priority 2: Close settings overlay if open
+        const settingsOverlay = document.getElementById('settings-overlay');
+        if (settingsOverlay && settingsOverlay.classList.contains('show')) {
+            settingsOverlay.classList.remove('show');
+            return;
+        }
+
+        // Priority 3: Toggle pause menu (only if game container is visible)
+        const gameContainer = document.getElementById('game-container');
+        if (gameContainer && gameContainer.style.display !== 'none') {
+            togglePauseMenu();
         }
     }
 });
+
+function togglePauseMenu() {
+    const overlay = document.getElementById('pause-overlay');
+    if (!overlay) return;
+
+    isPaused = !isPaused;
+    if (isPaused) {
+        overlay.classList.add('show');
+        if (window.audioManager) window.audioManager.playClick();
+    } else {
+        overlay.classList.remove('show');
+    }
+}
+
+function closePauseMenu() {
+    const overlay = document.getElementById('pause-overlay');
+    if (overlay) overlay.classList.remove('show');
+    isPaused = false;
+
+    // Reset quit confirmation
+    const quitConfirm = document.getElementById('quit-confirm');
+    const quitBtn = document.getElementById('pause-quit-btn');
+    if (quitConfirm) quitConfirm.style.display = 'none';
+    if (quitBtn) quitBtn.style.display = '';
+}
+
+function quitToMenu() {
+    closePauseMenu();
+
+    // Stop game music
+    audioManager.stopGameMusic();
+
+    // Hide game over if showing
+    const gameOverEl = document.getElementById('game-over');
+    if (gameOverEl) gameOverEl.style.display = 'none';
+
+    // Leave lobby if in multiplayer
+    if (window.lobbyManager && window.lobbyManager.currentLobby) {
+        window.lobbyManager.leaveLobby();
+    }
+
+    // Reset game state
+    currentRound = 0;
+    score = 0;
+    correctGuesses = 0;
+    totalGuesses = 0;
+    isMultiplayerTimer = false;
+    serverRoundStart = 0;
+    lastDisplayedTime = -1;
+
+    // Start menu music
+    audioManager.startMenuMusic();
+
+    // Navigate back to menu
+    if (window.showScreen) window.showScreen('main-menu');
+}
+
+// Wire up pause menu buttons on DOM ready
+function initPauseMenu() {
+    const resumeBtn = document.getElementById('pause-resume-btn');
+    const settingsBtn = document.getElementById('pause-settings-btn');
+    const quitBtn = document.getElementById('pause-quit-btn');
+    const ingameSettingsBtn = document.getElementById('ingame-settings-btn');
+    const quitConfirm = document.getElementById('quit-confirm');
+    const quitConfirmBtn = document.getElementById('quit-confirm-btn');
+    const quitCancelBtn = document.getElementById('quit-cancel-btn');
+
+    function resetQuitConfirm() {
+        if (quitConfirm) quitConfirm.style.display = 'none';
+        if (quitBtn) quitBtn.style.display = '';
+    }
+
+    if (resumeBtn) resumeBtn.addEventListener('click', () => {
+        closePauseMenu();
+        resetQuitConfirm();
+        if (window.audioManager) window.audioManager.playClick();
+    });
+
+    if (settingsBtn) settingsBtn.addEventListener('click', () => {
+        closePauseMenu();
+        resetQuitConfirm();
+        const overlay = document.getElementById('settings-overlay');
+        if (overlay) {
+            overlay.classList.add('show');
+            // Mark that we opened settings from pause menu
+            overlay.dataset.fromPause = 'true';
+        }
+        if (window.audioManager) window.audioManager.playClick();
+    });
+
+    // Hook settings close to reopen pause menu if opened from pause
+    const settingsClose = document.getElementById('settings-close');
+    const settingsOverlay = document.getElementById('settings-overlay');
+
+    function onSettingsClose() {
+        if (settingsOverlay && settingsOverlay.dataset.fromPause === 'true') {
+            settingsOverlay.dataset.fromPause = '';
+            // Reopen pause menu after closing settings
+            setTimeout(() => togglePauseMenu(), 50);
+        }
+    }
+
+    if (settingsClose) {
+        settingsClose.addEventListener('click', onSettingsClose);
+    }
+    if (settingsOverlay) {
+        settingsOverlay.addEventListener('click', (e) => {
+            if (e.target === settingsOverlay) onSettingsClose();
+        });
+    }
+
+    // "Back to Menu" shows confirmation
+    if (quitBtn) quitBtn.addEventListener('click', () => {
+        if (window.audioManager) window.audioManager.playClick();
+        if (quitConfirm) quitConfirm.style.display = 'block';
+        quitBtn.style.display = 'none';
+    });
+
+    // Confirm quit
+    if (quitConfirmBtn) quitConfirmBtn.addEventListener('click', () => {
+        if (window.audioManager) window.audioManager.playClick();
+        resetQuitConfirm();
+        quitToMenu();
+    });
+
+    // Cancel quit
+    if (quitCancelBtn) quitCancelBtn.addEventListener('click', () => {
+        if (window.audioManager) window.audioManager.playClick();
+        resetQuitConfirm();
+    });
+
+    // In-game gear button opens pause menu
+    if (ingameSettingsBtn) ingameSettingsBtn.addEventListener('click', () => {
+        togglePauseMenu();
+    });
+}
+
+// Expose
+window.togglePauseMenu = togglePauseMenu;
+window.closePauseMenu = closePauseMenu;
+window.quitToMenu = quitToMenu;
 
 /**
  * Handle mouse move to show pointer cursor over clickable artifacts
@@ -2587,10 +2824,11 @@ function loadTextureAsync(url, timeoutMs = 8000) {
                 let width = img.naturalWidth || img.width || 256;
                 let height = img.naturalHeight || img.height || 256;
 
-                // Check for valid dimensions
-                if (width <= 0 || height <= 0) {
-                    reject(new Error('Invalid image dimensions'));
-                    return;
+                // SVG data URIs often report 0x0 dimensions - force a fixed size
+                const isSVG = url.startsWith('data:image/svg');
+                if (isSVG || width <= 1 || height <= 1) {
+                    width = 512;
+                    height = 512;
                 }
 
                 // Scale down if too large
@@ -2652,16 +2890,35 @@ function loadTextureAsync(url, timeoutMs = 8000) {
  */
 function getCountryColor(culture) {
     const colors = {
-        'Egyptian': 0xd4a574,
-        'Greek': 0x8b7355,
-        'Chinese': 0x654321,
-        'Japanese': 0x8b0000,
-        'Aztec': 0xc2b280,
-        'Maya': 0xa0522d,
-        'Roman': 0x9b7653,
-        'Indian': 0xb5651d,
-        'Inca': 0xa0826d,
-        'Moche': 0x8b6914
+        // Original
+        'Egyptian': 0xd4a574, 'Greek': 0x8b7355, 'Chinese': 0x654321,
+        'Japanese': 0x8b0000, 'Aztec': 0xc2b280, 'Maya': 0xa0522d,
+        'Roman': 0x9b7653, 'Indian': 0xb5651d, 'Inca': 0xa0826d,
+        'Moche': 0x8b6914, 'Olmec': 0x6b4226,
+        // Middle East
+        'Assyrian': 0xc9a227, 'Sumerian': 0xb5942b, 'Babylonian': 0xa08040,
+        'Akkadian': 0x9a7a4a, 'Ottoman': 0xe30a17, 'Seljuk': 0xa03020,
+        'Persian': 0x239f40, 'Berber': 0xc1272d, 'Moroccan': 0xb06030,
+        // Europe
+        'French': 0x002395, 'English': 0xc8102e, 'Anglo-Saxon': 0x8b7355,
+        'Celtic': 0x169b62, 'Spanish': 0xaa151b, 'Moorish': 0x906030,
+        'German': 0xffcc00, 'Dutch': 0xae1c28, 'Irish': 0x169b62,
+        'Norse': 0xc0c0c0, 'Norman': 0x7a6952, 'Russian': 0x0039a6,
+        'Swedish': 0xfecc02, 'Danish': 0xc8102e,
+        'Scythian': 0xd4af37,
+        // Asia
+        'Korean': 0x003478, 'Thai': 0xffd700, 'Khmer': 0x032ea1,
+        'Javanese': 0xce1126, 'Balinese': 0xa05020, 'Indonesian': 0xce1126,
+        // Africa
+        'Edo': 0x008751, 'Nok': 0x8b4513, 'Yoruba': 0x006030,
+        'Igbo': 0x604020, 'Aksumite': 0x009739, 'Ethiopian': 0x009739,
+        // Americas
+        'Muisca': 0xfcd116, 'Quimbaya': 0xdaa520, 'Tairona': 0xb8860b,
+        'Marajoara': 0x009c3b, 'Tupi': 0x228b22, 'Navajo': 0x3c3b6e,
+        'Pueblo': 0xb22234, 'Lakota': 0x8b4513, 'Hopi': 0xcc7722,
+        'Chimu': 0xa0826d, 'Nazca': 0x8b6914, 'Wari': 0x704020,
+        // Oceania
+        'Aboriginal': 0xd2691e,
     };
     return colors[culture] || 0x888888;
 }
@@ -2909,74 +3166,6 @@ function showRevealEffect(position) {
     animateRing();
 }
 
-async function createArtifact(type) {
-    console.log(`[createArtifact] Creating: ${type}`);
-    const gltfModel = await modelLoader.loadModel(type);
-    if (gltfModel) {
-        console.log(`[createArtifact] ✓ Got GLTF model for: ${type}`);
-        return gltfModel;
-    }
-    console.log(`[createArtifact] ✗ Using procedural fallback for: ${type}`);
-    return createProceduralArtifact(type);
-}
-
-function createProceduralArtifact(type) {
-    const artifacts = {
-        pyramid: () => new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.5, 4), new THREE.MeshStandardMaterial({ color: 0xd4a574 })),
-        sphinx: () => new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, 0.2), new THREE.MeshStandardMaterial({ color: 0xd4a574 })),
-        ankh: () => new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.03, 8, 16), new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.8 })),
-        scarab: () => new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 6), new THREE.MeshStandardMaterial({ color: 0x2e8b57 })),
-        pharaoh_mask: () => new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.35, 0.2), new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.9 })),
-        column: () => new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.5, 12), new THREE.MeshStandardMaterial({ color: 0xf5f5dc })),
-        amphora: () => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 12), new THREE.MeshStandardMaterial({ color: 0xcd853f })); m.scale.y = 1.5; return m; },
-        helmet: () => new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xb8860b, metalness: 0.8 })),
-        olive_branch: () => new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.4, 8), new THREE.MeshStandardMaterial({ color: 0x556b2f })),
-        coin_greek: () => new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.02, 24), new THREE.MeshStandardMaterial({ color: 0xc0c0c0, metalness: 0.9 })),
-        dragon: () => new THREE.Mesh(new THREE.TorusKnotGeometry(0.12, 0.04, 64, 8), new THREE.MeshStandardMaterial({ color: 0xff4500 })),
-        pagoda: () => new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.4, 6), new THREE.MeshStandardMaterial({ color: 0x8b0000 })),
-        terracotta: () => new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.4, 8), new THREE.MeshStandardMaterial({ color: 0xcd853f })),
-        jade: () => {
-            const group = new THREE.Group();
-            const jadeMat = new THREE.MeshStandardMaterial({
-                color: 0x00a86b,
-                roughness: 0.3,
-                metalness: 0.1
-            });
-            // Main jade piece
-            const main = new THREE.Mesh(new THREE.OctahedronGeometry(0.12), jadeMat);
-            main.scale.set(1, 1.3, 0.6);
-            group.add(main);
-            // Small accent
-            const accent = new THREE.Mesh(new THREE.OctahedronGeometry(0.05), jadeMat);
-            accent.position.set(0.08, 0.1, 0);
-            group.add(accent);
-            return group;
-        },
-        lantern: () => new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0x330000 })),
-        aztec_calendar: () => new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.05, 32), new THREE.MeshStandardMaterial({ color: 0x8b7355 })),
-        pyramid_mayan: () => new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.35, 4), new THREE.MeshStandardMaterial({ color: 0xa0522d })),
-        jaguar: () => new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.15, 0.12), new THREE.MeshStandardMaterial({ color: 0xffa500 })),
-        maize: () => new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.25, 8), new THREE.MeshStandardMaterial({ color: 0xffd700 })),
-        obsidian: () => new THREE.Mesh(new THREE.OctahedronGeometry(0.15), new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.9 })),
-        torii: () => new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.3, 0.05), new THREE.MeshStandardMaterial({ color: 0xff0000 })),
-        samurai_helmet: () => new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x2f2f2f, metalness: 0.9 })),
-        katana: () => new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.4, 0.01), new THREE.MeshStandardMaterial({ color: 0xc0c0c0, metalness: 1 })),
-        cherry_blossom: () => new THREE.Mesh(new THREE.IcosahedronGeometry(0.12), new THREE.MeshStandardMaterial({ color: 0xffb7c5 })),
-        daruma: () => new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 12), new THREE.MeshStandardMaterial({ color: 0xff0000 }))
-    };
-
-    const createFunc = artifacts[type];
-    if (createFunc) {
-        const mesh = createFunc();
-        mesh.castShadow = true;
-        return mesh;
-    }
-
-    return new THREE.Mesh(
-        new THREE.BoxGeometry(0.2, 0.2, 0.2),
-        new THREE.MeshStandardMaterial({ color: 0x888888 })
-    );
-}
 
 // ============================================
 // DEBUG MENU
@@ -3148,8 +3337,12 @@ function setupUI() {
     document.getElementById('guess-btn').addEventListener('click', makeGuess);
     document.getElementById('next-round-btn').addEventListener('click', startNewRound);
 
-    // Debug menu setup
-    setupDebugMenu();
+    // Debug menu setup (admin only via URL param)
+    const debugKey = new URLSearchParams(window.location.search).get('debug');
+    if (debugKey) {
+        document.getElementById('debug-panel').style.display = 'block';
+        setupDebugMenu();
+    }
 
     const input = document.getElementById('country-input');
     const autocomplete = document.getElementById('autocomplete');
@@ -3177,7 +3370,8 @@ function setupUI() {
             autocomplete.classList.add('show');
 
             autocomplete.querySelectorAll('.autocomplete-item').forEach(item => {
-                item.addEventListener('click', () => {
+                item.addEventListener('pointerdown', (e) => {
+                    e.preventDefault(); // Prevent blur from firing first
                     input.value = item.textContent;
                     autocomplete.classList.remove('show');
                 });
@@ -3224,15 +3418,16 @@ function makeGuess() {
         roundTimer = null;
     }
     audioManager.setUrgentMode(false);
+    audioManager.resetCountdown();
 
     totalGuesses++;
 
-    // Submit guess to server if multiplayer
-    if (isMultiplayerGame()) {
-        submitMultiplayerGuess(input.value.trim());
-    }
-
     const isCorrect = guess === correct;
+
+    // Submit guess to server if multiplayer (include artifact count)
+    if (isMultiplayerGame()) {
+        submitMultiplayerGuess(input.value.trim(), artifactsFound);
+    }
 
     // Track round result for sharing
     roundResults.push({
@@ -3253,21 +3448,36 @@ function makeGuess() {
         currentStreak = 0;
     }
 
-    if (isCorrect) {
-        // Calculate points based on artifacts found and time
-        const points = getPointsForCorrectGuess();
-        score += points;
-        correctGuesses++;
-        message.textContent = `CORRECT! +${points}`;
-        message.className = 'correct show';
-        document.getElementById('score-value').textContent = score;
-        audioManager.playCorrect();
+    if (isMultiplayerGame()) {
+        // MULTIPLAYER: Show feedback but let server handle scoring
+        if (isCorrect) {
+            correctGuesses++;
+            message.textContent = `CORRECT!`;
+            message.className = 'correct show';
+            audioManager.playCorrect();
+        } else {
+            message.textContent = `WRONG! It was ${currentCountry.name}`;
+            message.className = 'wrong show';
+            audioManager.playIncorrect();
+        }
+        // Score display will be updated when server sends score_update
     } else {
-        score = Math.max(0, score - 100);
-        message.textContent = `WRONG! It was ${currentCountry.name}`;
-        message.className = 'wrong show';
-        document.getElementById('score-value').textContent = score;
-        audioManager.playIncorrect();
+        // SOLO: Calculate score locally
+        if (isCorrect) {
+            const points = getPointsForCorrectGuess();
+            score += points;
+            correctGuesses++;
+            message.textContent = `CORRECT! +${points}`;
+            message.className = 'correct show';
+            document.getElementById('score-value').textContent = score;
+            audioManager.playCorrect();
+        } else {
+            score = Math.max(0, score - 100);
+            message.textContent = `WRONG! It was ${currentCountry.name}`;
+            message.className = 'wrong show';
+            document.getElementById('score-value').textContent = score;
+            audioManager.playIncorrect();
+        }
     }
 
     setTimeout(() => message.classList.remove('show'), 2000);
@@ -3295,6 +3505,13 @@ function makeGuess() {
     }
 }
 
+// Server authoritative score update for multiplayer
+window.updateScoreFromServer = function(serverScore) {
+    score = serverScore;
+    document.getElementById('score-value').textContent = score;
+    window.gameScore = score;
+};
+
 // ============================================
 // GAME FLOW
 // ============================================
@@ -3311,6 +3528,7 @@ async function startNewRound() {
 
     // Show loading screen
     showRoundLoading(true);
+    updateLoadingProgress(10);
 
     // Hide any overlays
     if (window.hideGuessedOverlay) window.hideGuessedOverlay();
@@ -3321,6 +3539,8 @@ async function startNewRound() {
     if (roundDisplay) {
         roundDisplay.textContent = `Round ${currentRound}/${totalRounds}`;
     }
+
+    updateLoadingProgress(20);
 
     // Remove old particles
     const toRemove = [];
@@ -3347,12 +3567,20 @@ async function startNewRound() {
     });
     wallhackMarkers = [];
 
+    updateLoadingProgress(40);
+
     // Pick random country
     currentCountry = COUNTRIES[Math.floor(Math.random() * COUNTRIES.length)];
 
     // Create platform and artifacts
+    updateLoadingProgress(60);
     createDigPlatform(currentCountry);
+    updateLoadingProgress(80);
     await placeArtifacts(currentCountry);
+    updateLoadingProgress(100);
+
+    // Small delay so player sees 100%
+    await new Promise(r => setTimeout(r, 300));
 
     // Hide loading screen
     showRoundLoading(false);
@@ -3454,6 +3682,12 @@ function showRoundLoading(show) {
                 </div>
                 
                 <p class="loading-status-text">Preparing excavation site...</p>
+                
+                <div class="loading-progress-bar">
+                    <div class="loading-progress-fill"></div>
+                </div>
+                
+                <p class="loading-tip-text"></p>
             </div>
         `;
         overlay.style.cssText = `
@@ -3725,6 +3959,41 @@ function showRoundLoading(show) {
                 animation: loading-pulse 2s ease-in-out infinite;
             }
 
+            .loading-progress-bar {
+                width: 240px;
+                height: 4px;
+                background: rgba(139, 105, 20, 0.2);
+                border-radius: 2px;
+                margin: 20px auto 0;
+                overflow: hidden;
+            }
+
+            .loading-progress-fill {
+                height: 100%;
+                width: 0%;
+                background: linear-gradient(90deg, #8b6914, #ffd700);
+                border-radius: 2px;
+                transition: width 0.3s ease;
+            }
+
+            .loading-tip-text {
+                font-family: 'Crimson Text', serif;
+                font-size: 14px;
+                color: #706050;
+                margin: 18px auto 0;
+                font-style: italic;
+                max-width: 400px;
+                text-align: center;
+                line-height: 1.4;
+                min-height: 40px;
+                animation: loading-tip-fade 0.5s ease;
+            }
+
+            @keyframes loading-tip-fade {
+                from { opacity: 0; transform: translateY(5px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
             @keyframes loading-pulse {
                 0%, 100% { opacity: 0.5; }
                 50% { opacity: 1; }
@@ -3744,12 +4013,68 @@ function showRoundLoading(show) {
         });
         // Recreate particles each time
         createLoadingParticles();
+
+        // Start tip rotation
+        startLoadingTips(overlay);
+        updateLoadingProgress(0);
     } else {
         overlay.style.opacity = '0';
+        if (window._loadingTipInterval) {
+            clearInterval(window._loadingTipInterval);
+            window._loadingTipInterval = null;
+        }
         setTimeout(() => {
             overlay.style.display = 'none';
         }, 400);
     }
+}
+
+const LOADING_TIPS = [
+    "Egypt has over 100 discovered pyramids",
+    "The Terracotta Army contains over 8,000 unique soldiers",
+    "Machu Picchu was built without mortar — stones fit together perfectly",
+    "The Rosetta Stone unlocked the secret of Egyptian hieroglyphics",
+    "Vikings reached North America 500 years before Columbus",
+    "The Great Wall of China is visible from low Earth orbit",
+    "Pompeii was preserved under 20 feet of volcanic ash",
+    "The Library of Alexandria may have held 400,000 scrolls",
+    "Angkor Wat is the largest religious monument ever built",
+    "Right-click and drag to rotate the camera",
+    "Click rocks and dirt to dig — artifacts hide underneath",
+    "The faster you guess, the more points you earn",
+    "Look for cultural clues in the artifacts to identify the country",
+    "Each country has unique artifacts tied to its real history",
+    "Some artifacts are harder to find — dig everywhere!",
+    "Play with friends in multiplayer for more fun",
+    "Stonehenge's stones were transported over 150 miles",
+    "The Dead Sea Scrolls are over 2,000 years old",
+    "Ancient Greek theaters had near-perfect acoustics",
+    "The Moai of Easter Island have hidden bodies underground",
+];
+
+function startLoadingTips(overlay) {
+    const tipEl = overlay.querySelector('.loading-tip-text');
+    if (!tipEl) return;
+
+    // Show random tip immediately
+    const shuffled = [...LOADING_TIPS].sort(() => Math.random() - 0.5);
+    let tipIndex = 0;
+
+    tipEl.textContent = '💡 ' + shuffled[tipIndex];
+
+    // Rotate every 3.5 seconds
+    window._loadingTipInterval = setInterval(() => {
+        tipIndex = (tipIndex + 1) % shuffled.length;
+        tipEl.style.animation = 'none';
+        tipEl.offsetHeight; // force reflow
+        tipEl.style.animation = 'loading-tip-fade 0.5s ease';
+        tipEl.textContent = '💡 ' + shuffled[tipIndex];
+    }, 3500);
+}
+
+function updateLoadingProgress(percent) {
+    const fill = document.querySelector('.loading-progress-fill');
+    if (fill) fill.style.width = percent + '%';
 }
 
 /**
@@ -3786,6 +4111,13 @@ function createLoadingParticles() {
 // TIMER FUNCTIONS
 // ============================================
 
+// Server-anchored timer state for multiplayer
+let serverTimeOffset = 0;     // difference between server clock and client clock
+let serverRoundStart = 0;     // server-side round start timestamp
+let serverTimePerRound = 0;   // from server
+let isMultiplayerTimer = false;
+let lastDisplayedTime = -1;   // prevent redundant DOM updates
+
 function startRoundTimer() {
     if (gameSettings.timePerRound === 0) {
         const timerEl = document.getElementById('timer-display');
@@ -3793,36 +4125,103 @@ function startRoundTimer() {
         return;
     }
 
-    timeRemaining = gameSettings.timePerRound;
-    updateTimerDisplay();
-
-    // Reset urgent mode at start of round
+    // Reset urgent mode and countdown at start of round
     audioManager.setUrgentMode(false);
+    audioManager.resetCountdown();
+    lastDisplayedTime = -1;
 
     if (roundTimer) clearInterval(roundTimer);
 
-    roundTimer = setInterval(() => {
-        timeRemaining--;
+    if (isMultiplayerTimer && serverRoundStart > 0) {
+        // MULTIPLAYER: calculate from server reference
+        startServerAnchoredTimer();
+    } else {
+        // SOLO (or multiplayer before first sync): simple local countdown
+        timeRemaining = gameSettings.timePerRound;
         updateTimerDisplay();
 
-        // Use the global function for visual feedback
-        if (window.updateTimer) {
-            window.updateTimer(timeRemaining);
-        }
+        roundTimer = setInterval(() => {
+            timeRemaining--;
+            updateTimerDisplay();
 
-        // Speed up music when 10 seconds left
-        if (timeRemaining === 10) {
-            audioManager.setUrgentMode(true);
-        }
+            if (window.updateTimer) {
+                window.updateTimer(timeRemaining);
+            }
 
-        if (timeRemaining <= 0) {
-            clearInterval(roundTimer);
-            roundTimer = null;
-            audioManager.setUrgentMode(false);
-            handleTimeUp();
-        }
-    }, 1000);
+            // Countdown tick sound in final 10 seconds
+            if (timeRemaining <= 10 && timeRemaining > 0) {
+                audioManager.playCountdownTick(timeRemaining);
+            }
+
+            if (timeRemaining === 10) {
+                audioManager.setUrgentMode(true);
+            }
+
+            if (timeRemaining <= 0) {
+                clearInterval(roundTimer);
+                roundTimer = null;
+                audioManager.setUrgentMode(false);
+                handleTimeUp();
+            }
+        }, 1000);
+    }
 }
+
+function startServerAnchoredTimer() {
+    if (roundTimer) clearInterval(roundTimer);
+
+    roundTimer = setInterval(() => {
+        const now = Date.now() - serverTimeOffset;
+        const elapsed = (now - serverRoundStart) / 1000;
+        const newTime = Math.max(0, Math.floor(serverTimePerRound - elapsed));
+
+        // Only update DOM when the displayed second actually changes
+        if (newTime !== lastDisplayedTime) {
+            lastDisplayedTime = newTime;
+            timeRemaining = newTime;
+            updateTimerDisplay();
+
+            if (window.updateTimer) {
+                window.updateTimer(timeRemaining);
+            }
+
+            // Countdown tick sound in final 10 seconds
+            if (timeRemaining <= 10 && timeRemaining > 0) {
+                audioManager.playCountdownTick(timeRemaining);
+            }
+
+            if (timeRemaining === 10) {
+                audioManager.setUrgentMode(true);
+            }
+
+            if (timeRemaining <= 0) {
+                clearInterval(roundTimer);
+                roundTimer = null;
+                audioManager.setUrgentMode(false);
+                handleTimeUp();
+            }
+        }
+    }, 200); // Check 5x/sec for responsive display, but only updates on whole seconds
+}
+
+// Called from lobbyManager when server sends timer_sync
+window.syncTimerFromServer = function(data) {
+    serverTimeOffset = Date.now() - data.serverTime;
+    serverRoundStart = data.roundStartTime;
+    serverTimePerRound = data.timePerRound;
+
+    // If this is the first sync, switch to server-anchored mode
+    if (!isMultiplayerTimer) {
+        isMultiplayerTimer = true;
+        // Restart the timer in server-anchored mode
+        startServerAnchoredTimer();
+    }
+
+    // Apply server's authoritative time immediately for display
+    timeRemaining = data.timeRemaining;
+    lastDisplayedTime = data.timeRemaining;
+    updateTimerDisplay();
+};
 
 function updateTimerDisplay() {
     const timerEl = document.getElementById('timer-display');
@@ -3860,8 +4259,15 @@ function handleTimeUp() {
     document.getElementById('country-input').disabled = true;
     document.getElementById('guess-btn').style.display = 'none';
 
-    // Show between-round results
-    showRoundEndResults(false, true); // wrong, timeout
+    // In multiplayer, wait for server round_end - don't advance locally
+    if (isMultiplayerGame()) {
+        if (window.showGuessedOverlay) {
+            window.showGuessedOverlay(false);
+        }
+    } else {
+        // Solo: Show between-round results
+        showRoundEndResults(false, true); // wrong, timeout
+    }
 }
 
 function getPointsForCorrectGuess() {
@@ -3947,6 +4353,40 @@ function showFinalResults() {
     if (gameOverEl) {
         gameOverEl.style.display = 'flex';
     }
+
+    // Submit to leaderboard (solo only)
+    if (!isMultiplayerGame() && score > 0 && window.submitToLeaderboard) {
+        const accuracy = totalGuesses > 0 ? Math.round((correctGuesses / totalGuesses) * 100) : 0;
+        window.submitToLeaderboard({
+            score,
+            rounds: totalRounds,
+            correct: correctGuesses,
+            accuracy
+        });
+    }
+
+    // Personal best tracking
+    checkPersonalBest(score);
+}
+
+function checkPersonalBest(currentScore) {
+    const bestKey = 'unearth_personal_best';
+    const prevBest = parseInt(localStorage.getItem(bestKey) || '0', 10);
+    const rankEl = document.getElementById('leaderboard-rank');
+
+    if (currentScore > prevBest && currentScore > 0) {
+        localStorage.setItem(bestKey, currentScore.toString());
+        if (rankEl) {
+            const isFirst = prevBest === 0;
+            rankEl.textContent = isFirst
+                ? `🎉 First score: ${currentScore.toLocaleString()}!`
+                : `🏆 NEW PERSONAL BEST! (was ${prevBest.toLocaleString()})`;
+            rankEl.style.display = 'block';
+        }
+    } else if (prevBest > 0 && rankEl) {
+        rankEl.textContent = `Personal best: ${prevBest.toLocaleString()}`;
+        rankEl.style.display = 'block';
+    }
 }
 
 // ============================================
@@ -4018,8 +4458,10 @@ window.onMultiplayerRoundStart = async (message) => {
     // Hide loading screen
     showRoundLoading(false);
 
-    // Start timer
-    startRoundTimer();
+    // DON'T start timer yet — tell server we're ready and wait for round_go
+    if (window.lobbyManager) {
+        window.lobbyManager.send('player_ready', { round: currentRound });
+    }
 
     // Update UI
     const roundDisplay = document.getElementById('round-display');
@@ -4027,10 +4469,31 @@ window.onMultiplayerRoundStart = async (message) => {
         roundDisplay.textContent = `Round ${currentRound}/${totalRounds}`;
     }
     document.getElementById('guess-btn').style.display = 'block';
+    document.getElementById('guess-btn').disabled = true; // Disabled until round_go
     document.getElementById('next-round-btn').style.display = 'none';
     document.getElementById('country-input').value = '';
-    document.getElementById('country-input').disabled = false;
+    document.getElementById('country-input').disabled = true; // Disabled until round_go
+
+    // Show "waiting" hint until round_go
+    const hint = document.getElementById('hint');
+    if (hint) hint.textContent = 'Waiting for other players...';
+
     updateUI();
+};
+
+// Called when server sends round_go (all players loaded)
+window.startMultiplayerTimer = function() {
+    startRoundTimer();
+
+    // Enable guessing now that the round is live
+    document.getElementById('guess-btn').disabled = false;
+    document.getElementById('country-input').disabled = false;
+
+    // Update hint
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+        || ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    const hint = document.getElementById('hint');
+    if (hint) hint.textContent = isMobile ? 'Tap on the terrain to dig!' : 'Click on the terrain to dig!';
 };
 
 // Called when round ends (server triggered)
@@ -4044,6 +4507,7 @@ window.onMultiplayerRoundEnd = function(data) {
             correctAnswer: data.correctAnswer,
             playerResults: data.results ? data.results.map(r => ({
                 name: r.playerName,
+                color: r.color || '#ffd700',
                 correct: r.isCorrect,
                 timeout: r.isTimeout,
                 points: r.points
@@ -4065,10 +4529,16 @@ window.onMultiplayerRoundEnd = function(data) {
 
 // Called when game ends
 window.onMultiplayerGameEnd = function(data) {
+    // Use server's authoritative score
+    if (data.yourScore !== undefined) {
+        score = data.yourScore;
+        window.gameScore = score;
+    }
+
     if (window.showGameResults) {
         window.showGameResults({
             standings: data.standings,
-            yourScore: score,
+            yourScore: data.yourScore !== undefined ? data.yourScore : score,
             correctGuesses: correctGuesses,
             totalGuesses: totalGuesses,
             totalArtifacts: totalArtifactsFoundGame

@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unearth — Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #0a0705;
+            color: #c8b08a;
+            font-family: 'Crimson Text', serif;
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        .header {
+            background: linear-gradient(180deg, #1a1008 0%, #0f0a05 100%);
+            border-bottom: 1px solid rgba(139, 105, 20, 0.3);
+            padding: 20px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header h1 {
+            font-family: 'Cinzel', serif;
+            color: #ffd700;
+            font-size: 22px;
+            letter-spacing: 3px;
+        }
+
+        .header .badge {
+            background: rgba(139, 105, 20, 0.2);
+            border: 1px solid rgba(139, 105, 20, 0.4);
+            color: #a08060;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4caf50;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .status-dot.disconnected { background: #f44336; animation: none; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .btn {
+            background: rgba(40, 25, 10, 0.9);
+            border: 1px solid rgba(139, 105, 20, 0.5);
+            color: #a08060;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Crimson Text', serif;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: rgba(60, 40, 20, 0.9);
+            border-color: #8b6914;
+            color: #ffd700;
+        }
+
+        .btn-danger {
+            border-color: rgba(180, 60, 60, 0.5);
+            color: #d48080;
+        }
+
+        .btn-danger:hover {
+            background: rgba(80, 20, 20, 0.9);
+            border-color: #b43c3c;
+            color: #ff8080;
+        }
+
+        .btn-sm {
+            padding: 4px 10px;
+            font-size: 12px;
+        }
+
+        /* ── Main Layout ── */
+        .main {
+            padding: 24px 32px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* ── Stats Grid ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(26, 16, 8, 0.9), rgba(15, 10, 5, 0.9));
+            border: 1px solid rgba(139, 105, 20, 0.25);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #706050;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-family: 'Cinzel', serif;
+            font-size: 32px;
+            color: #ffd700;
+            font-weight: 700;
+        }
+
+        .stat-sub {
+            font-size: 13px;
+            color: #706050;
+            margin-top: 4px;
+        }
+
+        /* ── Panels ── */
+        .panels {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .panels { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background: linear-gradient(135deg, rgba(26, 16, 8, 0.9), rgba(15, 10, 5, 0.9));
+            border: 1px solid rgba(139, 105, 20, 0.25);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(139, 105, 20, 0.15);
+        }
+
+        .panel-title {
+            font-family: 'Cinzel', serif;
+            color: #d4a574;
+            font-size: 14px;
+            letter-spacing: 2px;
+        }
+
+        .panel-body {
+            padding: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .panel-body::-webkit-scrollbar { width: 6px; }
+        .panel-body::-webkit-scrollbar-track { background: transparent; }
+        .panel-body::-webkit-scrollbar-thumb {
+            background: rgba(139, 105, 20, 0.3);
+            border-radius: 3px;
+        }
+
+        /* ── Lobby Cards ── */
+        .lobby-card {
+            background: rgba(20, 14, 8, 0.6);
+            border: 1px solid rgba(139, 105, 20, 0.15);
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: 8px;
+        }
+
+        .lobby-card:last-child { margin-bottom: 0; }
+
+        .lobby-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .lobby-name {
+            font-family: 'Cinzel', serif;
+            color: #ffd700;
+            font-size: 14px;
+        }
+
+        .lobby-code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: #706050;
+            background: rgba(139, 105, 20, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .lobby-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: #806a50;
+            margin-bottom: 10px;
+        }
+
+        .lobby-status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+        }
+
+        .lobby-status.waiting {
+            background: rgba(33, 150, 243, 0.15);
+            color: #64b5f6;
+            border: 1px solid rgba(33, 150, 243, 0.3);
+        }
+
+        .lobby-status.playing {
+            background: rgba(76, 175, 80, 0.15);
+            color: #81c784;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .lobby-status.finished {
+            background: rgba(158, 158, 158, 0.15);
+            color: #9e9e9e;
+            border: 1px solid rgba(158, 158, 158, 0.3);
+        }
+
+        .lobby-players {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .player-chip {
+            background: rgba(139, 105, 20, 0.1);
+            border: 1px solid rgba(139, 105, 20, 0.2);
+            border-radius: 14px;
+            padding: 3px 10px;
+            font-size: 12px;
+            color: #a08060;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .player-chip .host-badge {
+            color: #ffd700;
+            font-size: 10px;
+        }
+
+        .lobby-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* ── Player Table ── */
+        .player-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(139, 105, 20, 0.08);
+        }
+
+        .player-row:last-child { border-bottom: none; }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .player-name {
+            color: #c8b08a;
+            font-size: 14px;
+        }
+
+        .player-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #504030;
+        }
+
+        .player-lobby {
+            font-size: 12px;
+            color: #706050;
+        }
+
+        /* ── Log Panel ── */
+        .log-panel {
+            grid-column: 1 / -1;
+        }
+
+        .log-body {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            line-height: 1.8;
+            max-height: 250px;
+        }
+
+        .log-entry {
+            padding: 2px 12px;
+            border-bottom: 1px solid rgba(139, 105, 20, 0.05);
+        }
+
+        .log-time {
+            color: #504030;
+            margin-right: 8px;
+        }
+
+        .log-type-connect { color: #81c784; }
+        .log-type-disconnect { color: #e57373; }
+        .log-type-lobby { color: #64b5f6; }
+        .log-type-game { color: #ffd54f; }
+        .log-type-admin { color: #ce93d8; }
+
+        /* ── Empty state ── */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #504030;
+            font-size: 14px;
+        }
+
+        .empty-state .icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+            opacity: 0.4;
+        }
+
+        /* ── Auth Screen ── */
+        .auth-screen {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .auth-title {
+            font-family: 'Cinzel', serif;
+            color: #ffd700;
+            font-size: 28px;
+            letter-spacing: 4px;
+        }
+
+        .auth-box {
+            background: linear-gradient(135deg, rgba(26, 16, 8, 0.95), rgba(15, 10, 5, 0.95));
+            border: 1px solid rgba(139, 105, 20, 0.3);
+            border-radius: 12px;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            min-width: 320px;
+        }
+
+        .auth-input {
+            background: rgba(10, 7, 5, 0.8);
+            border: 1px solid rgba(139, 105, 20, 0.3);
+            border-radius: 6px;
+            padding: 12px 16px;
+            color: #c8b08a;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .auth-input:focus {
+            border-color: #8b6914;
+        }
+
+        .auth-error {
+            color: #e57373;
+            font-size: 13px;
+            text-align: center;
+            display: none;
+        }
+
+        .ban-dur-btn.active {
+            background: rgba(139, 105, 20, 0.3);
+            border-color: #ffd700 !important;
+            color: #ffd700 !important;
+        }
+
+        .ban-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(139, 105, 20, 0.08);
+        }
+
+        .ban-entry:last-child { border-bottom: none; }
+
+        .ban-ip {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: #e57373;
+        }
+
+        .ban-meta {
+            font-size: 12px;
+            color: #706050;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Auth Screen -->
+<div id="auth-screen" class="auth-screen">
+    <div class="auth-title">⛏️ UNEARTH</div>
+    <div class="auth-box">
+        <div style="text-align: center; color: #706050; font-size: 13px; letter-spacing: 2px; text-transform: uppercase;">Admin Panel</div>
+        <input type="password" id="auth-key" class="auth-input" placeholder="Admin key..." autofocus>
+        <button class="btn" onclick="authenticate()" style="width: 100%; padding: 12px;">Enter</button>
+        <div id="auth-error" class="auth-error">Invalid admin key</div>
+    </div>
+</div>
+
+<!-- Dashboard (hidden until auth) -->
+<div id="dashboard" style="display: none;">
+    <div class="header">
+        <div class="header-left">
+            <h1>⛏️ UNEARTH</h1>
+            <span class="badge">ADMIN v1.0</span>
+        </div>
+        <div class="header-right">
+            <div class="status-dot" id="ws-status"></div>
+            <span id="ws-status-text" style="font-size: 12px; color: #706050;">Connecting...</span>
+            <button class="btn" onclick="launchDebugGame()">🔧 Debug Game</button>
+            <button class="btn btn-danger" onclick="broadcastMessage()">📢 Broadcast</button>
+        </div>
+    </div>
+
+    <div class="main">
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Players Online</div>
+                <div class="stat-value" id="stat-players">0</div>
+                <div class="stat-sub" id="stat-players-sub">Peak: 0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Active Lobbies</div>
+                <div class="stat-value" id="stat-lobbies">0</div>
+                <div class="stat-sub" id="stat-lobbies-sub">0 in-game</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Games</div>
+                <div class="stat-value" id="stat-games">0</div>
+                <div class="stat-sub" id="stat-games-sub">Since server start</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Uptime</div>
+                <div class="stat-value" id="stat-uptime">0m</div>
+                <div class="stat-sub" id="stat-uptime-sub">—</div>
+            </div>
+        </div>
+
+        <!-- Panels -->
+        <div class="panels">
+            <!-- Lobbies -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">LOBBIES</span>
+                    <span id="lobby-count" style="font-size: 12px; color: #504030;">0 active</span>
+                </div>
+                <div class="panel-body" id="lobby-list">
+                    <div class="empty-state">
+                        <div class="icon">🏛️</div>
+                        No active lobbies
+                    </div>
+                </div>
+            </div>
+
+            <!-- Players -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">CONNECTED PLAYERS</span>
+                    <span id="player-count" style="font-size: 12px; color: #504030;">0 online</span>
+                </div>
+                <div class="panel-body" id="player-list">
+                    <div class="empty-state">
+                        <div class="icon">👤</div>
+                        No players connected
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs -->
+            <div class="panel log-panel">
+                <div class="panel-header">
+                    <span class="panel-title">SERVER LOG</span>
+                    <button class="btn btn-sm" onclick="clearLogs()">Clear</button>
+                </div>
+                <div class="panel-body log-body" id="log-list">
+                    <div class="empty-state">
+                        <div class="icon">📋</div>
+                        Waiting for events...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bans -->
+            <div class="panel log-panel">
+                <div class="panel-header">
+                    <span class="panel-title">BANNED IPS</span>
+                    <div style="display:flex;gap:8px;">
+                        <button class="btn btn-sm" onclick="refreshBans()">Refresh</button>
+                        <button class="btn btn-sm btn-danger" onclick="showManualBanDialog()">+ Ban IP</button>
+                    </div>
+                </div>
+                <div class="panel-body" id="ban-list">
+                    <div class="empty-state">
+                        <div class="icon">🛡️</div>
+                        No active bans
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ban Dialog -->
+<div id="ban-dialog" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+    background:rgba(0,0,0,0.7); z-index:10000; display:none;
+    justify-content:center; align-items:center;">
+    <div style="background:linear-gradient(135deg,#1a1008,#0f0a05); border:1px solid rgba(180,60,60,0.4);
+        border-radius:12px; padding:28px; min-width:380px; max-width:450px;">
+        <div style="font-family:'Cinzel',serif; color:#e57373; font-size:16px; margin-bottom:20px; letter-spacing:2px;">
+            🚫 BAN PLAYER
+        </div>
+        <input type="hidden" id="ban-player-id">
+        <div id="ban-target-info" style="color:#a08060; font-size:14px; margin-bottom:16px;"></div>
+
+        <label style="color:#706050; font-size:12px; display:block; margin-bottom:6px;">REASON</label>
+        <input type="text" id="ban-reason" class="auth-input" placeholder="Reason for ban..."
+               style="width:100%; margin-bottom:14px;">
+
+        <label style="color:#706050; font-size:12px; display:block; margin-bottom:6px;">DURATION</label>
+        <div style="display:flex; gap:8px; margin-bottom:20px;">
+            <button class="btn btn-sm ban-dur-btn" data-hours="1" onclick="selectDuration(this)">1h</button>
+            <button class="btn btn-sm ban-dur-btn" data-hours="6" onclick="selectDuration(this)">6h</button>
+            <button class="btn btn-sm ban-dur-btn active" data-hours="24" onclick="selectDuration(this)">24h</button>
+            <button class="btn btn-sm ban-dur-btn" data-hours="168" onclick="selectDuration(this)">7d</button>
+            <button class="btn btn-sm ban-dur-btn" data-hours="0" onclick="selectDuration(this)" style="border-color:rgba(180,60,60,0.5);color:#d48080;">Permanent</button>
+        </div>
+        <input type="hidden" id="ban-duration" value="24">
+
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+            <button class="btn" onclick="closeBanDialog()">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmBan()">Ban</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let adminKey = '';
+    let ws = null;
+    let pollInterval = null;
+    const logs = [];
+    const MAX_LOGS = 200;
+
+    // ── Auth ──
+    document.getElementById('auth-key').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') authenticate();
+    });
+
+    async function authenticate() {
+        const key = document.getElementById('auth-key').value.trim();
+        if (!key) return;
+
+        try {
+            const res = await fetch('/api/admin/stats', {
+                headers: { 'x-admin-key': key }
+            });
+
+            if (res.ok) {
+                adminKey = key;
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+                connectWebSocket();
+                startPolling();
+                refreshBans();
+                addLog('admin', 'Authenticated successfully');
+            } else {
+                document.getElementById('auth-error').style.display = 'block';
+            }
+        } catch (e) {
+            document.getElementById('auth-error').textContent = 'Server unreachable';
+            document.getElementById('auth-error').style.display = 'block';
+        }
+    }
+
+    // ── API Polling ──
+    function startPolling() {
+        fetchStats();
+        pollInterval = setInterval(fetchStats, 2000);
+    }
+
+    async function fetchStats() {
+        try {
+            const res = await fetch('/api/admin/stats', {
+                headers: { 'x-admin-key': adminKey }
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            updateDashboard(data);
+        } catch (e) { /* silent */ }
+    }
+
+    function updateDashboard(data) {
+        // Stats
+        document.getElementById('stat-players').textContent = data.players.online;
+        document.getElementById('stat-players-sub').textContent = `Peak: ${data.players.peak}`;
+        document.getElementById('stat-lobbies').textContent = data.lobbies.total;
+        document.getElementById('stat-lobbies-sub').textContent = `${data.lobbies.inGame} in-game`;
+        document.getElementById('stat-games').textContent = data.stats.totalGamesPlayed;
+        document.getElementById('stat-uptime').textContent = formatUptime(data.stats.uptimeSeconds);
+        document.getElementById('stat-uptime-sub').textContent = `Started ${new Date(data.stats.startedAt).toLocaleString()}`;
+
+        // Lobbies
+        renderLobbies(data.lobbies.list);
+        document.getElementById('lobby-count').textContent = `${data.lobbies.total} active`;
+
+        // Players
+        renderPlayers(data.players.list);
+        document.getElementById('player-count').textContent = `${data.players.online} online`;
+    }
+
+    function renderLobbies(lobbies) {
+        const container = document.getElementById('lobby-list');
+        if (!lobbies.length) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">🏛️</div>No active lobbies</div>';
+            return;
+        }
+
+        container.innerHTML = lobbies.map(lobby => {
+            const statusClass = lobby.gameState?.inProgress ? 'playing' :
+                lobby.gameState?.gameOver ? 'finished' : 'waiting';
+            const statusText = lobby.gameState?.inProgress ? 'PLAYING' :
+                lobby.gameState?.gameOver ? 'FINISHED' : 'WAITING';
+
+            const roundInfo = lobby.gameState?.inProgress
+                ? `Round ${lobby.gameState.currentRound}/${lobby.settings.rounds} · ${lobby.gameState.currentCountry || '?'}`
+                : '';
+
+            return `
+                <div class="lobby-card">
+                    <div class="lobby-top">
+                        <span class="lobby-name">${esc(lobby.name)}</span>
+                        <span class="lobby-code">${lobby.code}</span>
+                    </div>
+                    <div class="lobby-meta">
+                        <span class="lobby-status ${statusClass}">${statusText}</span>
+                        <span>👥 ${lobby.playerCount}/${lobby.settings.maxPlayers}</span>
+                        <span>🔄 ${lobby.settings.rounds} rounds</span>
+                        <span>⏱️ ${lobby.settings.timePerRound}s</span>
+                        ${roundInfo ? `<span>🗺️ ${roundInfo}</span>` : ''}
+                    </div>
+                    <div class="lobby-players">
+                        ${lobby.players.map(p => `
+                            <span class="player-chip">
+                                ${p.id === lobby.hostId ? '<span class="host-badge">👑</span>' : ''}
+                                ${esc(p.name || 'Unknown')}
+                                <span style="color: #504030; font-size: 10px;">(${p.score})</span>
+                            </span>
+                        `).join('')}
+                    </div>
+                    <div class="lobby-actions">
+                        <button class="btn btn-sm btn-danger" onclick="closeLobby('${lobby.code}')">Close Lobby</button>
+                        ${lobby.players.map(p => p.id !== lobby.hostId ?
+                `<button class="btn btn-sm" onclick="kickPlayer('${lobby.code}', '${p.id}')">Kick ${esc(p.name || 'Unknown')}</button>` : ''
+            ).join('')}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderPlayers(playerList) {
+        const container = document.getElementById('player-list');
+        if (!playerList.length) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">👤</div>No players connected</div>';
+            return;
+        }
+
+        container.innerHTML = playerList.map(p => `
+            <div class="player-row">
+                <div class="player-info">
+                    <span class="player-name">${esc(p.name || 'Anonymous')}</span>
+                    <span class="player-id">${p.id}</span>
+                    <span class="player-id" style="color: #504030;">${p.ip || '?'}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="player-lobby">${p.lobbyCode ? `Lobby: ${p.lobbyCode}` : 'No lobby'}</span>
+                    ${p.lobbyCode ? `<button class="btn btn-sm btn-danger" onclick="kickPlayer('${p.lobbyCode}', '${p.id}')">Kick</button>` : ''}
+                    <button class="btn btn-sm btn-danger" onclick="showBanDialog('${p.id}', '${esc(p.name || 'Unknown')}', '${p.ip || ''}')">Ban</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // ── Admin Actions ──
+    async function closeLobby(code) {
+        if (!confirm(`Close lobby ${code}? All players will be disconnected.`)) return;
+        const res = await fetch(`/api/admin/lobby/${code}/close`, {
+            method: 'POST',
+            headers: { 'x-admin-key': adminKey }
+        });
+        if (res.ok) {
+            addLog('admin', `Closed lobby ${code}`);
+            fetchStats();
+        }
+    }
+
+    async function kickPlayer(lobbyCode, playerId) {
+        const res = await fetch(`/api/admin/lobby/${lobbyCode}/kick/${playerId}`, {
+            method: 'POST',
+            headers: { 'x-admin-key': adminKey }
+        });
+        if (res.ok) {
+            addLog('admin', `Kicked player ${playerId} from ${lobbyCode}`);
+            fetchStats();
+        }
+    }
+
+    function launchDebugGame() {
+        window.open(`/?debug=${encodeURIComponent(adminKey)}`, '_blank');
+    }
+
+    function broadcastMessage() {
+        const msg = prompt('Broadcast message to all players:');
+        if (!msg) return;
+        fetch('/api/admin/broadcast', {
+            method: 'POST',
+            headers: { 'x-admin-key': adminKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: msg })
+        }).then(() => {
+            addLog('admin', `Broadcast: "${msg}"`);
+        });
+    }
+
+    // ── WebSocket for live log ──
+    function connectWebSocket() {
+        const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(`${protocol}//${location.host}`);
+
+        ws.onopen = () => {
+            document.getElementById('ws-status').classList.remove('disconnected');
+            document.getElementById('ws-status-text').textContent = 'Connected';
+
+            // Identify as admin
+            ws.send(JSON.stringify({ type: 'admin_subscribe', key: adminKey }));
+        };
+
+        ws.onmessage = (event) => {
+            try {
+                const msg = JSON.parse(event.data);
+                if (msg.type === 'admin_log') {
+                    addLog(msg.logType, msg.message);
+                }
+            } catch (e) { /* ignore non-admin messages */ }
+        };
+
+        ws.onclose = () => {
+            document.getElementById('ws-status').classList.add('disconnected');
+            document.getElementById('ws-status-text').textContent = 'Disconnected';
+            setTimeout(connectWebSocket, 3000);
+        };
+    }
+
+    // ── Logging ──
+    function addLog(type, message) {
+        const now = new Date();
+        const time = now.toLocaleTimeString('en-GB');
+        logs.unshift({ time, type, message });
+        if (logs.length > MAX_LOGS) logs.pop();
+        renderLogs();
+    }
+
+    function renderLogs() {
+        const container = document.getElementById('log-list');
+        container.innerHTML = logs.map(log => `
+            <div class="log-entry">
+                <span class="log-time">${log.time}</span>
+                <span class="log-type-${log.type}">[${log.type.toUpperCase()}]</span>
+                ${esc(log.message)}
+            </div>
+        `).join('');
+    }
+
+    function clearLogs() {
+        logs.length = 0;
+        renderLogs();
+    }
+
+    // ── Helpers ──
+    function formatUptime(seconds) {
+        if (seconds < 60) return `${seconds}s`;
+        if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        return `${h}h ${m}m`;
+    }
+
+    function esc(str) {
+        const d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    }
+
+    // ── Ban Management ──
+    let currentBanPlayerId = null;
+    let currentBanIP = null;
+
+    function showBanDialog(playerId, name, ip) {
+        currentBanPlayerId = playerId;
+        currentBanIP = ip;
+        document.getElementById('ban-player-id').value = playerId;
+        document.getElementById('ban-target-info').innerHTML =
+            `Banning: <strong style="color:#ffd700">${name}</strong> <span style="color:#504030">(IP: ${ip || 'unknown'})</span>`;
+        document.getElementById('ban-reason').value = '';
+        document.getElementById('ban-duration').value = '24';
+        // Reset duration buttons
+        document.querySelectorAll('.ban-dur-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector('.ban-dur-btn[data-hours="24"]').classList.add('active');
+        const dialog = document.getElementById('ban-dialog');
+        dialog.style.display = 'flex';
+    }
+
+    function showManualBanDialog() {
+        const ip = prompt('Enter IP address to ban:');
+        if (!ip) return;
+        currentBanPlayerId = null;
+        currentBanIP = ip;
+        document.getElementById('ban-player-id').value = '';
+        document.getElementById('ban-target-info').innerHTML =
+            `Banning IP: <strong style="color:#ffd700">${esc(ip)}</strong>`;
+        document.getElementById('ban-reason').value = '';
+        document.getElementById('ban-duration').value = '24';
+        document.querySelectorAll('.ban-dur-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector('.ban-dur-btn[data-hours="24"]').classList.add('active');
+        document.getElementById('ban-dialog').style.display = 'flex';
+    }
+
+    function closeBanDialog() {
+        document.getElementById('ban-dialog').style.display = 'none';
+        currentBanPlayerId = null;
+        currentBanIP = null;
+    }
+
+    function selectDuration(btn) {
+        document.querySelectorAll('.ban-dur-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('ban-duration').value = btn.dataset.hours;
+    }
+
+    async function confirmBan() {
+        const reason = document.getElementById('ban-reason').value.trim() || 'Banned by admin';
+        const hours = parseInt(document.getElementById('ban-duration').value);
+        const duration = hours > 0 ? hours : null; // null = permanent
+
+        let url, body;
+        if (currentBanPlayerId) {
+            url = `/api/admin/ban/${currentBanPlayerId}`;
+            body = { reason, duration };
+        } else if (currentBanIP) {
+            url = '/api/admin/ban-ip';
+            body = { ip: currentBanIP, reason, duration };
+        } else {
+            return;
+        }
+
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'x-admin-key': adminKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+
+        if (res.ok) {
+            const durationText = duration ? `${duration}h` : 'permanent';
+            addLog('admin', `Banned ${currentBanIP || currentBanPlayerId} (${durationText}): ${reason}`);
+            closeBanDialog();
+            fetchStats();
+            refreshBans();
+        } else {
+            const err = await res.json();
+            alert('Ban failed: ' + (err.error || 'Unknown error'));
+        }
+    }
+
+    async function refreshBans() {
+        try {
+            const res = await fetch('/api/admin/bans', { headers: { 'x-admin-key': adminKey } });
+            if (!res.ok) return;
+            const data = await res.json();
+            renderBans(data.bans);
+        } catch (e) { /* silent */ }
+    }
+
+    function renderBans(banList) {
+        const container = document.getElementById('ban-list');
+        if (!banList.length) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">🛡️</div>No active bans</div>';
+            return;
+        }
+
+        container.innerHTML = banList.map(ban => {
+            const expiry = ban.expiresAt
+                ? `Expires: ${new Date(ban.expiresAt).toLocaleString()}`
+                : '<span style="color:#e57373;">Permanent</span>';
+            const since = new Date(ban.bannedAt).toLocaleString();
+
+            return `
+                <div class="ban-entry">
+                    <div>
+                        <span class="ban-ip">${esc(ban.ip)}</span>
+                        <span style="color:#a08060; font-size:12px; margin-left:8px;">${esc(ban.bannedName)}</span>
+                        <div class="ban-meta">${esc(ban.reason)} · Since: ${since}</div>
+                        <div class="ban-meta">${expiry}</div>
+                    </div>
+                    <button class="btn btn-sm" onclick="unbanIP('${esc(ban.ip)}')">Unban</button>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function unbanIP(ip) {
+        if (!confirm(`Unban ${ip}?`)) return;
+        const res = await fetch(`/api/admin/unban/${encodeURIComponent(ip)}`, {
+            method: 'POST',
+            headers: { 'x-admin-key': adminKey },
+        });
+        if (res.ok) {
+            addLog('admin', `Unbanned IP: ${ip}`);
+            refreshBans();
+        }
+    }
+</script>
+</body>
+</html>
