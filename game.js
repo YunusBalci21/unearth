@@ -73,8 +73,8 @@ const ALL_COUNTRIES = [
 // Platform settings
 const PLATFORM_SIZE = 5;
 const PLATFORM_SEGMENTS = 25;
-const DIG_RADIUS = 0.5;
-const DIG_DEPTH = 0.2;
+const DIG_RADIUS = 0.8;
+const DIG_DEPTH = 0.25;
 const MAX_DIG_DEPTH = 1.5;
 
 // ============================================
