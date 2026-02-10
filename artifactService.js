@@ -583,7 +583,7 @@ class ArtifactService {
 
         const queries = config.queries;
         const randomQuery = queries[Math.floor(Math.random() * queries.length)];
-        console.log(`[ArtifactService] Searching Met Museum: "${randomQuery}"`);
+        // Log removed (leaks query)
 
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10000);

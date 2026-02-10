@@ -1469,7 +1469,7 @@ function onCanvasClick(event) {
 
             // Find the artifact data
             const clickedArtifact = artifacts.find(a => a.mesh === clickedMesh);
-            console.log('[Click] Artifact clicked:', clickedArtifact?.artifactData?.title, 'mesh match:', !!clickedArtifact);
+            // Log removed (leaks artifact)
 
             if (clickedArtifact && clickedArtifact.artifactData) {
                 showArtifactInspector(clickedArtifact.artifactData);
@@ -1536,7 +1536,7 @@ function applyTextureCover(texture, frameAspect = 1) {
 }
 
 function showArtifactInspector(artifactData) {
-    console.log('[Inspector] Opening inspector for:', artifactData?.title);
+    // Log removed (leaks artifact)
 
     const modal = document.getElementById('artifact-inspector-modal');
     const canvas = document.getElementById('inspector-canvas');
@@ -2395,7 +2395,7 @@ async function placeArtifacts(country) {
     const NUM_ARTIFACTS = 5;
 
     // Fetch artifacts from API service - try real museum photos first, fall back to icons
-    console.log(`[placeArtifacts] Fetching ${NUM_ARTIFACTS} artifacts for ${country.name}...`);
+    // Log removed (leaks country)
     const apiArtifacts = await artifactService.getArtifacts(country.name, NUM_ARTIFACTS, false); // false = try API first
 
     if (!apiArtifacts || apiArtifacts.length === 0) {
@@ -2403,7 +2403,7 @@ async function placeArtifacts(country) {
         return;
     }
 
-    console.log(`[placeArtifacts] Got ${apiArtifacts.length} artifacts from API`);
+    // Log removed (leaks count)
     totalArtifacts = apiArtifacts.length;
 
     const positions = [];
@@ -2450,7 +2450,7 @@ async function placeArtifacts(country) {
         mesh.userData.surfaceHeight = surfaceHeight;
         mesh.userData.artifactInfo = artifactData; // Store artifact info for later display
 
-        console.log(`[placeArtifacts] Placed "${artifactData.title}" at (${pos.x.toFixed(2)}, ${artifactY.toFixed(2)}, ${pos.y.toFixed(2)})`);
+        // Log removed (leaks artifact)
 
         scene.add(mesh);
 
@@ -2586,7 +2586,7 @@ async function createArtifactFromAPI(artifactData) {
             group.add(imagePlane);
 
             textureLoaded = true;
-            console.log(`[createArtifactFromAPI] Loaded texture for: ${artifactData.title}`);
+            // Log removed (leaks artifact)
 
         } catch (error) {
             console.warn(`[createArtifactFromAPI] Failed to load texture for ${artifactData.title}:`, error);
@@ -2970,7 +2970,7 @@ function checkArtifactReveal(digX, digZ) {
             // Start showing artifact tip when you've dug 40% of the way
             if (progress > 0.4 && !artifact.mesh.visible) {
                 artifact.mesh.visible = true;
-                console.log(`[checkArtifactReveal] ${artifact.type} now visible at progress ${progress.toFixed(2)}, dugDepth: ${dugDepth.toFixed(2)}`);
+                // Log removed (leaks artifact)
             }
 
             // Gradually raise artifact as digging continues
@@ -3237,7 +3237,7 @@ async function loadCountryForDebug(countryIndex) {
 
     // Load selected country
     currentCountry = COUNTRIES[countryIndex];
-    console.log(`[DEBUG] Loading country: ${currentCountry.name}`);
+    // Log removed (leaks country)
 
     // Create platform and artifacts
     createDigPlatform(currentCountry);
