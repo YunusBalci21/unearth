@@ -398,7 +398,13 @@ app.get('/met-img/*', async (req, res) => {
             return res.status(response.status).send('Failed to fetch image');
         }
 
-        res.setHeader('Content-Type', response.headers.get('content-type') || 'image/jpeg');
+        // Reject non-image responses (Met Museum sometimes returns HTML error pages with 200)
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.startsWith('image/')) {
+            return res.status(404).send('Not an image');
+        }
+
+        res.setHeader('Content-Type', contentType);
         res.setHeader('Cache-Control', 'public, max-age=86400');
 
         const nodeStream = Readable.fromWeb(response.body);

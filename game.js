@@ -2816,13 +2816,24 @@ function loadTextureAsync(url, timeoutMs = 8000) {
             clearTimeout(timeout);
 
             try {
+                // Validate image actually loaded with real content
+                const natW = img.naturalWidth || img.width || 0;
+                const natH = img.naturalHeight || img.height || 0;
+
+                // Reject tiny/broken images (proxy errors, 1x1 placeholders, etc.)
+                if (natW < 10 || natH < 10) {
+                    console.warn(`[loadTextureAsync] Rejecting tiny image: ${natW}x${natH}`);
+                    reject(new Error('Image too small - likely broken'));
+                    return;
+                }
+
                 // Create canvas to hold the image
                 const canvas = document.createElement('canvas');
 
                 // Use image dimensions but cap at reasonable size for textures
                 const maxSize = 512;
-                let width = img.naturalWidth || img.width || 256;
-                let height = img.naturalHeight || img.height || 256;
+                let width = natW;
+                let height = natH;
 
                 // SVG data URIs often report 0x0 dimensions - force a fixed size
                 const isSVG = url.startsWith('data:image/svg');
@@ -2858,6 +2869,27 @@ function loadTextureAsync(url, timeoutMs = 8000) {
                     reject(new Error('CORS blocked'));
                     return;
                 }
+
+                // Validate image has actual varied content (not a solid error page)
+                try {
+                    const samplePoints = [
+                        [Math.floor(width * 0.25), Math.floor(height * 0.25)],
+                        [Math.floor(width * 0.75), Math.floor(height * 0.25)],
+                        [Math.floor(width * 0.5), Math.floor(height * 0.5)],
+                        [Math.floor(width * 0.25), Math.floor(height * 0.75)],
+                        [Math.floor(width * 0.75), Math.floor(height * 0.75)]
+                    ];
+                    const colors = samplePoints.map(([x, y]) => {
+                        const px = ctx.getImageData(x, y, 1, 1).data;
+                        return (px[0] << 16) | (px[1] << 8) | px[2];
+                    });
+                    const uniqueColors = new Set(colors).size;
+                    if (uniqueColors <= 1) {
+                        console.warn('[loadTextureAsync] Rejecting solid-color image (likely broken)');
+                        reject(new Error('Image is solid color - likely broken'));
+                        return;
+                    }
+                } catch (e) { /* sampling failed, continue anyway */ }
 
                 // Create texture from canvas
                 const texture = new THREE.CanvasTexture(canvas);
