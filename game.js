@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { audioManager } from './audioManager.js';
 import { initMenuSystem, submitMultiplayerGuess, isMultiplayerGame, showGameOver } from './menuController.js';
-import { artifactService } from './artifactService.js';
+import { artifactService, generateSVG, COUNTRY_DATA } from './artifactService.js';
 import { tutorial } from './tutorial.js';
 import { settingsController } from './settings.js';
 import { shareResults } from './shareResults.js';
@@ -2481,7 +2481,35 @@ async function createArtifactFromAPI(artifactData) {
         try {
             const texture = await loadTextureAsync(imageUrl);
 
-            // Create a framed artifact display
+            // Double-check texture has valid image data
+            if (!texture || !texture.image) {
+                throw new Error('Texture has no image data');
+            }
+
+            // Verify the texture canvas has actual content (not all black/transparent)
+            const srcCanvas = texture.image;
+            if (srcCanvas.getContext) {
+                const checkCtx = srcCanvas.getContext('2d');
+                const checkData = checkCtx.getImageData(0, 0, srcCanvas.width, srcCanvas.height).data;
+                let totalBrightness = 0;
+                let nonBlackPixels = 0;
+                const step = Math.max(1, Math.floor(checkData.length / (4 * 200))); // Sample ~200 pixels
+                for (let i = 0; i < checkData.length; i += 4 * step) {
+                    const r = checkData[i], g = checkData[i + 1], b = checkData[i + 2];
+                    totalBrightness += (r + g + b) / 3;
+                    if (r > 10 || g > 10 || b > 10) nonBlackPixels++;
+                }
+                const sampleCount = Math.ceil(checkData.length / (4 * step));
+                const avgBrightness = totalBrightness / sampleCount;
+                const nonBlackRatio = nonBlackPixels / sampleCount;
+
+                // Reject if image is mostly black/empty
+                if (avgBrightness < 5 || nonBlackRatio < 0.1) {
+                    throw new Error(`Image too dark: brightness=${avgBrightness.toFixed(1)}, nonBlack=${(nonBlackRatio * 100).toFixed(0)}%`);
+                }
+            }
+
+            // Texture is valid — now build the frame
             const frameSize = 0.4;
             const frameDepth = 0.05;
             const frameBorder = 0.025;
@@ -2496,7 +2524,6 @@ async function createArtifactFromAPI(artifactData) {
             // Create frame as 4 border pieces
             const frameGroup = new THREE.Group();
 
-            // Top border
             const topBorder = new THREE.Mesh(
                 new THREE.BoxGeometry(frameSize + frameBorder * 2, frameBorder, frameDepth),
                 frameMaterial
@@ -2504,7 +2531,6 @@ async function createArtifactFromAPI(artifactData) {
             topBorder.position.y = frameSize / 2 + frameBorder / 2;
             frameGroup.add(topBorder);
 
-            // Bottom border
             const bottomBorder = new THREE.Mesh(
                 new THREE.BoxGeometry(frameSize + frameBorder * 2, frameBorder, frameDepth),
                 frameMaterial
@@ -2512,7 +2538,6 @@ async function createArtifactFromAPI(artifactData) {
             bottomBorder.position.y = -frameSize / 2 - frameBorder / 2;
             frameGroup.add(bottomBorder);
 
-            // Left border
             const leftBorder = new THREE.Mesh(
                 new THREE.BoxGeometry(frameBorder, frameSize, frameDepth),
                 frameMaterial
@@ -2520,7 +2545,6 @@ async function createArtifactFromAPI(artifactData) {
             leftBorder.position.x = -frameSize / 2 - frameBorder / 2;
             frameGroup.add(leftBorder);
 
-            // Right border
             const rightBorder = new THREE.Mesh(
                 new THREE.BoxGeometry(frameBorder, frameSize, frameDepth),
                 frameMaterial
@@ -2537,7 +2561,6 @@ async function createArtifactFromAPI(artifactData) {
             group.add(frameGroup);
 
             // Back panel (canvas)
-            const backGeometry = new THREE.PlaneGeometry(frameSize, frameSize);
             const backMaterial = new THREE.MeshStandardMaterial({
                 color: 0xf5f5dc,
                 roughness: 0.9,
@@ -2555,21 +2578,6 @@ async function createArtifactFromAPI(artifactData) {
             texture.colorSpace = THREE.SRGBColorSpace;
             applyTextureCover(texture, 1);
 
-            // Image plane with texture
-            let aspect = 1;
-            if (texture.image && texture.image.width && texture.image.height) {
-                aspect = texture.image.width / texture.image.height;
-            }
-
-            let planeWidth = frameSize - 0.02;
-            let planeHeight = frameSize - 0.02;
-
-            if (aspect > 1) {
-                planeHeight = planeWidth / aspect;
-            } else {
-                planeWidth = planeHeight * aspect;
-            }
-
             const planeGeometry = new THREE.PlaneGeometry(frameSize - 0.02, frameSize - 0.02);
             const planeMaterial = new THREE.MeshStandardMaterial({
                 map: texture,
@@ -2586,10 +2594,13 @@ async function createArtifactFromAPI(artifactData) {
             group.add(imagePlane);
 
             textureLoaded = true;
-            // Log removed (leaks artifact)
 
         } catch (error) {
-            console.warn(`[createArtifactFromAPI] Failed to load texture for ${artifactData.title}:`, error);
+            // Clear any partially-added frame geometry on failure
+            while (group.children.length > 0) {
+                group.remove(group.children[0]);
+            }
+            console.warn('[createArtifactFromAPI] Texture failed, using 3D fallback:', error.message);
         }
     }
 
