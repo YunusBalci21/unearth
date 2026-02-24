@@ -659,4 +659,4 @@ class ArtifactService {
 }
 
 const artifactService = new ArtifactService();
-export { ArtifactService, artifactService, COUNTRY_DATA };
+export { ArtifactService, artifactService, COUNTRY_DATA, generateSVG };
