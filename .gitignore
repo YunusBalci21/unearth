@@ -75,3 +75,6 @@ coverage.xml
 
 # Ban data
 bans.json
+# Server data (never commit)
+leaderboard.json
+*.json.tmp

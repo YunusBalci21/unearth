@@ -1,18 +1,20 @@
 {
   "name": "unearth-multiplayer",
-  "version": "1.0.0",
-  "description": "Unearth - Archaeological Guessing Game with Multiplayer",
+  "version": "1.0.1",
+  "description": "Unearth - a free archaeology guessing game. Excavate dig sites, recover artifacts and identify which country they come from, solo or with friends.",
   "main": "server.js",
   "type": "module",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
+    "test": "node --test test/*.test.js",
     "build": "echo 'No build step needed'"
   },
   "dependencies": {
+    "compression": "^1.8.2",
     "dotenv": "^16.4.5",
     "express": "^4.18.2",
-    "vite": "^6.4.1",
+    "three": "0.160.0",
     "ws": "^8.16.0"
   },
   "engines": {
