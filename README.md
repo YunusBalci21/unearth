@@ -57,7 +57,7 @@ public/                   Fonts, sounds, models, images, favicons, admin panel
 test/                     node:test suites
 ```
 
-Unearth uses no emoji. Icons are painted artwork: the source images (1254 px PNGs with transparency) live in `img/`, and trimmed 96 px WebP copies used by the page live in `client/img/ui/` (192 px versions for the tool belt, 32/64 px PNG cursors in `client/img/cursor/`). Use `<img class="ico" src="/img/ui/name.webp" alt="">` in markup, or `icon(name)` in JS. Favicons and app icons in `public/favicons/` are generated from `img/logo-mark.png`. `npm test` fails if an emoji appears in the game, admin panel or server.
+Unearth uses no emoji. Icons are painted artwork: the source images (1254 px PNGs with transparency) live in `img/`, and trimmed 96 px WebP copies used by the page live in `client/img/ui/` (192 px versions for the tool belt, 32/64 px PNG cursors in `client/img/cursor/`). Use `<img class="ico" src="/img/ui/name.webp" alt="">` in markup, or `icon(name)` in JS. The browser-tab favicons in `public/favicons/` are generated from `img/logo-mark.png`; the phone home-screen icons (`apple-touch-icon.png`, `android-chrome-*.png`) from `img/app-icon.png`. `npm test` fails if an emoji appears in the game, admin panel or server.
 
 ## Admin panel
 
