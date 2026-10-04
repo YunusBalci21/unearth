@@ -260,7 +260,7 @@ const BUILD = {
 
     mask(k, e) {
         const v = e.variant;
-        const face = k.mesh(new THREE.SphereGeometry(0.4, 26, 18, 0, Math.PI), k.m.pattern ? 'patterned' : 'main', [0, 0, 0], [0, -Math.PI / 2, 0], [0.82, 1.08, 0.55]);
+        const face = k.mesh(new THREE.SphereGeometry(0.4, 26, 18, 0, Math.PI), k.m.pattern ? 'patterned' : 'main', [0, 0, 0], [0, 0, 0], [0.82, 1.08, 0.55]); // phi 0..π is the front (+z) half
         face.material.side = THREE.DoubleSide;
         const eye = v === 'gelede' || v === 'sican' ? 'accent' : 'dark';
         for (const s of [-1, 1]) {
