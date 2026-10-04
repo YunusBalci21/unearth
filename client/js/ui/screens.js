@@ -8,6 +8,7 @@ import { settings, PLAYER_COLORS } from '../settings.js';
 import { progress, RANKS } from '../progress.js';
 import { audio } from '../audio.js';
 import { lobby } from '../net/lobby.js';
+import { apiUrl } from '../net/endpoint.js';
 import { REGIONS, SITES, sitesInRegion } from '../shared/countries.js';
 import { ROUND_OPTIONS, TIME_OPTIONS, MAX_PLAYER_OPTIONS } from '../shared/rules.js';
 import { CATALOG, ALL_ARTIFACTS, RARITIES, formatYear, materialLabel } from '../data/catalog.js';
@@ -444,7 +445,7 @@ async function openLeaderboard() {
     for (let i = 0; i < 6; i++) body.append(h('div.skeleton', { style: { height: '42px', marginBottom: '4px' } }));
     let data;
     try {
-        const res = await fetch('/api/leaderboard', { cache: 'no-store' });
+        const res = await fetch(apiUrl('/api/leaderboard'), { cache: 'no-store' });
         if (!res.ok) throw new Error(res.status);
         data = await res.json();
     } catch {

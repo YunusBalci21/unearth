@@ -10,6 +10,7 @@ import { settings } from './settings.js';
 import { progress } from './progress.js';
 import { audio } from './audio.js';
 import { lobby } from './net/lobby.js';
+import { apiUrl } from './net/endpoint.js';
 import { createSite, dig, cellIndex, mulberry32 } from './game/site.js';
 import { ExcavationScene } from './game/scene.js';
 import { warmStudio } from './game/artifactModels.js';
@@ -70,7 +71,7 @@ async function submitScore(run) {
     const eligible = run.score > 0 && (run.mode === 'daily' || (run.mode === 'solo' && run.region === 'world'));
     if (!eligible) return null;
     try {
-        const res = await fetch('/api/leaderboard', {
+        const res = await fetch(apiUrl('/api/leaderboard'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -137,7 +138,7 @@ function wireMultiplayer() {
 
 async function enableDebug(key) {
     try {
-        const res = await fetch('/api/admin/verify', { headers: { 'x-admin-key': key } });
+        const res = await fetch(apiUrl('/api/admin/verify'), { headers: { 'x-admin-key': key } });
         if (!res.ok) return;
     } catch { return; }
     window.__unearth = {

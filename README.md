@@ -21,7 +21,7 @@ npm run dev        # restarts on server changes
 npm test           # unit tests for excavation logic, guessing and scoring
 ```
 
-There is no build step. The client is plain ES modules served straight from `client/`, and three.js is served from `node_modules` at `/vendor/three`, so the game never needs a CDN.
+There is no build step for the Node server. The client is plain ES modules served straight from `client/`, and three.js is served from `node_modules` at `/vendor/three`, so the game never needs a CDN. `npm run build:static` packs the same files into `dist/` for static hosts (see Deploying).
 
 ### Environment variables
 
@@ -29,9 +29,35 @@ There is no build step. The client is plain ES modules served straight from `cli
 |--------------|---------------------------------|---------|
 | `PORT`       | `3000`                          | HTTP / WebSocket port |
 | `ADMIN_KEY`  | built-in default (insecure)     | Key for `/admin` and the `?debug=` tools. **Set this in production.** |
-| `PUBLIC_URL` | `https://www.playunearth.tech`  | Absolute URL used in `robots.txt` and `sitemap.xml` |
+| `PUBLIC_URL` | `https://www.playunearth.tech`  | Absolute URL used in `robots.txt` and `sitemap.xml`; this site (with and without `www.`) may call the API cross-origin |
+| `ALLOWED_ORIGINS` | none | Extra comma-separated sites that host the game client and call this server, e.g. `https://*.vercel.app` (`*` is a wildcard) |
 
 You can put these in a `.env` file because `dotenv` is loaded at startup.
+
+## Deploying
+
+The game has two parts: static files (HTML, JS, images) and the Node server, which adds multiplayer, the leaderboard and the admin panel over HTTP and WebSockets.
+
+### Render: the whole game
+
+`render.yaml` is a Render Blueprint for one Node web service that serves everything.
+
+- **New service:** in Render choose **New → Blueprint**, pick this repository and enter an `ADMIN_KEY` when asked.
+- **Existing web service:** set the build command to `npm ci`, the start command to `npm start` and the health check path to `/healthz`, then add the environment variables above.
+
+The free plan sleeps after 15 minutes without traffic, so the first visit afterwards can take up to a minute. Its disk is not persistent: the leaderboard and bans reset on every deploy or restart.
+
+### Vercel: static client
+
+Vercel cannot run a WebSocket server, so it hosts a static build of the game that talks to the Node server on Render. `vercel.json` already sets the build (`npm run build:static`, output `dist/`) and the `/admin` route.
+
+1. In the Vercel project, add the environment variable `UNEARTH_SERVER_URL` with the Render address, e.g. `https://unearth.onrender.com` (no trailing slash), for Production and Preview.
+2. On Render, make sure the Vercel address is allowed: the site in `PUBLIC_URL` is allowed automatically, and `ALLOWED_ORIGINS=https://*.vercel.app` covers preview deployments.
+3. Redeploy. Every push then gets a preview URL.
+
+Without `UNEARTH_SERVER_URL`, solo play, the Daily Dig and the Archive still work; multiplayer, the leaderboard and the admin panel report that the server can't be reached.
+
+To try the static build locally: `UNEARTH_SERVER_URL=http://localhost:3000 npm run build:static`, then serve `dist/` from any static file server.
 
 ## Project layout
 
@@ -54,7 +80,11 @@ client/
   js/game/artifactModels.js, patterns.js, tools.js, effects.js
   js/ui/                  HUD, dialogs, inspector, results, menus
   js/net/lobby.js         WebSocket lobby client with reconnect
+  js/net/endpoint.js      Server address (same site, or window.UNEARTH_SERVER from config.js)
+  config.js               Server address for static deployments (rewritten by the static build)
 public/                   Fonts, sounds, models, images, favicons, admin panel
+scripts/build-static.mjs  Static build for Vercel and other static hosts
+render.yaml, vercel.json  Deployment settings
 test/                     node:test suites
 ```
 

@@ -38,6 +38,9 @@ A game interface rather than a web page: the excavation fills the screen and the
 - Responsive layouts for desktop, laptop, tablet and phone.
 - Loading, empty and error states throughout.
 
+### Hosting
+- Runs as one Node service on Render (`render.yaml`), or as a static build on Vercel (`vercel.json`, `npm run build:static`) that connects to the Render server for multiplayer, the leaderboard and the admin panel. The server address comes from `UNEARTH_SERVER_URL`; the API allows cross-origin calls from the public site and from `ALLOWED_ORIGINS`.
+
 ### Fixes
 - The menu no longer waits for every sound to load before responding, and music streams.
 - Fixed a crash in the share dialog.

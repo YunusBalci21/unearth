@@ -2,6 +2,8 @@
 // LOBBY CLIENT — one reconnecting WebSocket, surfaced as events.
 // ============================================
 
+import { socketUrl } from './endpoint.js';
+
 class LobbyClient extends EventTarget {
     constructor() {
         super();
@@ -39,9 +41,8 @@ class LobbyClient extends EventTarget {
 
     open() {
         clearTimeout(this.retryTimer);
-        const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
         let ws;
-        try { ws = new WebSocket(`${proto}//${location.host}`); } catch { this.scheduleRetry(); return; }
+        try { ws = new WebSocket(socketUrl()); } catch { this.scheduleRetry(); return; }
         this.socket = ws;
         this.setStatus('connecting');
         ws.onmessage = e => {

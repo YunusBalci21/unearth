@@ -629,7 +629,10 @@
     </div>
 </div>
 
+<script src="/config.js"></script>
 <script>
+    // Game server address (same site unless /config.js points elsewhere, e.g. a static build on Vercel).
+    const SERVER = String(window.UNEARTH_SERVER || '').trim().replace(/\/+$/, '');
     let adminKey = '';
     let ws = null;
     let pollInterval = null;
@@ -646,7 +649,7 @@
         if (!key) return;
 
         try {
-            const res = await fetch('/api/admin/stats', {
+            const res = await fetch(SERVER + '/api/admin/stats', {
                 headers: { 'x-admin-key': key }
             });
 
@@ -676,7 +679,7 @@
 
     async function fetchStats() {
         try {
-            const res = await fetch('/api/admin/stats', {
+            const res = await fetch(SERVER + '/api/admin/stats', {
                 headers: { 'x-admin-key': adminKey }
             });
             if (!res.ok) return;
@@ -782,7 +785,7 @@
     // ── Admin Actions ──
     async function closeLobby(code) {
         if (!confirm(`Close lobby ${code}? All players will be disconnected.`)) return;
-        const res = await fetch(`/api/admin/lobby/${code}/close`, {
+        const res = await fetch(SERVER + `/api/admin/lobby/${code}/close`, {
             method: 'POST',
             headers: { 'x-admin-key': adminKey }
         });
@@ -793,7 +796,7 @@
     }
 
     async function kickPlayer(lobbyCode, playerId) {
-        const res = await fetch(`/api/admin/lobby/${lobbyCode}/kick/${playerId}`, {
+        const res = await fetch(SERVER + `/api/admin/lobby/${lobbyCode}/kick/${playerId}`, {
             method: 'POST',
             headers: { 'x-admin-key': adminKey }
         });
@@ -810,7 +813,7 @@
     function broadcastMessage() {
         const msg = prompt('Broadcast message to all players:');
         if (!msg) return;
-        fetch('/api/admin/broadcast', {
+        fetch(SERVER + '/api/admin/broadcast', {
             method: 'POST',
             headers: { 'x-admin-key': adminKey, 'Content-Type': 'application/json' },
             body: JSON.stringify({ message: msg })
@@ -822,7 +825,7 @@
     // ── WebSocket for live log ──
     function connectWebSocket() {
         const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        ws = new WebSocket(`${protocol}//${location.host}`);
+        ws = new WebSocket(SERVER ? SERVER.replace(/^http/i, 'ws') : `${protocol}//${location.host}`);
 
         ws.onopen = () => {
             document.getElementById('ws-status').classList.remove('disconnected');
@@ -906,7 +909,7 @@
 
     async function refreshLeaderboard() {
         try {
-            const res = await fetch('/api/leaderboard', { cache: 'no-store' });
+            const res = await fetch(SERVER + '/api/leaderboard', { cache: 'no-store' });
             const list = await res.json();
             const container = document.getElementById('lb-list');
             if (!list.length) {
@@ -928,7 +931,7 @@
 
     async function deleteScore(id, name) {
         if (!confirm(`Remove "${name}" from the leaderboard?`)) return;
-        const res = await fetch(`/api/admin/leaderboard/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { 'x-admin-key': adminKey } });
+        const res = await fetch(SERVER + `/api/admin/leaderboard/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { 'x-admin-key': adminKey } });
         if (res.ok) { addLog('admin', `Removed leaderboard entry ${name}`); refreshLeaderboard(); }
     }
 
@@ -1014,7 +1017,7 @@
 
     async function refreshBans() {
         try {
-            const res = await fetch('/api/admin/bans', { headers: { 'x-admin-key': adminKey } });
+            const res = await fetch(SERVER + '/api/admin/bans', { headers: { 'x-admin-key': adminKey } });
             if (!res.ok) return;
             const data = await res.json();
             renderBans(data.bans);
@@ -1050,7 +1053,7 @@
 
     async function unbanIP(ip) {
         if (!confirm(`Unban ${ip}?`)) return;
-        const res = await fetch(`/api/admin/unban/${encodeURIComponent(ip)}`, {
+        const res = await fetch(SERVER + `/api/admin/unban/${encodeURIComponent(ip)}`, {
             method: 'POST',
             headers: { 'x-admin-key': adminKey },
         });

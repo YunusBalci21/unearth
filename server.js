@@ -24,6 +24,26 @@ const PUBLIC_DIR = join(__dirname, 'public');
 const PORT = process.env.PORT || 3000;
 const PUBLIC_URL = (process.env.PUBLIC_URL || 'https://www.playunearth.tech').replace(/\/+$/, '');
 
+// Sites allowed to call the API from a browser when the game is hosted elsewhere
+// (e.g. the static build on Vercel). Comma-separated origins; "*" wildcards allowed,
+// as in "https://*.vercel.app". The public site and its www / bare variant are always allowed.
+const ALLOWED_ORIGINS = allowedOrigins(process.env.ALLOWED_ORIGINS, PUBLIC_URL);
+
+function allowedOrigins(list, publicUrl) {
+    const out = new Set(String(list || '').split(',').map(s => s.trim().replace(/\/+$/, '')).filter(Boolean));
+    try {
+        const u = new URL(publicUrl);
+        out.add(u.origin);
+        const host = u.hostname.startsWith('www.') ? u.hostname.slice(4) : `www.${u.hostname}`;
+        out.add(`${u.protocol}//${host}${u.port ? `:${u.port}` : ''}`);
+    } catch { /* PUBLIC_URL is not a URL: only the explicit list applies */ }
+    return [...out].map(p => p === '*' ? /^.*$/ : new RegExp(`^${p.split('*').map(x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[^/]*')}$`, 'i'));
+}
+
+function isAllowedOrigin(origin) {
+    return !!origin && ALLOWED_ORIGINS.some(re => re.test(origin));
+}
+
 const ROUND_BREAK_MS = 7000;   // results screen between multiplayer rounds
 const READY_TIMEOUT_MS = 15000; // start a round even if a client is slow to load
 
@@ -173,6 +193,20 @@ app.use(compression());
 app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+});
+
+// CORS for a game client served from another site (see ALLOWED_ORIGINS)
+app.use('/api', (req, res, next) => {
+    const origin = req.headers.origin;
+    if (isAllowedOrigin(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Key');
+        res.setHeader('Access-Control-Max-Age', '600');
+    }
+    res.append('Vary', 'Origin');
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
     next();
 });
 

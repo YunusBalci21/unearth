@@ -8,7 +8,8 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "test": "node --test test/*.test.js",
-    "build": "echo 'No build step needed'"
+    "build": "echo 'No build step needed'",
+    "build:static": "node scripts/build-static.mjs"
   },
   "dependencies": {
     "compression": "^1.8.2",
