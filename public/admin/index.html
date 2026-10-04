@@ -367,11 +367,31 @@
             font-size: 14px;
         }
 
-        .empty-state .icon {
-            font-size: 32px;
-            margin-bottom: 12px;
-            opacity: 0.4;
+        .empty-state .ico {
+            display: block;
+            width: 32px;
+            height: 32px;
+            margin: 0 auto 12px;
+            opacity: 0.45;
         }
+
+        /* ── Icons (shared sprite: /icons.svg) ── */
+        .ico {
+            width: 1.15em;
+            height: 1.15em;
+            flex: none;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.75;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            vertical-align: -0.2em;
+        }
+        .btn .ico { margin-right: 6px; }
+        .brand { display: inline-flex; align-items: center; gap: 12px; }
+        .brand .ico { width: 0.95em; height: 0.95em; vertical-align: 0; }
+        .lobby-meta > span:not(.lobby-status) { display: inline-flex; align-items: center; gap: 5px; }
+        .player-chip .host-badge .ico { width: 12px; height: 12px; vertical-align: -1px; }
 
         /* ── Auth Screen ── */
         .auth-screen {
@@ -455,7 +475,7 @@
 
 <!-- Auth Screen -->
 <div id="auth-screen" class="auth-screen">
-    <div class="auth-title">⛏️ UNEARTH</div>
+    <div class="auth-title brand"><svg class="ico" aria-hidden="true"><use href="/icons.svg#i-trowel"/></svg>UNEARTH</div>
     <div class="auth-box">
         <div style="text-align: center; color: #706050; font-size: 13px; letter-spacing: 2px; text-transform: uppercase;">Admin Panel</div>
         <input type="password" id="auth-key" class="auth-input" placeholder="Admin key..." autofocus>
@@ -468,14 +488,14 @@
 <div id="dashboard" style="display: none;">
     <div class="header">
         <div class="header-left">
-            <h1>⛏️ UNEARTH</h1>
+            <h1 class="brand"><svg class="ico" aria-hidden="true"><use href="/icons.svg#i-trowel"/></svg>UNEARTH</h1>
             <span class="badge" id="admin-version">ADMIN · v1.0.1</span>
         </div>
         <div class="header-right">
             <div class="status-dot" id="ws-status"></div>
             <span id="ws-status-text" style="font-size: 12px; color: #706050;">Connecting...</span>
-            <button class="btn" onclick="launchDebugGame()">🔧 Debug Game</button>
-            <button class="btn btn-danger" onclick="broadcastMessage()">📢 Broadcast</button>
+            <button class="btn" onclick="launchDebugGame()"><svg class="ico" aria-hidden="true"><use href="/icons.svg#i-wrench"/></svg>Debug Game</button>
+            <button class="btn btn-danger" onclick="broadcastMessage()"><svg class="ico" aria-hidden="true"><use href="/icons.svg#i-megaphone"/></svg>Broadcast</button>
         </div>
     </div>
 
@@ -514,7 +534,7 @@
                 </div>
                 <div class="panel-body" id="lobby-list">
                     <div class="empty-state">
-                        <div class="icon">🏛️</div>
+                        <svg class="ico" aria-hidden="true"><use href="/icons.svg#i-museum"/></svg>
                         No active lobbies
                     </div>
                 </div>
@@ -528,7 +548,7 @@
                 </div>
                 <div class="panel-body" id="player-list">
                     <div class="empty-state">
-                        <div class="icon">👤</div>
+                        <svg class="ico" aria-hidden="true"><use href="/icons.svg#i-user"/></svg>
                         No players connected
                     </div>
                 </div>
@@ -542,7 +562,7 @@
                 </div>
                 <div class="panel-body log-body" id="log-list">
                     <div class="empty-state">
-                        <div class="icon">📋</div>
+                        <svg class="ico" aria-hidden="true"><use href="/icons.svg#i-clipboard"/></svg>
                         Waiting for events...
                     </div>
                 </div>
@@ -559,7 +579,7 @@
                 </div>
                 <div class="panel-body" id="ban-list">
                     <div class="empty-state">
-                        <div class="icon">🛡️</div>
+                        <svg class="ico" aria-hidden="true"><use href="/icons.svg#i-shield"/></svg>
                         No active bans
                     </div>
                 </div>
@@ -572,7 +592,7 @@
                     <button class="btn btn-sm" data-act="lb-refresh">Refresh</button>
                 </div>
                 <div class="panel-body" id="lb-list">
-                    <div class="empty-state"><div class="icon">🏆</div>No scores yet</div>
+                    <div class="empty-state"><svg class="ico" aria-hidden="true"><use href="/icons.svg#i-trophy"/></svg>No scores yet</div>
                 </div>
             </div>
         </div>
@@ -586,7 +606,7 @@
     <div style="background:linear-gradient(135deg,#1a1008,#0f0a05); border:1px solid rgba(180,60,60,0.4);
         border-radius:12px; padding:28px; min-width:380px; max-width:450px;">
         <div style="font-family:'Cinzel',serif; color:#e57373; font-size:16px; margin-bottom:20px; letter-spacing:2px;">
-            🚫 BAN PLAYER
+            <svg class="ico" aria-hidden="true"><use href="/icons.svg#i-ban"/></svg> BAN PLAYER
         </div>
         <input type="hidden" id="ban-player-id">
         <div id="ban-target-info" style="color:#a08060; font-size:14px; margin-bottom:16px;"></div>
@@ -691,7 +711,7 @@
     function renderLobbies(lobbies) {
         const container = document.getElementById('lobby-list');
         if (!lobbies.length) {
-            container.innerHTML = '<div class="empty-state"><div class="icon">🏛️</div>No active lobbies</div>';
+            container.innerHTML = emptyState('museum', 'No active lobbies');
             return;
         }
 
@@ -713,16 +733,16 @@
                     </div>
                     <div class="lobby-meta">
                         <span class="lobby-status ${statusClass}">${statusText}</span>
-                        <span>👥 ${lobby.playerCount}/${lobby.settings.maxPlayers}</span>
-                        <span>🔄 ${lobby.settings.rounds} rounds</span>
-                        <span>⏱️ ${lobby.settings.timePerRound ? lobby.settings.timePerRound + 's' : 'no limit'}</span>
-                        ${lobby.settings.isPrivate ? '<span>🔒 private</span>' : ''}
-                        ${roundInfo ? `<span>🗺️ ${roundInfo}</span>` : ''}
+                        <span>${icon('users')}${lobby.playerCount}/${lobby.settings.maxPlayers}</span>
+                        <span>${icon('refresh')}${lobby.settings.rounds} rounds</span>
+                        <span>${icon('stopwatch')}${lobby.settings.timePerRound ? lobby.settings.timePerRound + 's' : 'no limit'}</span>
+                        ${lobby.settings.isPrivate ? `<span>${icon('lock')}private</span>` : ''}
+                        ${roundInfo ? `<span>${icon('globe')}${roundInfo}</span>` : ''}
                     </div>
                     <div class="lobby-players">
                         ${lobby.players.map(p => `
                             <span class="player-chip">
-                                ${p.id === lobby.hostId ? '<span class="host-badge">👑</span>' : ''}
+                                ${p.id === lobby.hostId ? `<span class="host-badge" title="Host">${icon('crown')}</span>` : ''}
                                 ${esc(p.name || 'Unknown')}
                                 <span style="color: #504030; font-size: 10px;">(${Number(p.score) || 0})</span>
                             </span>
@@ -742,7 +762,7 @@
     function renderPlayers(playerList) {
         const container = document.getElementById('player-list');
         if (!playerList.length) {
-            container.innerHTML = '<div class="empty-state"><div class="icon">👤</div>No players connected</div>';
+            container.innerHTML = emptyState('user', 'No players connected');
             return;
         }
 
@@ -842,6 +862,7 @@
 
     function renderLogs() {
         const container = document.getElementById('log-list');
+        if (!logs.length) { container.innerHTML = emptyState('clipboard', 'Waiting for events...'); return; }
         container.innerHTML = logs.map(log => `
             <div class="log-entry">
                 <span class="log-time">${log.time}</span>
@@ -864,6 +885,10 @@
         const m = Math.floor((seconds % 3600) / 60);
         return `${h}h ${m}m`;
     }
+
+    // Icon from the game's shared sprite. `name` is always a literal from this file.
+    const icon = name => `<svg class="ico" aria-hidden="true"><use href="/icons.svg#i-${name}"/></svg>`;
+    const emptyState = (name, text) => `<div class="empty-state">${icon(name)}${text}</div>`;
 
     function esc(str) {
         return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -888,7 +913,7 @@
             const list = await res.json();
             const container = document.getElementById('lb-list');
             if (!list.length) {
-                container.innerHTML = '<div class="empty-state"><div class="icon">🏆</div>No scores yet</div>';
+                container.innerHTML = emptyState('trophy', 'No scores yet');
                 return;
             }
             container.innerHTML = list.map((e, i) => `
@@ -1002,7 +1027,7 @@
     function renderBans(banList) {
         const container = document.getElementById('ban-list');
         if (!banList.length) {
-            container.innerHTML = '<div class="empty-state"><div class="icon">🛡️</div>No active bans</div>';
+            container.innerHTML = emptyState('shield', 'No active bans');
             return;
         }
 

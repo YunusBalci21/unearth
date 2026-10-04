@@ -3,7 +3,7 @@
 // leaderboard and settings.
 // ============================================
 
-import { $, $$, h, clear, svgIcon, fmtInt, fmtTime, dialogs, toast, segmented, swatches, copyText, initials, announce } from './dom.js';
+import { $, $$, h, clear, svgIcon, iconHref, fmtInt, fmtTime, dialogs, toast, segmented, swatches, copyText, initials, announce } from './dom.js';
 import { settings, PLAYER_COLORS } from '../settings.js';
 import { progress, RANKS } from '../progress.js';
 import { audio } from '../audio.js';
@@ -74,7 +74,7 @@ export function updateSoundButtons() {
     for (const btn of $$('[data-action="toggle-sound"]')) {
         btn.setAttribute('aria-pressed', String(muted));
         btn.setAttribute('aria-label', muted ? 'Unmute sound' : 'Mute sound');
-        btn.querySelector('use').setAttribute('href', muted ? '#i-mute' : '#i-sound');
+        btn.querySelector('use').setAttribute('href', iconHref(muted ? 'mute' : 'sound'));
     }
 }
 

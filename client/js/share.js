@@ -7,19 +7,15 @@ import { $, h, clear, svgIcon, dialogs, copyText, toast } from './ui/dom.js';
 const SITE_URL = 'https://www.playunearth.tech';
 
 export function shareText(run) {
-    const rows = run.sites.map(s => {
-        if (!s.correct) return '🟥';
-        if (s.recovered <= 1) return '🟨';
-        if (s.recovered <= 3) return '🟩';
-        return '🟫';
-    }).join('');
+    // Plain text only, no emoji: ✓ / ✗ per site keeps it spoiler-free.
+    const marks = run.sites.map(s => (s.correct ? '✓' : '✗')).join(' ');
     const legendary = run.sites.reduce((n, s) => n + (s.legendary || 0), 0);
     const lines = [
         run.daily ? `UNEARTH · Daily Dig #${run.daily}` : `UNEARTH · ${run.regionLabel || 'Worldwide'} expedition`,
-        `${rows}  ${run.correct}/${run.sites.length} sites identified`,
-        `⛏ ${run.score.toLocaleString('en-US')} pts · ${run.finds} finds${legendary ? ` · ${legendary} legendary` : ''}`,
+        `${marks}   ${run.correct}/${run.sites.length} sites identified`,
+        `${run.score.toLocaleString('en-US')} pts · ${run.finds} ${run.finds === 1 ? 'find' : 'finds'}${legendary ? ` · ${legendary} legendary` : ''}`,
     ];
-    if (run.bestStreak >= 3) lines.push(`🔥 ${run.bestStreak}-site streak`);
+    if (run.bestStreak >= 3) lines.push(`Best streak: ${run.bestStreak} sites`);
     lines.push('', SITE_URL);
     return lines.join('\n');
 }

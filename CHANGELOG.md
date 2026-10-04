@@ -27,6 +27,7 @@ A full overhaul of the game loop, interface and server. The core idea is unchang
 ### Interface
 - Complete redesign with an archaeological identity: parchment, stone, brass, survey grids and a photo-scale motif, using self-hosted Cinzel, Crimson Pro and IBM Plex Mono fonts.
 - New menus, setup, HUD, tool rail with tooltips, round results, final summary with a site log, leaderboard, settings, pause menu and an in-game field guide.
+- No emoji anywhere: the game and admin panel share one set of drawn SVG icons (`client/icons.svg`), and the share text uses plain ✓ / ✗ marks. A test guards against emoji creeping back in.
 - Native accessible dialogs, keyboard play (arrow keys, 1–4 for tools, Q/E/R for the camera, G to guess, Esc to pause), screen-reader announcements, visible focus states and a reduced-motion option.
 - Responsive layouts for desktop, laptop, tablet and phone.
 - Loading, empty and error states throughout.

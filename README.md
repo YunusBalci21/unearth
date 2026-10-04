@@ -38,7 +38,8 @@ You can put these in a `.env` file because `dotenv` is loaded at startup.
 ```
 server.js                 Express + ws: static files, leaderboard, admin API, multiplayer lobbies
 client/
-  index.html              Markup, SEO metadata, icon sprite, dialogs
+  index.html              Markup, SEO metadata, dialogs
+  icons.svg               UI icon sprite, shared by the game and the admin panel
   css/unearth.css         Design system and all UI styles
   js/main.js              Boot and app wiring
   js/shared/              Imported by both server and browser
@@ -54,6 +55,8 @@ client/
 public/                   Fonts, sounds, models, images, favicons, admin panel
 test/                     node:test suites
 ```
+
+Unearth uses no emoji. Icons are drawn SVG symbols in `client/icons.svg` (24×24 grid, strokes only), referenced as `<svg class="icon"><use href="/icons.svg#i-name"/></svg>`, or with `svgIcon(name)` in JS. `npm test` fails if an emoji appears in the game, admin panel or server.
 
 ## Admin panel
 

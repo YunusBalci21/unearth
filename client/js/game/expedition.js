@@ -17,7 +17,7 @@ import { audio } from '../audio.js';
 import { progress } from '../progress.js';
 import { settings } from '../settings.js';
 import { artifactThumbnail } from './artifactModels.js';
-import { toast, announce, dialogs, h, $, isTouch } from '../ui/dom.js';
+import { toast, announce, dialogs, h, $, isTouch, svgIcon } from '../ui/dom.js';
 import { lobby } from '../net/lobby.js';
 
 export const TIPS = [
@@ -761,12 +761,7 @@ export class Expedition {
 
 function factEl(icon, text) {
     const span = document.createElement('span');
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('class', 'icon');
-    const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-    use.setAttribute('href', `#i-${icon}`);
-    svg.append(use);
-    span.append(svg, text);
+    span.append(svgIcon(icon), text);
     return span;
 }
 

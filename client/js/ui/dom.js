@@ -50,12 +50,15 @@ function append(el, children) {
     }
 }
 
+/** URL of an icon in the shared sprite (also used by the admin panel). */
+export const iconHref = name => `/icons.svg#i-${name}`;
+
 export function svgIcon(name, cls = '') {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('class', `icon ${cls}`.trim());
     svg.setAttribute('aria-hidden', 'true');
     const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-    use.setAttribute('href', `#i-${name}`);
+    use.setAttribute('href', iconHref(name));
     svg.append(use);
     return svg;
 }
