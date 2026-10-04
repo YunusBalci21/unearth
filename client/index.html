@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Unearth — Free Archaeology Guessing Game | Dig, Discover &amp; Guess the Country</title>
-    <meta name="description" content="Unearth is a free archaeology guessing game you play in your browser. Excavate dig sites layer by layer, recover 256 real-world artifacts and guess which of 32 countries they come from — solo, in the Daily Dig or with friends.">
+    <meta name="description" content="Unearth is a free archaeology guessing game you play in your browser. Excavate dig sites layer by layer, recover 768 real-world artifacts and guess which of 32 countries they come from — solo, in the Daily Dig or with friends.">
     <meta name="keywords" content="archaeology game, guessing game, geography game, history game, artifact game, browser game, multiplayer guessing game, daily puzzle, geoguessr alternative, free online game">
     <meta name="author" content="YNS Interactive">
     <meta name="robots" content="index, follow, max-image-preview:large">
@@ -132,7 +132,7 @@
                 <span class="mi-idx">03</span><span class="mi-label">Play with friends</span><span class="mi-meta">Up to 10 explorers</span>
             </button>
             <button class="menu-item" type="button" data-action="open-archive">
-                <span class="mi-idx">04</span><span class="mi-label">Archive</span><span class="mi-meta" id="archive-meta">0 / 256</span>
+                <span class="mi-idx">04</span><span class="mi-label">Archive</span><span class="mi-meta" id="archive-meta">0 / 768</span>
             </button>
             <button class="menu-item" type="button" data-action="open-leaderboard">
                 <span class="mi-idx">05</span><span class="mi-label">Leaderboard</span><span class="mi-meta">Worldwide register</span>
@@ -149,7 +149,7 @@
             <span class="fid-kicker">Field rank</span>
             <strong class="fid-name" id="rank-name">Volunteer</strong>
             <span class="ruler" id="rank-bar"><span></span></span>
-            <span class="fid-sub" id="rank-sub">0 of 256 artifacts catalogued</span>
+            <span class="fid-sub" id="rank-sub">0 of 768 artifacts catalogued</span>
         </span>
     </button>
     <footer class="menu-footer">v<span data-version>1.0.1</span> · YNS Interactive</footer>
@@ -446,7 +446,7 @@
         <header class="doc-head">
             <span class="doc-code">Collection catalogue</span>
             <h2 class="doc-title" id="archive-title">The Archive</h2>
-            <span class="doc-no" id="archive-count">0 / 256</span>
+            <span class="doc-no" id="archive-count">0 / 768</span>
             <button class="doc-close" type="button" data-close aria-label="Close"><img class="ico" src="/img/ui/close.webp" alt=""></button>
         </header>
         <div id="archive-body"></div>
@@ -498,7 +498,7 @@
         <ol class="manual-steps">
             <li><img class="ico" src="/img/ui/layers.webp" alt=""><div><h3>Excavate</h3><p>Every site is an 8×8 grid of excavation units with three layers of soil above bedrock. Click a unit to remove a layer. Deeper layers are older — and hold the rarest finds.</p></div></li>
             <li><img class="ico" src="/img/ui/search.webp" alt=""><div><h3>Read the clues</h3><p>Potsherds on the surface lie near buried finds. Dark soil stains mark something deep below. A survey probe counts every hidden find in the 3×3 units around it.</p></div></li>
-            <li><img class="ico" src="/img/ui/brush.webp" alt=""><div><h3>Recover</h3><p>When a find starts to show through the soil, brush it clean to lift it out. Shovels are fast but can chip what they uncover — badly damaged finds can’t be identified.</p></div></li>
+            <li><img class="ico" src="/img/ui/brush.webp" alt=""><div><h3>Recover</h3><p>When a find starts to show through the soil, brush it clean to lift it out. On site you only know what you can see — material, type, age and condition; its name and history are recorded after you identify the site. Shovels are fast but can chip what they uncover, and badly damaged finds can barely be described.</p></div></li>
             <li><img class="ico" src="/img/ui/pin.webp" alt=""><div><h3>Identify the site</h3><p>Use your finds to name the country. One find or none: 500 points, then 100 less per extra find — plus a second-by-second time bonus. A wrong answer costs 100.</p></div></li>
         </ol>
 
@@ -516,7 +516,7 @@
 
         <section class="about" aria-labelledby="about-title">
             <h3 class="manual-h" id="about-title">About Unearth</h3>
-            <p>Unearth is a free archaeology guessing game for your browser — part excavation, part geography quiz. Its archive holds 256 artifacts from 32 countries, from Egyptian funerary masks and Chinese oracle bones to Viking swords, Benin brasses and 2.6-million-year-old stone tools, each with a short note on its real history.</p>
+            <p>Unearth is a free archaeology guessing game for your browser — part excavation, part geography quiz. Its archive holds 768 artifacts, 24 from each of 32 countries: everyday potsherds, coins, lamps and spindle whorls alongside Egyptian funerary masks, Chinese oracle bones, Viking swords, Benin brasses and 2.6-million-year-old stone tools, each with a short note on its real history.</p>
             <p>Play a solo expedition worldwide or by region, take on the Daily Dig that everyone plays with the same sites, or host a private lobby and race up to nine friends to identify each site. Every artifact you recover is catalogued in your personal Archive.</p>
         </section>
         <footer class="doc-foot"><button class="btn btn-primary" type="button" data-close>Understood</button></footer>

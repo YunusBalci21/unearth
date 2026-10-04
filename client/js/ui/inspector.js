@@ -8,7 +8,7 @@ import { $, h, clear, icon, fmtInt, dialogs } from './dom.js';
 import { RARITIES, MATERIALS, formatAge, formatYear, estimateValue, materialLabel } from '../data/catalog.js';
 import { CONDITIONS, LAYER_NAMES, cellLabel, displayName } from '../game/site.js';
 import { buildArtifact, disposeObject } from '../game/artifactModels.js';
-import { catalogNumber } from './catalogue.js';
+import { catalogNumber, fieldNumber } from './catalogue.js';
 import { findDepth } from './reveal.js';
 
 let stage = null;
@@ -87,8 +87,9 @@ function fact(k, v) {
  */
 export async function openInspector(entry, { find = null, revealed = false, condition = null, isNew = false, onClose } = {}) {
     const cond = find ? find.condition : condition;
-    const name = find && !revealed ? displayName(find) : entry.name;
-    $('#insp-catno').textContent = catalogNumber(entry);
+    const onSite = find && !revealed;
+    const name = onSite ? displayName(find) : entry.name;
+    $('#insp-catno').textContent = onSite ? fieldNumber(find) : catalogNumber(entry);
     const r = $('#insp-rarity');
     r.className = `rarity rarity-${entry.rarity}`;
     r.textContent = RARITIES[entry.rarity].label + (isNew ? ' · New to your archive' : '');

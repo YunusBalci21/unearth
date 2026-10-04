@@ -7,7 +7,7 @@
 import { $, h, clear, icon, fmtInt } from './dom.js';
 import { RARITIES, formatAge, materialLabel } from '../data/catalog.js';
 import { CONDITIONS, LAYER_NAMES, cellLabel, displayName, isObscured, findValue } from '../game/site.js';
-import { catalogNumber } from './catalogue.js';
+import { fieldNumber } from './catalogue.js';
 import { audio } from '../audio.js';
 import { settings } from '../settings.js';
 
@@ -53,13 +53,14 @@ export function showFindRecord(find, opts = {}) {
     };
     record.append(...[
         h('div.fr-top',
-            h('span', catalogNumber(entry)),
+            h('span', fieldNumber(find)),
             opts.isNew ? h('span.tag.new', 'New') : opts.improved ? h('span.tag', 'Improved') : h('span.tag', 'Duplicate')),
         h('div.fr-rarity', h('span', { class: `rarity rarity-${entry.rarity}` }, RARITIES[entry.rarity].label)),
         h('h2.fr-name#fr-name', { class: obscured ? 'obscured' : '' }, displayName(find)),
+        h('p.fr-sub', obscured ? 'Too damaged to describe further' : 'Field description · named once the site is identified'),
         h('dl.fr-fields', ...rows.flatMap(([k, v, cls]) => row(k, v, cls))),
         opts.damage ? h('p.fr-note.fr-row', { style: { '--i': i++ } }, obscured
-            ? 'The shovel shattered it — too damaged to identify by name.'
+            ? 'The shovel shattered it — too damaged to describe further.'
             : 'Chipped by the shovel on the way out.') : null,
         h('div.fr-foot.fr-row', { style: { '--i': i++ } },
             h('button.btn.btn-sm', { type: 'button', onclick: e => { e.stopPropagation(); finish('inspect'); } }, icon('eye'), 'Inspect'),

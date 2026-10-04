@@ -1195,6 +1195,7 @@ body.has-dialog #hud .coach { visibility: hidden; }
 .fr-rarity { margin-top: 14px; }
 .fr-name { margin: 8px 0 0; font: 700 32px/1.08 var(--f-display); letter-spacing: 0.02em; color: var(--ink); }
 .fr-name.obscured { font: italic 400 26px/1.15 var(--f-body); }
+.fr-sub { margin: 4px 0 0; font: italic 400 14px/1.3 var(--f-body); color: var(--ink-3); }
 .fr-fields { display: grid; grid-template-columns: auto 1fr; margin: 16px 0 0; border-top: 1px solid var(--ink-rule-strong); }
 .fr-fields dt, .fr-fields dd { margin: 0; padding: 7px 0; border-bottom: 1px solid var(--ink-rule); }
 .fr-fields dt { padding-right: 18px; font: 600 12px/1.6 var(--f-ui); letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3); }
@@ -1429,7 +1430,7 @@ dialog.bare::backdrop { background: linear-gradient(90deg, rgba(4, 3, 2, 0.92), 
 .arch-region { margin: 14px 0 4px; font: 700 12px var(--f-ui); letter-spacing: 0.24em; text-transform: uppercase; color: var(--ink-3); }
 .arch-region:first-child { margin-top: 2px; }
 .arch-country {
-    display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 2px 12px;
+    display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 5px 12px;
     width: 100%; padding: 7px 10px 6px; margin: 0 0 1px;
     background: none; border: 0; border-left: 3px solid transparent;
     text-align: left; color: var(--ink);
@@ -1437,8 +1438,8 @@ dialog.bare::backdrop { background: linear-gradient(90deg, rgba(4, 3, 2, 0.92), 
 }
 .arch-country .n { font: 400 18px/1.15 var(--f-body); }
 .arch-country .c { font: 500 12px var(--f-mono); color: var(--ink-3); }
-.arch-country .pips { display: flex; gap: 3px; }
-.arch-country .pips i { width: 6px; height: 6px; background: transparent; box-shadow: inset 0 0 0 1px var(--ink-rule-strong); }
+.arch-country .pips { grid-column: 1 / -1; grid-row: 2; display: flex; gap: 2px; }
+.arch-country .pips i { flex: 1 1 0; max-width: 10px; height: 5px; background: transparent; box-shadow: inset 0 0 0 1px var(--ink-rule-strong); }
 .arch-country .pips i.on { background: var(--ink-2); }
 .arch-country .pips i.on.legendary { background: #b07b14; }
 .arch-country .newdot { width: 7px; height: 7px; background: #b07b14; transform: rotate(45deg); display: inline-block; margin-left: 6px; vertical-align: middle; }

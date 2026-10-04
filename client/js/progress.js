@@ -10,11 +10,11 @@ const KEY = 'unearth_archive_v1';
 export const RANKS = [
     { min: 0, name: 'Volunteer', seal: 'I' },
     { min: 5, name: 'Field Assistant', seal: 'II' },
-    { min: 15, name: 'Excavator', seal: 'III' },
-    { min: 35, name: 'Site Supervisor', seal: 'IV' },
-    { min: 70, name: 'Field Director', seal: 'V' },
-    { min: 120, name: 'Chief Curator', seal: 'VI' },
-    { min: 200, name: 'Keeper of Antiquities', seal: 'VII' },
+    { min: 20, name: 'Excavator', seal: 'III' },
+    { min: 50, name: 'Site Supervisor', seal: 'IV' },
+    { min: 120, name: 'Field Director', seal: 'V' },
+    { min: 250, name: 'Chief Curator', seal: 'VI' },
+    { min: 450, name: 'Keeper of Antiquities', seal: 'VII' },
     { min: ALL_ARTIFACTS.length, name: 'Legend of the Field', seal: 'VIII' },
 ];
 

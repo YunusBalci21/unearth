@@ -383,6 +383,12 @@ const BUILD = {
             for (let i = 0; i < 5; i++) k.box(0.03, 0.16, 0.03, 'main', [-0.12 + i * 0.06, 0.82, 0]);
             return;
         }
+        if (v === 'money') {
+            // thin T-shaped blade, too fragile to cut
+            const pts = [[-0.22, 0.5], [0.22, 0.5], [0.22, 0.42], [0.08, 0.34], [0.36, -0.5], [-0.36, -0.5], [-0.08, 0.34], [-0.22, 0.42]];
+            k.extrude(shapeFrom(pts), 0.012, 'main', [0, 0, 0], [0, 0, 0], 0.004);
+            return;
+        }
         if (v === 'razor') {
             const blade = new THREE.Shape(); blade.absarc(0, 0, 0.32, 0.2, Math.PI - 0.2); blade.closePath();
             k.extrude(blade, 0.015, 'main');
@@ -604,6 +610,20 @@ const BUILD = {
             for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2; const r = i % 2 ? 0.3 : 0.48; pts.push([Math.cos(a) * r, Math.sin(a) * r]); }
             const geo = new THREE.ExtrudeGeometry(shapeFrom(pts), { depth: 0.05, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.01 });
             geo.translate(0, 0, -0.025);
+            planarUV(geo);
+            k.mesh(geo, ['patterned', 'main']);
+            return;
+        }
+        if (v === 'tanga') {
+            const t = new THREE.Shape();
+            t.moveTo(-0.48, 0.3); t.quadraticCurveTo(0, 0.24, 0.48, 0.3);
+            t.quadraticCurveTo(0.2, -0.05, 0.06, -0.42); t.lineTo(-0.06, -0.42);
+            t.quadraticCurveTo(-0.2, -0.05, -0.48, 0.3);
+            const geo = new THREE.ExtrudeGeometry(t, { depth: 0.03, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.01, bevelSegments: 1, curveSegments: 10 });
+            geo.translate(0, 0, -0.015);
+            const pos = geo.attributes.position;
+            for (let i = 0; i < pos.count; i++) { const x = pos.getX(i); pos.setZ(i, pos.getZ(i) - x * x * 0.35); }
+            geo.computeVertexNormals();
             planarUV(geo);
             k.mesh(geo, ['patterned', 'main']);
             return;
@@ -939,6 +959,15 @@ const BUILD = {
             for (let i = 0; i < 12; i++) k.cyl(0.004, 0.004, 1.1, 'dark', [0, 0.06, -0.12 + i * 0.022], [0, 0, Math.PI / 2], 4);
             return;
         }
+        if (v === 'panpipe') {
+            for (let i = 0; i < 7; i++) {
+                const len = 0.9 - i * 0.09, x = -0.33 + i * 0.11;
+                k.cyl(0.055, 0.055, len, k.m.pattern ? 'patterned' : 'main', [x, 0.45 - len / 2, 0], [0, 0, 0], 12);
+                k.cyl(0.03, 0.03, 0.01, 'dark', [x, 0.455, 0], [0, 0, 0], 8);
+            }
+            k.box(0.82, 0.08, 0.14, 'main', [0, 0.28, 0]);
+            return;
+        }
         if (v === 'castanets') {
             for (const s of [-1, 1]) k.sph(0.24, 'main', [s * 0.14, 0, 0], [1, 1.15, 0.35]);
             k.torus(0.06, 0.015, 'dark', [0, 0.3, 0]);
@@ -1230,6 +1259,149 @@ const BUILD = {
         s.quadraticCurveTo(0, 0.28, -0.42, -0.2);
         s.closePath();
         k.extrude(s, 0.03, 'main', [0, 0, 0], [0, 0, 0], 0.01);
+    },
+
+    lamp(k, e) {
+        const face = k.m.pattern ? 'patterned' : 'main';
+        if (e.variant === 'diya') {
+            // open saucer pinched into a spout for the wick
+            const bowl = k.lathe([[0, 0], [0.2, 0], [0.3, 0.06], [0.36, 0.16], [0.34, 0.17], [0.27, 0.08], [0, 0.05]], face, 28);
+            bowl.scale.set(1, 1, 0.82);
+            k.cone(0.07, 0.18, 'main', [0.38, 0.12, 0], [0, 0, -Math.PI / 2 - 0.25], 10);
+            return;
+        }
+        // closed mould-made lamp: round body, sunken discus, nozzle and ring handle
+        k.lathe([[0, 0], [0.22, 0], [0.3, 0.06], [0.31, 0.12], [0.26, 0.18], [0.12, 0.2], [0, 0.17]], face, 30);
+        k.torus(0.12, 0.018, 'main', [0, 0.19, 0], [Math.PI / 2, 0, 0]);
+        k.sph(0.035, 'dark', [0, 0.18, 0], [1, 0.3, 1]);
+        k.cyl(0.07, 0.09, 0.26, 'main', [0.36, 0.08, 0], [0, 0, Math.PI / 2], 14);
+        k.cyl(0.035, 0.035, 0.02, 'dark', [0.44, 0.155, 0], [0, 0, 0], 10);
+        k.torus(0.06, 0.022, 'main', [-0.33, 0.12, 0]);
+    },
+
+    sherd(k, e) {
+        // an irregular, curved piece of a vessel wall
+        let s = hashId(e.id) || 1;
+        const r = () => ((s = Math.imul(s ^ (s >>> 15), 2246822507) >>> 0) / 4294967296);
+        const n = 14;
+        const pts = [];
+        for (let i = 0; i < n; i++) {
+            const a = (i / n) * Math.PI * 2 + (r() - 0.5) * 0.3;
+            const rad = 0.28 + r() * 0.18;
+            pts.push([Math.cos(a) * rad * 1.15, Math.sin(a) * rad]);
+        }
+        const geo = new THREE.ExtrudeGeometry(shapeFrom(pts), { depth: 0.05, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 1, curveSegments: 4 });
+        geo.translate(0, 0, -0.025);
+        const pos = geo.attributes.position;
+        for (let i = 0; i < pos.count; i++) { const x = pos.getX(i); pos.setZ(i, pos.getZ(i) - x * x * 0.6); }
+        geo.computeVertexNormals();
+        planarUV(geo);
+        k.mesh(geo, [k.m.pattern ? 'patterned' : 'main', 'main']);
+    },
+
+    whorl(k, e) {
+        const face = k.m.pattern ? 'patterned' : 'main';
+        if (e.variant === 'loomweight') {
+            const geo = new THREE.CylinderGeometry(0.14, 0.26, 0.6, 4, 1);
+            geo.rotateY(Math.PI / 4);
+            const m = k.mesh(geo, face);
+            m.material.flatShading = true;
+            k.cyl(0.04, 0.04, 0.24, 'dark', [0, 0.18, 0], [Math.PI / 2, 0, 0], 12);
+            return;
+        }
+        // biconical whorl with a spindle hole
+        k.lathe([[0, -0.12], [0.16, -0.11], [0.3, -0.01], [0.3, 0.01], [0.16, 0.11], [0, 0.12]], face, 28, [0, 0, 0], [0.5, 0, 0]);
+        k.cyl(0.05, 0.05, 0.25, 'dark', [0, 0, 0], [0.5, 0, 0], 14);
+    },
+
+    key(k, e) {
+        if (e.variant === 'spoon') {
+            k.sph(0.16, 'main', [0, -0.3, 0], [1, 1.4, 0.35]);
+            k.box(0.05, 0.62, 0.025, 'main', [0, 0.14, 0.02]);
+            k.sph(0.045, 'main', [0, 0.46, 0.02]);
+            return;
+        }
+        k.torus(0.13, 0.035, 'main', [0, 0.36, 0]);
+        k.cyl(0.035, 0.035, 0.62, 'main', [0, -0.02, 0], [0, 0, 0], 12);
+        k.box(0.16, 0.12, 0.03, 'main', [0.09, -0.26, 0]);
+        k.box(0.04, 0.05, 0.035, 'dark', [0.12, -0.27, 0]);
+    },
+
+    buckle(k) {
+        k.torus(0.26, 0.04, 'main', [0, 0.1, 0], [0, 0, 0], Math.PI * 2, [1.2, 1, 1]);
+        k.cyl(0.02, 0.016, 0.5, 'main', [0, 0.1, 0.04], [0, 0, 0], 8);
+        k.box(0.5, 0.34, 0.03, 'main', [0, -0.34, -0.01]);
+        for (const s of [-1, 1]) k.sph(0.03, 'main', [s * 0.17, -0.4, 0.01]);
+    },
+
+    pin(k, e) {
+        const v = e.variant;
+        if (v === 'needle') {
+            k.cyl(0.012, 0.004, 1.0, 'main', [0, 0, 0], [0, 0, 0], 8);
+            k.torus(0.022, 0.008, 'main', [0, 0.5, 0]);
+            return;
+        }
+        k.cyl(0.018, 0.006, 1.1, 'main', [0, -0.05, 0], [0, 0, 0], 8);
+        if (v === 'tupu') {
+            const fan = new THREE.Shape();
+            fan.moveTo(0, 0); fan.absarc(0, 0, 0.26, 0, Math.PI, false); fan.closePath();
+            k.extrude(fan, 0.02, 'main', [0, 0.48, 0], [0, 0, 0], 0.004);
+            k.cyl(0.03, 0.03, 0.03, 'dark', [0, 0.58, 0], [Math.PI / 2, 0, 0], 10);
+            return;
+        }
+        k.sph(0.07, e.accent ? 'accent' : 'main', [0, 0.54, 0]);
+        k.torus(0.03, 0.012, 'main', [0, 0.44, 0], [Math.PI / 2, 0, 0]);
+    },
+
+    mirror(k, e) {
+        const v = e.variant;
+        k.cyl(0.4, 0.4, 0.04, 'main', [0, 0, 0], [Math.PI / 2, 0, 0], 40);
+        k.torus(0.4, 0.03, 'main');
+        if (v === 'knob') {
+            // decorated back with a central pierced knob for a cord
+            k.sph(0.08, 'main', [0, 0, -0.04], [1, 1, 0.6]);
+            for (let i = 0; i < 3; i++) k.torus(0.14 + i * 0.08, 0.012, 'main', [0, 0, -0.025]);
+            return;
+        }
+        if (v === 'plain') return;
+        k.cyl(0.04, 0.05, 0.42, 'main', [0, -0.6, 0], [0, 0, 0], 12);
+        k.sph(0.06, 'main', [0, -0.83, 0]);
+    },
+
+    bangle(k) {
+        k.torus(0.36, 0.055, k.m.pattern ? 'patterned' : 'main', [0, 0, 0], [Math.PI / 2.4, 0, 0]);
+    },
+
+    ball(k, e) {
+        const v = e.variant;
+        if (v === 'sling') {
+            const pts = [];
+            for (let i = 0; i <= 12; i++) { const t = i / 12; pts.push([Math.sin(t * Math.PI) * 0.2 + 0.001, (t - 0.5) * 0.7]); }
+            k.lathe(pts, 'main', 16, [0, 0, 0], [0, 0, Math.PI / 2]);
+            return;
+        }
+        if (v === 'lump') {
+            const geo = new THREE.IcosahedronGeometry(0.36, 1);
+            geo.scale(1, 0.7, 0.85);
+            jitterGeometry(geo, 0.12, hashId(e.id));
+            k.mesh(geo, 'main').material.flatShading = true;
+            return;
+        }
+        if (v === 'crystal') {
+            k.cyl(0.18, 0.2, 0.6, 'main', [0, 0, 0], [0, 0, 0], 6).material.flatShading = true;
+            k.cone(0.18, 0.18, 'main', [0, 0.39, 0], [0, 0, 0], 6);
+            k.cyl(0.09, 0.1, 0.32, 'main', [0.2, -0.1, 0.05], [0, 0, -0.5], 6);
+            return;
+        }
+        if (v === 'shell') {
+            // conch: spire on top, body whorl and a dark aperture
+            k.lathe([[0, -0.45], [0.12, -0.3], [0.3, 0.05], [0.32, 0.18], [0.2, 0.28], [0.08, 0.42], [0, 0.48]], 'main', 24);
+            for (let i = 0; i < 3; i++) k.torus(0.26 - i * 0.07, 0.025, 'main', [0, 0.16 + i * 0.1, 0], [Math.PI / 2, 0, 0]);
+            k.sph(0.16, 'dark', [0.16, -0.05, 0.14], [0.6, 1.6, 0.4]);
+            return;
+        }
+        k.sph(0.3, 'main', [0, 0, 0], [1, 1, 1], 20);
+        k.cyl(0.05, 0.06, 0.06, 'main', [0, 0.3, 0], [0, 0, 0], 10);
     },
 };
 

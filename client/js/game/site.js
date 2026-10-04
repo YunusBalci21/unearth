@@ -7,7 +7,7 @@
 // recovers it. Deeper layers are older and hold the rarer finds.
 // ============================================
 
-import { RARITIES, SHAPE_CATEGORY, estimateValue, materialLabel } from '../data/catalog.js';
+import { RARITIES, SHAPE_CATEGORY, estimateValue, fieldLabel, materialAdj } from '../data/catalog.js';
 
 export const GRID = 8;
 export const LAYERS = 3;
@@ -219,10 +219,16 @@ export function isObscured(find) {
     return find.condition >= OBSCURED_FROM;
 }
 
-export function displayName(find) {
-    if (!isObscured(find)) return find.entry.name;
+/**
+ * Name shown for a find. Until the site is identified it is only described
+ * the way an excavator would tag it ("Bronze oil lamp"); badly damaged finds
+ * get no more than a material and a broad category.
+ */
+export function displayName(find, { revealed = false } = {}) {
+    if (revealed) return find.entry.name;
+    if (!isObscured(find)) return fieldLabel(find.entry);
     const cond = CONDITIONS[find.condition].label;
-    return `${cond} ${materialLabel(find.entry).toLowerCase()} ${SHAPE_CATEGORY[find.entry.shape] || 'object'}`;
+    return `${cond} ${materialAdj(find.entry).toLowerCase()} ${SHAPE_CATEGORY[find.entry.shape] || 'object'}`;
 }
 
 export function findValue(find) {

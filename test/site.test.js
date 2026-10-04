@@ -158,7 +158,18 @@ test('badly damaged finds hide their name', () => {
     assert.notEqual(displayName(find), find.entry.name);
     assert.match(displayName(find), /^Fragmentary /);
     find.condition = 0;
-    assert.equal(displayName(find), find.entry.name);
+    assert.equal(displayName(find, { revealed: true }), find.entry.name);
+});
+
+test('finds are only described until the site is identified', () => {
+    const site = make(3);
+    for (const find of site.finds) {
+        find.condition = 0;
+        const tag = displayName(find);
+        assert.ok(tag.length > 2, `${find.entry.id} has a field description`);
+        assert.ok(!tag.toLowerCase().includes(find.entry.country.toLowerCase()), `${find.entry.id} tag hides the country`);
+        assert.equal(displayName(find, { revealed: true }), find.entry.name);
+    }
 });
 
 test('unit labels', () => {

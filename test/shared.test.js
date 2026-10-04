@@ -2,13 +2,26 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { resolveCountry, isCorrectGuess, searchCountries, SITES, ALL_COUNTRIES, sitesInRegion } from '../client/js/shared/countries.js';
 import { basePoints, pointsForCorrect, maxPointsPerRound, clampToOption, ROUND_OPTIONS } from '../client/js/shared/rules.js';
-import { CATALOG, ALL_ARTIFACTS, MATERIALS, RARITIES, SHAPE_CATEGORY, formatAge, formatYear } from '../client/js/data/catalog.js';
+import { CATALOG, ALL_ARTIFACTS, MATERIALS, RARITIES, SHAPE_CATEGORY, fieldLabel, formatAge, formatYear } from '../client/js/data/catalog.js';
 
 test('every playable site is guessable and has a full catalog', () => {
     for (const site of SITES) {
         assert.ok(ALL_COUNTRIES.includes(site.name), site.name);
-        assert.equal(CATALOG[site.name]?.length, 8, site.name);
-        assert.equal(CATALOG[site.name].filter(a => a.rarity === 'legendary').length, 1, site.name);
+        const list = CATALOG[site.name] || [];
+        assert.equal(list.length, 24, site.name);
+        const count = r => list.filter(a => a.rarity === r).length;
+        assert.deepEqual([count('common'), count('uncommon'), count('rare'), count('legendary')], [10, 7, 5, 2], site.name);
+        for (const a of list) assert.equal(a.country, site.name, a.id);
+    }
+    assert.equal(ALL_ARTIFACTS.length, SITES.length * 24);
+});
+
+test('field descriptions never give the country away', () => {
+    const giveaways = SITES.map(s => s.name.toLowerCase());
+    for (const a of ALL_ARTIFACTS) {
+        const label = fieldLabel(a);
+        assert.ok(label.length > 2, `${a.id} field label`);
+        for (const g of giveaways) assert.ok(!label.toLowerCase().includes(g), `${a.id} field label names ${g}`);
     }
 });
 

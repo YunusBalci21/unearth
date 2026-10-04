@@ -1,19 +1,27 @@
 // ============================================
-// ARTIFACT CATALOG — 8 artifacts per excavation country.
+// ARTIFACT CATALOG — 24 artifacts per excavation country: the 8 signature
+// pieces below plus 16 everyday and specialist finds in data/finds/*.js.
 //
 // During a dig the player only sees what a field archaeologist could tell on
-// the spot (name, material, approximate age, condition). Culture, period and
-// the historical note are "identified" after the round ends and in the Archive.
+// the spot: a field description ("Bronze oil lamp"), material, approximate
+// age and condition. The name, culture, period and historical note are
+// "identified" after the guess and in the Archive.
 //
 // year: negative = BC.  rarity: common | uncommon | rare | legendary
 // shape: key of a procedural model builder (see game/artifactModels.js)
 // ============================================
 
+import { A } from './define.js';
+import africaMe from './finds/africa-me.js';
+import asia from './finds/asia.js';
+import europe from './finds/europe.js';
+import americas from './finds/americas.js';
+
 export const RARITIES = {
     common: { id: 'common', label: 'Common', rank: 0, weight: 50, value: 120, strokes: 2 },
-    uncommon: { id: 'uncommon', label: 'Uncommon', rank: 1, weight: 30, value: 300, strokes: 3 },
-    rare: { id: 'rare', label: 'Rare', rank: 2, weight: 15, value: 800, strokes: 3 },
-    legendary: { id: 'legendary', label: 'Legendary', rank: 3, weight: 6, value: 2500, strokes: 4 },
+    uncommon: { id: 'uncommon', label: 'Uncommon', rank: 1, weight: 32, value: 300, strokes: 3 },
+    rare: { id: 'rare', label: 'Rare', rank: 2, weight: 22, value: 800, strokes: 3 },
+    legendary: { id: 'legendary', label: 'Legendary', rank: 3, weight: 12, value: 2500, strokes: 4 },
 };
 
 export const MATERIALS = {
@@ -44,18 +52,25 @@ export const MATERIALS = {
     granite: { label: 'Granite', color: 0x7d746c, metalness: 0, roughness: 0.8 },
     flint: { label: 'Flint', color: 0x6b6158, metalness: 0, roughness: 0.45 },
     obsidian: { label: 'Obsidian', color: 0x1e1b22, metalness: 0.1, roughness: 0.12 },
-    wood: { label: 'Wood', color: 0x7a5232, metalness: 0, roughness: 0.8 },
+    wood: { label: 'Wood', adj: 'Wooden', color: 0x7a5232, metalness: 0, roughness: 0.8 },
     lacquer: { label: 'Lacquered wood', color: 0x5e1512, metalness: 0, roughness: 0.25 },
     ivory: { label: 'Ivory', color: 0xe8dcc0, metalness: 0, roughness: 0.45 },
     bone: { label: 'Bone', color: 0xd9ccb0, metalness: 0, roughness: 0.7 },
     shell: { label: 'Shell', color: 0xead8c4, metalness: 0, roughness: 0.5 },
-    textile: { label: 'Textile', color: 0x9b3b2e, metalness: 0, roughness: 1 },
+    textile: { label: 'Textile', adj: 'Woven', color: 0x9b3b2e, metalness: 0, roughness: 1 },
     parchment: { label: 'Parchment', color: 0xe3d2a8, metalness: 0, roughness: 0.9 },
     bark: { label: 'Birch bark', color: 0xcdb48c, metalness: 0, roughness: 0.95 },
+    treebark: { label: 'Bark', color: 0x7a5236, metalness: 0, roughness: 0.95 },
+    papyrus: { label: 'Papyrus', color: 0xd8c290, metalness: 0, roughness: 0.9 },
     leather: { label: 'Leather', color: 0x8a5a33, metalness: 0, roughness: 0.75 },
     glass: { label: 'Glass', color: 0x8fb8c8, metalness: 0.1, roughness: 0.08 },
     enamel: { label: 'Enamelled copper', color: 0x2c58a6, metalness: 0.3, roughness: 0.3 },
-    feather: { label: 'Feathers', color: 0xc8402e, metalness: 0, roughness: 0.9 },
+    feather: { label: 'Feathers', adj: 'Feather', color: 0xc8402e, metalness: 0, roughness: 0.9 },
+    amber: { label: 'Amber', color: 0xc9761e, metalness: 0, roughness: 0.25 },
+    carnelian: { label: 'Carnelian', color: 0xb2401f, metalness: 0, roughness: 0.3 },
+    jet: { label: 'Jet', color: 0x161414, metalness: 0, roughness: 0.2 },
+    emerald: { label: 'Emerald', color: 0x1f8a55, metalness: 0.05, roughness: 0.15 },
+    mica: { label: 'Mica', color: 0xcfc6b2, metalness: 0.3, roughness: 0.2 },
 };
 
 // Generic object names used when an artifact is too damaged to identify.
@@ -67,11 +82,91 @@ export const SHAPE_CATEGORY = {
     scroll: 'document', panel: 'decorated panel', textile: 'textile', crown: 'headpiece',
     jewel: 'ornament', pillar: 'architectural fragment', temple: 'model', instrument: 'instrument',
     bell: 'bell', cross: 'symbol', drum: 'drum', boat: 'model boat', seal: 'seal', pipe: 'pipe',
-    tube: 'tube', boomerang: 'curved implement',
+    tube: 'tube', boomerang: 'curved implement', lamp: 'vessel', sherd: 'fragment', whorl: 'disc',
+    key: 'implement', buckle: 'fitting', pin: 'pin', mirror: 'disc', bangle: 'ring', ball: 'object',
 };
 
-const A = (id, name, shape, mat, rarity, year, period, culture, note, extra = {}) =>
-    ({ id, name, shape, mat, rarity, year, period, culture, note, ...extra });
+// What an excavator writes on the finds tag before the object is identified:
+// a plain description of the object type ('_' = any variant). Entries can
+// override it with their own `field` text.
+const FIELD = {
+    vase: { _: 'jar', amphora: 'two-handled jar', canopic: 'lidded jar', meiping: 'vase', cylinder: 'cylindrical vessel', urn: 'urn',
+        kantharos: 'two-handled cup', tulip: 'vase', samovar: 'urn', teapot: 'teapot', ewer: 'jug', jebena: 'jug', stirrup: 'spouted vessel', poporo: 'flask' },
+    pottery: { _: 'bowl', plate: 'plate', moonjar: 'jar', beaker: 'beaker', urn: 'urn', globular: 'pot', caryatid: 'footed bowl' },
+    chalice: { _: 'goblet', cup: 'cup', twohandle: 'cup' },
+    horn: { _: 'horn', rhyton: 'drinking vessel' },
+    egg: { _: 'ornamental egg' },
+    coin: { _: 'coin', large: 'disc', bi: 'pierced disc', skydisc: 'disc', sun: 'rayed disc', bracteate: 'pendant disc', gorget: 'pendant disc' },
+    gong: { _: 'gong' },
+    mask: { _: 'mask' },
+    head: { _: 'sculpted head', bust: 'bust', gargoyle: 'grotesque head' },
+    statue: { _: 'figure', seated: 'seated figure', buddha: 'seated figure', chessman: 'gaming piece', angel: 'winged figure',
+        figurehead: 'carved figure', nataraja: 'figure in a ring', haniwa: 'hollow figure', lionman: 'figurine' },
+    totem: { _: 'carved post', doll: 'doll', hand: 'hand', standard: 'openwork standard', serpent: 'serpent figure', dogu: 'figurine',
+        finial: 'finial', urnfigure: 'figure urn', figurine: 'figurine' },
+    animal: { _: 'animal figure', bull: 'bull figure', cat: 'cat figure', horse: 'horse figure', lion: 'lion figure', elephant: 'elephant figure',
+        leopard: 'big-cat figure', turtle: 'turtle figure', sphinx: 'human-headed animal', lamassu: 'human-headed animal', griffin: 'winged beast' },
+    bird: { _: 'bird figure', owl: 'owl figure' },
+    sword: { _: 'blade', short: 'short sword', long: 'sword', viking: 'sword', dagger: 'dagger', keris: 'wavy dagger', club: 'club',
+        sabre: 'curved sword', kilij: 'curved sword', katana: 'curved sword', rapier: 'sword', mandolin: 'curved blade' },
+    axe: { _: 'axe head', tumi: 'crescent knife', razor: 'razor', money: 'thin blade' },
+    point: { _: 'point', blade: 'blade', dagger: 'dagger', bodkin: 'arrowhead', clovis: 'fluted point' },
+    stonetool: { _: 'worked stone', axehead: 'axe head', chopper: 'chopping tool' },
+    helmet: { _: 'helmet' },
+    shield: { _: 'shield', round: 'shield boss' },
+    tablet: { _: 'inscribed slab', small: 'inscribed tablet', stela: 'stela', keyhole: 'carved stone', boulder: 'carved boulder',
+        grindstone: 'grinding stone', bone: 'inscribed bone', seal: 'stamp seal', brick: 'brick' },
+    scroll: { _: 'scroll' },
+    panel: { _: 'decorated panel', star: 'cut-out', puppet: 'cut-out figure', tanga: 'triangular plaque' },
+    textile: { _: 'fragment', cords: 'knotted cords' },
+    crown: { _: 'crown', wreath: 'wreath', comb: 'comb', feathers: 'headdress', bonnet: 'headdress', chada: 'tall headdress' },
+    jewel: { _: 'pendant', scarab: 'beetle amulet', torc: 'neck ring', lunula: 'crescent collar', penannular: 'ring brooch', ring: 'ring',
+        fibula: 'brooch', bead: 'bead', earring: 'earring', necklace: 'necklace', frog: 'frog amulet', oval: 'oval brooch',
+        aigrette: 'jewelled ornament', badge: 'badge', disc: 'disc ornament' },
+    pillar: { _: 'column fragment', menhir: 'standing stone', stela: 'carved stone', linga: 'carved stone', tpillar: 'carved pillar' },
+    temple: { _: 'architectural model' },
+    instrument: { _: 'stringed instrument', lyre: 'lyre', 'bull-lyre': 'lyre', zither: 'zither', castanets: 'clappers', panpipe: 'panpipes' },
+    bell: { _: 'bell' },
+    cross: { _: 'cross', ankh: 'looped cross' },
+    drum: { _: 'drum' },
+    boat: { _: 'model boat', raft: 'model raft' },
+    seal: { _: 'cylinder seal', type: 'printing type', weight: 'weight' },
+    pipe: { _: 'pipe' },
+    tube: { _: 'tube', stick: 'notched stick', yidaki: 'long wooden tube' },
+    boomerang: { _: 'curved throwing stick' },
+    lamp: { _: 'oil lamp', diya: 'open lamp' },
+    sherd: { _: 'sherd' },
+    whorl: { _: 'spindle whorl', loomweight: 'loom weight' },
+    key: { _: 'key', spoon: 'spoon' },
+    buckle: { _: 'buckle' },
+    pin: { _: 'pin', needle: 'needle' },
+    mirror: { _: 'mirror', plain: 'polished disc' },
+    bangle: { _: 'bangle' },
+    ball: { _: 'ball', sling: 'sling bullet', shell: 'shell', lump: 'lump', crystal: 'crystal' },
+};
+
+const TILE_MATS = new Set(['ceramic', 'faience', 'porcelain', 'celadon']);
+const SHEET_MATS = new Set(['parchment', 'papyrus', 'leather', 'bark', 'treebark', 'textile']);
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** Object type as an excavator would describe it, e.g. "oil lamp". */
+export function fieldType(entry) {
+    if (entry.field) return entry.field;
+    if (entry.shape === 'panel' && !entry.variant) {
+        if (TILE_MATS.has(entry.mat)) return 'tile';
+        if (SHEET_MATS.has(entry.mat)) return 'painted sheet';
+    }
+    const f = FIELD[entry.shape] || {};
+    return f[entry.variant] || f._ || SHAPE_CATEGORY[entry.shape] || 'object';
+}
+
+/** Finds-tag description shown until the site is identified, e.g. "Bronze oil lamp". */
+export function fieldLabel(entry) {
+    if (entry.field) return cap(entry.field);
+    const adj = materialAdj(entry);
+    const type = fieldType(entry);
+    return type.toLowerCase().includes(adj.toLowerCase()) ? cap(type) : `${adj} ${type}`;
+}
 
 export const CATALOG = {
     Egypt: [
@@ -891,6 +986,14 @@ export const CATALOG = {
     ],
 };
 
+// Merge the regional find lists into each country's signature pieces.
+for (const extra of [africaMe, asia, europe, americas]) {
+    for (const [country, list] of Object.entries(extra)) {
+        if (!CATALOG[country]) throw new Error(`Unknown catalogue country: ${country}`);
+        CATALOG[country].push(...list);
+    }
+}
+
 // Every entry knows its country, whichever list it is reached through.
 for (const [country, list] of Object.entries(CATALOG)) for (const entry of list) entry.country = country;
 
@@ -933,4 +1036,10 @@ export function estimateValue(entry, conditionFactor = 1) {
 
 export function materialLabel(entry) {
     return MATERIALS[entry.mat]?.label || 'Unknown material';
+}
+
+/** Material as an adjective ("Woven", "Bronze") for short descriptions. */
+export function materialAdj(entry) {
+    const def = MATERIALS[entry.mat];
+    return def ? (def.adj || def.label) : 'Unknown';
 }

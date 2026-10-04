@@ -4,7 +4,7 @@
 
 Play it at **[playunearth.tech](https://www.playunearth.tech/)**.
 
-- **32 countries, 256 artifacts.** Each country has eight catalogued finds across four rarities, with exactly one legendary piece.
+- **32 countries, 768 artifacts.** Each country has 24 catalogued finds across four rarities (10 common, 7 uncommon, 5 rare, 2 legendary), from potsherds and coins to royal treasures. During a dig, finds are only described the way an excavator would tag them ("Bronze oil lamp"); their names, cultures and histories are revealed after the guess.
 - **Excavation.** An 8×8 trench with three soil layers above bedrock. You have four tools: the shovel (fast but rough), the trowel (careful), the brush (frees exposed finds) and the probe (counts what is buried nearby). Surface sherds and soil stains hint at what lies below.
 - **Condition matters.** If you shovel straight into a find you can damage it. Damaged finds score less and may be too broken to identify.
 - **Modes.** Solo expeditions (worldwide or limited to one region), the **Daily Dig** (the same five sites for everyone each day) and **multiplayer** lobbies for up to 10 players, where everyone digs identical sites.
@@ -46,7 +46,8 @@ client/
   js/shared/              Imported by both server and browser
     countries.js          Sites, regions, country names, aliases, guess matching
     rules.js              Version, scoring, lobby options
-  js/data/catalog.js      The 256-artifact catalogue
+  js/data/catalog.js      The 768-artifact catalogue (signature pieces; field descriptions)
+  js/data/finds/*.js      Regional find lists merged into the catalogue
   js/game/site.js         Pure, seeded excavation logic (unit tested)
   js/game/expedition.js   Round flow for solo, daily and multiplayer play
   js/game/scene.js        three.js trench, strata shader, props, camera
