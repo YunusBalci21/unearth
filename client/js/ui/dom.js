@@ -50,17 +50,17 @@ function append(el, children) {
     }
 }
 
-/** URL of an icon in the shared sprite (also used by the admin panel). */
-export const iconHref = name => `/icons.svg#i-${name}`;
+/** Painted UI icon (client/img/ui). Decorative: always alt="" — label the control instead. */
+export const iconSrc = name => `/img/ui/${name}.webp`;
 
-export function svgIcon(name, cls = '') {
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('class', `icon ${cls}`.trim());
-    svg.setAttribute('aria-hidden', 'true');
-    const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
-    use.setAttribute('href', iconHref(name));
-    svg.append(use);
-    return svg;
+export function icon(name, cls = '') {
+    const img = document.createElement('img');
+    img.className = `ico ${cls}`.trim();
+    img.src = iconSrc(name);
+    img.alt = '';
+    img.decoding = 'async';
+    img.draggable = false;
+    return img;
 }
 
 export function clear(el) {
@@ -144,11 +144,11 @@ export function initDialogs() {
 
 // ---------- Toasts & announcements ----------
 
-export function toast(message, { type = 'info', icon, duration = 2800 } = {}) {
+export function toast(message, { type = 'info', icon: iconOpt, duration = 2800 } = {}) {
     const host = document.getElementById('toasts');
     if (!host) return;
-    const iconName = icon || { ok: 'check', bad: 'x', gold: 'sparkle', info: 'info' }[type] || 'info';
-    const el = h(`div.toast.${type}`, { role: 'status' }, svgIcon(iconName), h('span', message));
+    const iconName = iconOpt || { ok: 'check', bad: 'x', gold: 'sparkle', info: 'info' }[type] || 'info';
+    const el = h(`div.toast.${type}`, { role: 'status' }, icon(iconName), h('span', message));
     host.append(el);
     while (host.children.length > 3) host.firstChild.remove();
     setTimeout(() => {
@@ -174,13 +174,15 @@ export function segmented(host, options, value, onChange) {
             type: 'button', role: 'radio', 'aria-checked': String(opt.value === value),
             dataset: { value: String(opt.value) },
         }, opt.label, opt.sub ? h('small', opt.sub) : null);
-        btn.addEventListener('click', () => select(opt.value, true));
+        btn.addEventListener('click', () => { host.classList.add('touched'); select(opt.value, true); });
         return btn;
     });
     host.append(...buttons);
+    host.classList.remove('touched');
     host.addEventListener('keydown', e => {
         if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
         e.preventDefault();
+        host.classList.add('touched');
         const i = options.findIndex(o => o.value === current);
         const step = e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 1;
         const next = options[(i + step + options.length) % options.length];

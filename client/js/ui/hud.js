@@ -1,55 +1,87 @@
 // ============================================
-// HUD — in-game overlay: site card, timer, score, tools, finds, guess bar.
+// HUD — instruments around the trench: site plate, survey-tape timer, score,
+// equipment belt, depth gauge, specimen tags and the identification slip.
 // ============================================
 
-import { $, $$, h, clear, svgIcon, fmtInt, fmtTime, esc } from './dom.js';
+import { $, $$, h, clear, icon, fmtInt, fmtTime, esc } from './dom.js';
 import { searchCountries, resolveCountry } from '../shared/countries.js';
-import { RARITIES, formatAge, materialLabel } from '../data/catalog.js';
-import { CONDITIONS, displayName, isObscured, findValue } from '../game/site.js';
+import { RARITIES } from '../data/catalog.js';
+import { displayName } from '../game/site.js';
 
-const SOIL_LABEL = { sand: 'Sandy soil', dirt: 'Loam & clay', soil: 'Dark humus' };
+export const SOIL_LABEL = { sand: 'Sandy soil', dirt: 'Loam & clay', soil: 'Dark humus' };
+
+/** What each tool is for, shown on the readout above the belt when equipped. */
+const TOOL_INFO = {
+    shovel: { name: 'Shovel', desc: 'Clears a 3×3 area in one swing.', stats: () => [['Area', '3×3'], ['Pace', 'Fast', 'ok'], ['Finds', 'May chip', 'hi']] },
+    trowel: { name: 'Trowel', desc: 'Careful work, one unit at a time.', stats: () => [['Area', '1×1'], ['Pace', 'Slow'], ['Finds', 'Safe', 'ok']] },
+    brush: { name: 'Brush', desc: 'Cleans an exposed find until it lifts free.', stats: () => [['Area', 'One find'], ['Strokes', '2–4'], ['Finds', 'Safe', 'ok']] },
+    probe: { name: 'Survey probe', desc: 'Counts the finds hidden in the 3×3 units around it.', stats: n => [['Area', '3×3'], ['Charges', `${n} left`, n ? '' : 'hi'], ['Finds', 'Safe', 'ok']] },
+};
 
 let handlers = {};
-let discoveryTimer = null;
+let readoutTimer = null;
+let probesLeft = 3;
+let currentTool = 'shovel';
 
 export const hud = {
-    init(h) {
-        handlers = h;
-        $$('#toolrail .tool').forEach(btn => btn.addEventListener('click', () => handlers.onTool?.(btn.dataset.tool)));
+    init(hs) {
+        handlers = hs;
+        $$('#toolrail .kit-tool').forEach(btn => btn.addEventListener('click', () => handlers.onTool?.(btn.dataset.tool)));
+        const belt = $('#toolrail');
+        belt.addEventListener('pointerenter', () => { clearTimeout(readoutTimer); $('#kit-readout').classList.remove('faded'); });
+        belt.addEventListener('pointerleave', () => fadeReadoutSoon(1200));
+        belt.addEventListener('keydown', e => {
+            const order = ['shovel', 'trowel', 'brush', 'probe'];
+            const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+            if (!step) return;
+            e.preventDefault();
+            const next = order[(order.indexOf(currentTool) + step + order.length) % order.length];
+            handlers.onTool?.(next);
+            $(`#toolrail .kit-tool[data-tool="${next}"]`)?.focus();
+        });
         $('#hud-pause').addEventListener('click', () => handlers.onPause?.());
         $('#coach-close').addEventListener('click', () => handlers.onCoachClose?.());
         initCombobox();
-        const disc = $('#discovery');
-        disc.addEventListener('mouseenter', () => clearTimeout(discoveryTimer));
-        disc.addEventListener('mouseleave', () => { discoveryTimer = setTimeout(() => hud.hideDiscovery(), 2500); });
     },
 
     show(on) {
         $('#hud').classList.toggle('active', on);
         $('#hud').setAttribute('aria-hidden', String(!on));
-        if (!on) { hud.hideTip(); hud.hideDiscovery(); hud.hideCoach(); }
+        if (!on) { hud.gauge(null); hud.hideCoach(); setCursorTool(null); }
     },
 
     setSite({ index, total, soil, modeLabel }) {
-        $('#hud-site-num').textContent = `Site ${index} of ${total}`;
+        $('#hud-site-num').textContent = `Site ${String(index).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
         $('#hud-site-title').textContent = 'Unidentified site';
         $('#hud-soil').textContent = SOIL_LABEL[soil] || 'Mixed soil';
         $('#hud-mode').textContent = modeLabel || '';
+        hud.setDug(0);
+    },
+
+    setDug(fraction) {
+        $('#hud-dug').textContent = `${Math.round(fraction * 100)}% excavated`;
+    },
+
+    /** Paint the gauge's stratigraphic column in this site's soil colours. */
+    setSoil(colors = []) {
+        const col = $('#gauge-col');
+        colors.slice(0, 3).forEach((c, i) => col.style.setProperty(`--g${i}`, `#${c.toString(16).padStart(6, '0')}`));
     },
 
     setTimer(remaining, total) {
         const el = $('#hud-timer');
+        const tape = el.querySelector('.ht-tape');
         if (!total) {
             el.classList.add('infinite');
             el.classList.remove('warn', 'critical');
             $('#hud-time').textContent = '∞';
-            el.querySelector('.scalebar').style.setProperty('--value', 1);
+            tape.style.setProperty('--value', 1);
             el.setAttribute('aria-label', 'No time limit');
             return;
         }
         el.classList.remove('infinite');
         $('#hud-time').textContent = fmtTime(remaining);
-        el.querySelector('.scalebar').style.setProperty('--value', Math.max(0, remaining / total));
+        tape.style.setProperty('--value', Math.max(0, remaining / total));
         el.classList.toggle('warn', remaining <= 30 && remaining > 10);
         el.classList.toggle('critical', remaining <= 10);
         el.setAttribute('aria-label', `${Math.ceil(remaining)} seconds remaining`);
@@ -61,126 +93,100 @@ export const hud = {
         if (bump) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
     },
 
-    setTool(tool) {
-        $$('#toolrail .tool').forEach(btn => btn.setAttribute('aria-checked', String(btn.dataset.tool === tool)));
+    /** Equip a tool on the belt; `equip` plays the small equip animation and shows its readout. */
+    setTool(tool, { equip = false } = {}) {
+        currentTool = tool;
+        $$('#toolrail .kit-tool').forEach(btn => {
+            const on = btn.dataset.tool === tool;
+            btn.setAttribute('aria-checked', String(on));
+            btn.tabIndex = on ? 0 : -1;
+            if (on && equip) { btn.classList.remove('equip'); void btn.offsetWidth; btn.classList.add('equip'); }
+        });
+        setCursorTool(tool);
+        renderReadout(tool);
+        if (equip) fadeReadoutSoon(2800);
+        else $('#kit-readout').classList.add('faded');
     },
 
     flashTool(tool) {
-        const btn = $(`#toolrail .tool[data-tool="${tool}"]`);
+        const btn = $(`#toolrail .kit-tool[data-tool="${tool}"]`);
         if (!btn) return;
         btn.classList.remove('flash'); void btn.offsetWidth; btn.classList.add('flash');
     },
 
     setProbes(n) {
-        $('#hud-probes').textContent = String(n);
-        $('#toolrail .tool[data-tool="probe"]').classList.toggle('empty', n <= 0);
+        probesLeft = n;
+        const host = $('#hud-probes');
+        [...host.children].forEach((pip, i) => pip.classList.toggle('used', i >= n));
+        host.setAttribute('aria-label', `${n} probe${n === 1 ? '' : 's'} left`);
+        $('#toolrail .kit-tool[data-tool="probe"]').classList.toggle('empty', n <= 0);
+        if (currentTool === 'probe') renderReadout('probe');
     },
 
-    /** Finds tray. thumbs: Map(entryId -> dataURL) */
+    /** The finds column: one specimen tag per buried find. thumbs: Map(entryId → dataURL) */
     renderFinds(site, thumbs, popIndex = -1) {
-        const host = $('#hud-slots');
-        clear(host);
+        const host = clear($('#hud-slots'));
         const order = [...site.recoveredOrder, ...site.finds.filter(f => f.state === 'exposed'), ...site.finds.filter(f => f.state === 'buried')];
-        order.forEach(find => {
+        for (const find of order) {
             let el;
             if (find.state === 'recovered') {
                 const img = thumbs.get(find.entry.id);
-                el = h('button.slot.recovered', {
+                el = h('button.ftag.recovered', {
                     type: 'button', dataset: { rarity: find.entry.rarity },
-                    'aria-label': `Inspect ${displayName(find)}`,
+                    'aria-label': `${displayName(find)} — inspect`,
                     onclick: () => handlers.onInspect?.(find),
                 },
-                h('span.thumb', img ? h('img', { src: img, alt: '' }) : svgIcon('pot')),
-                h('span.txt', h('strong', displayName(find)), h('small', { class: `rarity rarity-${find.entry.rarity}` }, RARITIES[find.entry.rarity].label)));
+                h('span.ft-card'),
+                img ? h('img', { src: img, alt: '' }) : icon('pot'),
+                h('span.ft-label', h('strong', displayName(find)), h('span', { class: `rarity rarity-${find.entry.rarity}` }, RARITIES[find.entry.rarity].label)));
                 if (find.index === popIndex) el.classList.add('pop');
             } else if (find.state === 'exposed') {
-                el = h('button.slot.exposed', { type: 'button', 'aria-label': 'Exposed find — go to it', onclick: () => handlers.onFocusFind?.(find) },
-                    h('span.thumb', svgIcon('brush')),
-                    h('span.txt', h('strong', 'Exposed find'), h('small', 'Brush to recover')));
+                el = h('button.ftag.exposed', { type: 'button', 'aria-label': 'Exposed find — go to it', onclick: () => handlers.onFocusFind?.(find) },
+                    h('span.ft-card'), icon('brush'),
+                    h('span.ft-label', h('strong', 'Exposed find'), h('span.rarity', 'Brush it to recover')));
             } else {
-                el = h('div.slot', { 'aria-label': 'Undiscovered' },
-                    h('span.thumb', svgIcon('search')),
-                    h('span.txt', h('strong', { style: { color: 'var(--parchment-mute)', fontWeight: 400 } }, 'Undiscovered')));
+                el = h('div.ftag.buried', { 'aria-label': 'Still buried' }, h('span.ft-card'), h('span.ft-q', '?'));
             }
             host.append(el);
-        });
-        const rec = site.recoveredOrder.length;
-        $('#hud-finds-count').textContent = `${rec} / ${site.finds.length}`;
+        }
+        $('#hud-finds-count').textContent = `${site.recoveredOrder.length}/${site.finds.length}`;
     },
 
     setPotential(base, bonus) {
-        const el = $('#hud-potential');
-        clear(el);
-        el.append(fmtInt(base + bonus));
-        if (bonus > 0) el.append(' ', h('small', `(${base} + ${bonus})`));
-        $('#guess-hint').textContent = `Correct now: ${fmtInt(base + bonus)} pts`;
+        $('#guess-hint').textContent = `If correct now: ${fmtInt(base + bonus)} pts${bonus > 0 ? ` (${base} + ${bonus} time)` : ''}`;
     },
 
-    showDiscovery(find, { thumb, isNew, improved, damage }) {
-        const el = $('#discovery');
-        clear(el);
-        el.dataset.rarity = find.entry.rarity;
-        const obscured = isObscured(find);
-        const art = h('div.art', thumb ? h('img', { src: thumb, alt: '' }) : h('span.skeleton', { style: { width: '120px', height: '120px', borderRadius: '50%' } }));
-        el.append(...[
-            h('div.row',
-                h('span', { class: `rarity rarity-${find.entry.rarity}` }, RARITIES[find.entry.rarity].label),
-                isNew ? h('span.badge.new', 'New') : improved ? h('span.badge.ok', 'Better condition') : null),
-            art,
-            h('div.name', displayName(find)),
-            h('div.stats',
-                stat('Material', materialLabel(find.entry)),
-                stat('Age', formatAge(find.entry.year).replace(' years old', ' yrs')),
-                stat('Condition', CONDITIONS[find.condition].label)),
-            damage ? h('p.damage-note', obscured
-                ? 'The shovel shattered it — too damaged to identify by name.'
-                : 'Chipped by the shovel on the way out.') : null,
-            h('div.row',
-                h('span.kicker', `Est. value ${fmtInt(findValue(find))}`),
-                h('button.btn.btn-sm', { type: 'button', onclick: () => handlers.onInspect?.(find) }, svgIcon('eye'), 'Inspect')),
-        ].filter(Boolean));
-        el.classList.add('show');
-        el.dataset.find = find.entry.id;
-        clearTimeout(discoveryTimer);
-        discoveryTimer = setTimeout(() => hud.hideDiscovery(), find.entry.rarity === 'legendary' ? 8000 : 5500);
+    /**
+     * Depth gauge for the unit under the cursor.
+     * info: { unit, depth (0–3), depthM, layer, notes: [{ text, kind: 'warn'|'clue'|'' }] } or null
+     */
+    gauge(info) {
+        const g = $('#hud-gauge');
+        const col = $('#gauge-col');
+        const notes = clear($('#gauge-notes'));
+        if (!info) {
+            g.classList.add('idle');
+            col.style.setProperty('--d', 0);
+            $('#gauge-unit').textContent = '—';
+            $('#gauge-depth').textContent = 'Depth —';
+            $('#gauge-layer').textContent = 'Survey a unit';
+            return;
+        }
+        g.classList.remove('idle');
+        col.style.setProperty('--d', info.depth);
+        $('#gauge-unit').textContent = info.unit;
+        $('#gauge-depth').textContent = `Depth ${info.depthM.toFixed(2)} m`;
+        $('#gauge-layer').textContent = info.layer;
+        for (const n of info.notes.slice(0, 3)) notes.append(h('li', { class: n.kind || '' }, n.text));
     },
-
-    /** Fill in the discovery card's picture once the thumbnail is rendered. */
-    setDiscoveryArt(entryId, thumb) {
-        const el = $('#discovery');
-        if (el.dataset.find !== entryId || !thumb) return;
-        const art = el.querySelector('.art');
-        clear(art).append(h('img', { src: thumb, alt: '' }));
-    },
-
-    hideDiscovery() {
-        clearTimeout(discoveryTimer);
-        $('#discovery').classList.remove('show');
-    },
-
-    showTip(lines, x, y) {
-        const el = $('#cell-tip');
-        clear(el);
-        el.append(h('div.head', h('b', lines.unit), h('span', lines.layer)));
-        for (const l of lines.notes || []) el.append(h('div', { class: `act${l.warn ? ' warn' : ''}` }, l.text));
-        el.hidden = false;
-        const w = el.offsetWidth, hgt = el.offsetHeight;
-        const left = Math.min(x, innerWidth - w - 24);
-        const top = Math.min(y, innerHeight - hgt - 24);
-        el.style.left = `${left}px`;
-        el.style.top = `${top}px`;
-    },
-
-    hideTip() { $('#cell-tip').hidden = true; },
 
     coach(step, html) {
         const el = $('#coach');
         $('#coach-step').textContent = String(step);
-        const p = $('#coach-text');
-        clear(p);
-        // `html` is a trusted template with <kbd> markers only
-        p.innerHTML = html;
+        // `html` is a trusted template with <b>/<kbd> markers only
+        $('#coach-text').innerHTML = html;
         el.hidden = false;
+        el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
     },
 
     hideCoach() { $('#coach').hidden = true; },
@@ -190,12 +196,15 @@ export const hud = {
         input.value = '';
         input.disabled = false;
         $('#guess-submit').disabled = true;
-        $('#guess-form').classList.remove('locked');
+        $('#guess-form').classList.remove('locked', 'bad');
         closeList();
     },
 
-    lockGuess(text) {
-        $('#guess-form').classList.add('locked');
+    /** Stamp the slip: kind 'ok' (green), 'bad' (red) or neutral. */
+    lockGuess(text, kind = 'ok') {
+        const form = $('#guess-form');
+        form.classList.add('locked');
+        form.classList.toggle('bad', kind === 'bad');
         $('#guess-locked-text').textContent = text;
         $('#guess-input').disabled = true;
         closeList();
@@ -214,19 +223,39 @@ export const hud = {
         if (!list) { box.hidden = true; document.body.classList.remove('multiplayer'); return; }
         box.hidden = false;
         document.body.classList.add('multiplayer');
-        const ol = clear($('#hud-standings-list'));
+        clear(box);
         list.forEach(p => {
-            ol.append(h('li', { class: p.id === myId ? 'you' : '' },
+            box.append(h('li', { class: p.id === myId ? 'you' : '' },
                 h('span.dot', { style: { '--c': p.color } }),
                 h('span.n', p.name),
-                guessed.has(p.id) ? svgIcon('check', 'done') : null,
+                guessed.has(p.id) ? icon('check') : h('span'),
                 h('span.s', fmtInt(p.score))));
         });
     },
 };
 
-function stat(k, v) {
-    return h('div.stat', h('span.k', k), h('span.v', v));
+/** The canvas cursor becomes the equipped tool. */
+function setCursorTool(tool, blocked = false) {
+    const sc = document.getElementById('scene');
+    sc.classList.remove('tool-shovel', 'tool-trowel', 'tool-brush', 'tool-probe', 'blocked');
+    if (tool) sc.classList.add(`tool-${tool}`);
+    sc.classList.toggle('blocked', !!tool && blocked);
+}
+hud.setCursor = (tool, blocked = false) => setCursorTool(tool || currentTool, blocked);
+
+function renderReadout(tool) {
+    const info = TOOL_INFO[tool];
+    const el = clear($('#kit-readout'));
+    el.append(
+        h('span.kr-name', info.name),
+        h('span.kr-desc', info.desc),
+        h('span.kr-stats', ...info.stats(probesLeft).map(([k, v, cls]) => h('span', `${k} `, h('b', { class: cls || '' }, v)))));
+}
+
+function fadeReadoutSoon(ms) {
+    clearTimeout(readoutTimer);
+    $('#kit-readout').classList.remove('faded');
+    readoutTimer = setTimeout(() => $('#kit-readout').classList.add('faded'), ms);
 }
 
 // ---------- country combobox ----------

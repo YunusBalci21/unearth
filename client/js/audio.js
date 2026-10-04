@@ -301,6 +301,15 @@ class Audio {
     correct() { if (!this.sample('correct', { gain: 0.55 })) this.discovery(1); }
     wrong() { if (!this.sample('wrong', { gain: 0.5 })) this.tone({ freq: 220, freqEnd: 140, dur: 0.5, gain: 0.15, type: 'sawtooth' }); }
     notify() { if (!this.sample('notify', { gain: 0.45 })) this.tone({ freq: 880, dur: 0.25, gain: 0.08 }); }
+    /** Soft paper tick as a catalogue line is written. */
+    tick(i = 0) { this.noiseBurst({ dur: 0.035, type: 'highpass', freq: 2600 + i * 140, gain: 0.05 }); }
+
+    /** The held breath before a rare find comes free. */
+    hush(rank = 2) {
+        this.tone({ freq: 55, freqEnd: 82, dur: 0.9, gain: 0.06 + rank * 0.02, attack: 0.25 });
+        this.noiseBurst({ dur: 0.7, type: 'bandpass', freq: 400, freqEnd: 1800, q: 2, gain: 0.05, attack: 0.3 });
+    }
+
     stamp() { this.tone({ freq: 110, freqEnd: 50, dur: 0.22, gain: 0.3 }); this.noiseBurst({ dur: 0.1, type: 'lowpass', freq: 600, gain: 0.25 }); }
 
     countdown(secondsLeft) {

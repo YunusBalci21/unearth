@@ -632,6 +632,8 @@ export class ExcavationScene {
         for (const s of this.sherds.values()) { this.scene.remove(s); disposeObject(s); }
         this.sherds.clear();
         this.site = null;
+        this.revealObj = null;
+        this.controls.minDistance = 4.2;
         this.setHover(null);
         this.setCursor(null);
         this.strata.userData.uniforms.uStains.value.forEach(v => v.set(0, 0, 0, 0));
@@ -854,8 +856,12 @@ export class ExcavationScene {
         if (progress > 0.3 && rank >= 2) this.effects.sparkles(p, RARITY_COLORS[find.entry.rarity], 3 + rank * 2, 0.2, 0.4);
     }
 
-    /** The discovery moment: the find lifts out, spins and is laid on the finds tray. */
-    recoverFx(find) {
+    /**
+     * The discovery moment: the find lifts out of the ground and hangs, turning,
+     * in front of a camera that moves in close. When `hold` resolves it is laid
+     * on the finds tray and the camera returns to where the player left it.
+     */
+    recoverFx(find, { hold = null, layout = 'side' } = {}) {
         const obj = this.findObjects.get(find.index);
         if (!obj) return Promise.resolve();
         obj.flying = true;
@@ -866,36 +872,40 @@ export class ExcavationScene {
         const rank = RARITIES[rarity].rank;
         const color = RARITY_COLORS[rarity];
         const start = holder.position.clone();
-        const peak = start.clone().add(new THREE.Vector3(0, 0.75 + rank * 0.12, 0));
+        const peak = start.clone().add(new THREE.Vector3(0, 0.8 + rank * 0.1, 0));
         const base = this.cellTop(find.cell);
         this.effects.beam(base, color, { height: 2 + rank * 1.2, radius: 0.25 + rank * 0.08, life: 1.6 + rank * 0.5 });
         this.effects.ring(base.clone().add(new THREE.Vector3(0, 0.03, 0)), color, { radius: 0.9 + rank * 0.3, life: 0.9 });
         this.effects.sparkles(base, color, 10 + rank * 10, 0.4, 0.9);
         if (rank >= 3) this.effects.ring(base.clone().add(new THREE.Vector3(0, 0.05, 0)), 0xffffff, { radius: 2.4, life: 1.4, width: 0.12 });
-        setGlow(model, color, 0.25 + rank * 0.12);
+        const glow = 0.18 + rank * 0.1;
+        setGlow(model, color, glow);
         const startRot = model.rotation.clone();
-        const lift = 1.1 + rank * 0.25;
-        const hold = 0.55 + rank * 0.35;
         const slot = this.trayIndex++;
         const trayPos = this.trayOrigin.clone().add(new THREE.Vector3(0, 0.05, -0.52 + slot * 0.26));
+        const view = hold ? this.focusReveal(peak, layout) : null;
 
         return new Promise(resolve => {
-            this.effects.tween(lift, k => {
+            this.effects.tween(1.0 + rank * 0.15, k => {
                 const e = 1 - Math.pow(1 - k, 3);
                 holder.position.lerpVectors(start, peak, e);
+                holder.scale.setScalar(1 + e * 0.35);
                 model.rotation.set(startRot.x * (1 - e), startRot.y + e * Math.PI * 2, startRot.z * (1 - e));
             }, () => {
-                this.effects.tween(hold, k => {
-                    holder.position.y = peak.y + Math.sin(k * Math.PI * 2) * 0.03;
-                    model.rotation.y += 0.02;
-                }, () => {
+                // Hang in the air, turning, until the player has read the record.
+                this.revealObj = { holder, model, y: peak.y, t: 0 };
+                const minHold = new Promise(r => setTimeout(r, hold ? 0 : 500 + rank * 350));
+                Promise.all([hold || Promise.resolve(), minHold]).then(() => {
+                    this.revealObj = null;
+                    if (view) this.endReveal(view);
                     const from = holder.position.clone();
-                    this.effects.tween(0.7, k => {
+                    const s0 = holder.scale.x;
+                    this.effects.tween(0.75, k => {
                         const e = k * k * (3 - 2 * k);
                         holder.position.lerpVectors(from, trayPos, e);
                         holder.position.y += Math.sin(e * Math.PI) * 0.8;
-                        holder.scale.setScalar(1 - e * 0.45);
-                        setGlow(model, color, (0.25 + rank * 0.12) * (1 - e));
+                        holder.scale.setScalar(s0 + (0.55 - s0) * e);
+                        setGlow(model, color, glow * (1 - e));
                     }, () => {
                         model.rotation.set(0, 0.3, 0);
                         const box = new THREE.Box3().setFromObject(holder);
@@ -906,6 +916,31 @@ export class ExcavationScene {
                 });
             });
         });
+    }
+
+    /** Move the camera in on a lifted find; `layout` leaves room for the record beside or below it. */
+    focusReveal(point, layout) {
+        const saved = { pos: this.camera.position.clone(), target: this.controls.target.clone(), min: this.controls.minDistance, enabled: this.controls.enabled };
+        if (this.reducedMotion) return saved;
+        this.camera.updateMatrixWorld();
+        const right = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 0).setY(0).normalize();
+        const dir = this.camera.position.clone().sub(this.controls.target).normalize();
+        dir.y = Math.max(dir.y * 0.7, 0.4);
+        dir.normalize();
+        const target = point.clone();
+        if (layout === 'below') target.y -= 0.42;
+        else target.addScaledVector(right, 0.62);
+        const dist = layout === 'below' ? 4.1 : 3.3;
+        this.controls.minDistance = 1.5;
+        this.controls.enabled = false;
+        this.tweenCamera(target.clone().addScaledVector(dir, dist), target, 0.95);
+        return saved;
+    }
+
+    endReveal(saved) {
+        this.controls.enabled = saved.enabled && this.mode === 'play';
+        this.tweenCamera(saved.pos, saved.target, 0.8);
+        setTimeout(() => { this.controls.minDistance = saved.min; }, 850);
     }
 
     plantFlag(cell, count) {
@@ -1036,6 +1071,12 @@ export class ExcavationScene {
         for (const l of this.lanterns) {
             const f = Math.sin(time * 9 + l.seed) * 0.25 + Math.sin(time * 23 + l.seed * 3) * 0.15;
             l.light.intensity = l.base * (1 + f * 0.25);
+        }
+        if (this.revealObj) {
+            const r = this.revealObj;
+            r.t += dt;
+            r.holder.position.y = r.y + Math.sin(r.t * 1.6) * 0.035;
+            r.model.rotation.y += dt * 0.7;
         }
         // exposed finds glint gently
         for (const obj of this.findObjects.values()) {

@@ -9,15 +9,16 @@ import {
     cellLabel, cellIndex, cellX, cellZ, GRID, sherdVisible, stainVisible, displayName, hashString,
     mulberry32, shuffle,
 } from './site.js';
-import { CATALOG, RARITIES } from '../data/catalog.js';
+import { CATALOG, RARITIES, ALL_ARTIFACTS } from '../data/catalog.js';
 import { SITES, sitesInRegion, getSite, REGIONS } from '../shared/countries.js';
 import { basePoints, timeBonus, pointsForCorrect, WRONG_GUESS_PENALTY } from '../shared/rules.js';
-import { hud } from '../ui/hud.js';
+import { hud, SOIL_LABEL } from '../ui/hud.js';
+import { showFindRecord, dismissFindRecord, LAYER_DEPTH_M } from '../ui/reveal.js';
 import { audio } from '../audio.js';
 import { progress } from '../progress.js';
 import { settings } from '../settings.js';
 import { artifactThumbnail } from './artifactModels.js';
-import { toast, announce, dialogs, h, $, isTouch, svgIcon } from '../ui/dom.js';
+import { toast, announce, dialogs, h, $, isTouch, icon } from '../ui/dom.js';
 import { lobby } from '../net/lobby.js';
 
 export const TIPS = [
@@ -49,6 +50,9 @@ export function dailyPlan(day) {
     const countries = shuffle(SITES.map(s => s.name), rng).slice(0, 5);
     return { countries, seeds: countries.map(() => Math.floor(rng() * 2 ** 31)) };
 }
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const compactLayout = () => innerWidth <= 720 || (innerHeight <= 520 && innerWidth <= 940);
 
 const COACH = {
     dig: { step: 1, html: 'Click a unit of the grid to dig with the <b>shovel</b>. Right-drag (or drag with one finger) to look around.' },
@@ -141,14 +145,19 @@ export class Expedition {
         this.startedAt = 0;
         this.guessedIds = new Set();
         this.damagedThisSite = false;
+        dismissFindRecord();
+        this.revealing = false;
+        this.paused = false;
+        document.body.classList.remove('revealing', 'revealing-solo');
         this.scene.loadSite(this.site, def);
         this.scene.resetView(false);
         this.setTool('shovel');
         hud.setSite({ index: index + 1, total: this.config.rounds, soil: def.soil, modeLabel: this.modeLabel() });
+        hud.setSoil(this.scene.soilColors);
+        hud.gauge(null);
         hud.setProbes(this.site.probesLeft);
         hud.renderFinds(this.site, this.thumbs);
         hud.resetGuess();
-        hud.hideDiscovery();
         hud.setTimer(this.config.time, this.config.time);
         this.remaining = this.config.time;
         this.updatePotential();
@@ -175,11 +184,11 @@ export class Expedition {
 
     showIntro(index, done) {
         const el = $('#site-intro');
-        $('#intro-kicker').textContent = `Site ${index + 1} of ${this.config.rounds}`;
+        $('#intro-kicker').textContent = `Site ${String(index + 1).padStart(2, '0')} / ${String(this.config.rounds).padStart(2, '0')}`;
         $('#intro-title').textContent = index === 0 ? 'Breaking ground' : 'A new excavation';
         const facts = $('#intro-facts');
         facts.textContent = '';
-        const soil = { sand: 'Sandy soil', dirt: 'Loam & clay', soil: 'Dark humus' }[this.siteDef.soil];
+        const soil = SOIL_LABEL[this.siteDef.soil];
         facts.append(
             factEl('layers', soil),
             factEl('pot', `${this.site.finds.length} finds buried`),
@@ -209,6 +218,9 @@ export class Expedition {
 
     exit() {
         this.active = false;
+        dismissFindRecord();
+        this.revealing = false;
+        document.body.classList.remove('revealing', 'revealing-solo');
         this.stopTimer();
         this.paused = false;
         audio.setUrgent(false);
@@ -312,7 +324,7 @@ export class Expedition {
             lastMove = now;
             this.updateHover(e.clientX, e.clientY);
         });
-        canvas.addEventListener('pointerleave', () => { this.hoverCell = null; this.scene.setHover(null); hud.hideTip(); });
+        canvas.addEventListener('pointerleave', () => { this.hoverCell = null; this.scene.setHover(null); hud.gauge(null); });
         canvas.addEventListener('pointerdown', e => {
             if (!this.canPlay()) return;
             if (e.pointerType === 'mouse' && e.button !== 0) return;
@@ -337,7 +349,7 @@ export class Expedition {
     }
 
     canPlay() {
-        return this.active && !this.paused && !dialogs.anyOpen() && !this.roundOver && !!this.site
+        return this.active && !this.paused && !this.revealing && !dialogs.anyOpen() && !this.roundOver && !!this.site
             && !$('#site-intro').classList.contains('show');
     }
 
@@ -379,6 +391,7 @@ export class Expedition {
             this.hoverCell = cell;
             this.refreshHover();
             const info = this.describeCell(cell);
+            hud.gauge(info);
             announce(`${info.unit}. ${info.layer}. ${info.notes.map(n => n.text).join('. ')}`);
         }
     }
@@ -388,13 +401,12 @@ export class Expedition {
         const cell = pick ? pick.cell : null;
         this.hoverCell = cell;
         this.refreshHover();
-        if (cell == null) { hud.hideTip(); return; }
-        hud.showTip(this.describeCell(cell), x, y);
+        hud.gauge(cell == null ? null : this.describeCell(cell));
     }
 
     refreshHover() {
         const cell = this.hoverCell;
-        if (cell == null || !this.site) { this.scene.setHover(null); this.scene.highlightFind(null); return; }
+        if (cell == null || !this.site) { this.scene.setHover(null); this.scene.highlightFind(null); hud.setCursor(null); return; }
         const find = findAt(this.site, cell);
         let tool = this.tool;
         if (find?.state === 'exposed' && tool !== 'probe') tool = 'brush';
@@ -405,30 +417,34 @@ export class Expedition {
         else blocked = fp.every(c => this.site.depth[c] >= LAYERS || findAt(this.site, c)?.state === 'exposed');
         this.scene.setHover(cell, tool, fp, blocked);
         this.scene.highlightFind(find?.state === 'exposed' ? find : null);
+        hud.setCursor(tool, blocked);
     }
 
+    /** What the depth gauge says about a unit, for the current tool. */
     describeCell(cell) {
         const site = this.site;
         const d = site.depth[cell];
         const find = findAt(site, cell);
         const notes = [];
         const exposed = find?.state === 'exposed';
-        if (exposed) notes.push({ text: `Exposed find — brush it clean (${find.cleaned}/${find.strokesNeeded} strokes).` });
+        if (exposed) notes.push({ text: `Find exposed — brush it clean (${find.cleaned}/${find.strokesNeeded})`, kind: 'clue' });
         else if (this.tool === 'shovel') {
             const nearExposed = toolFootprint('shovel', cell).some(c => findAt(site, c)?.state === 'exposed');
-            notes.push(d >= LAYERS ? { text: 'Bedrock — nothing deeper here.' }
-                : { text: nearExposed ? 'Dig 3×3 · the shovel works around exposed finds.' : 'Dig 3×3 · fast, may chip finds it uncovers.', warn: !nearExposed && d < LAYERS });
-        } else if (this.tool === 'trowel') notes.push({ text: d >= LAYERS ? 'Bedrock — nothing deeper here.' : 'Remove one layer carefully. Safe for finds.' });
-        else if (this.tool === 'brush') notes.push({ text: 'Nothing exposed here yet — dig first.', warn: true });
+            if (d >= LAYERS) notes.push({ text: 'Bedrock — nothing deeper here' });
+            else notes.push(nearExposed ? { text: 'Shovel works around exposed finds' } : { text: 'Shovel may chip what it uncovers', kind: 'warn' });
+        } else if (this.tool === 'trowel') notes.push({ text: d >= LAYERS ? 'Bedrock — nothing deeper here' : 'Trowel: safe for finds' });
+        else if (this.tool === 'brush') notes.push({ text: 'Nothing exposed here yet — dig first', kind: 'warn' });
         else if (this.tool === 'probe') {
-            notes.push(site.probes.has(cell) ? { text: `Already surveyed: ${site.probes.get(cell)} nearby.` }
-                : site.probesLeft > 0 ? { text: `Survey the 3×3 area (${site.probesLeft} left).` } : { text: 'No probes left at this site.', warn: true });
+            notes.push(site.probes.has(cell) ? { text: `Already surveyed: ${site.probes.get(cell)} nearby` }
+                : site.probesLeft > 0 ? { text: `Survey the 3×3 area · ${site.probesLeft} left` } : { text: 'No probes left at this site', kind: 'warn' });
         }
-        if (sherdVisible(site, cell)) notes.push({ text: 'Potsherd on the surface — a find may be close.' });
-        if (find && stainVisible(site, find)) notes.push({ text: 'Dark soil stain — something lies deeper.' });
-        if (site.probes.has(cell) && this.tool !== 'probe') notes.push({ text: `Survey flag: ${site.probes.get(cell)} find${site.probes.get(cell) === 1 ? '' : 's'} in the 3×3 area.` });
+        if (sherdVisible(site, cell)) notes.push({ text: 'Potsherd on the surface — a find may be close', kind: 'clue' });
+        if (find && stainVisible(site, find)) notes.push({ text: 'Dark soil stain — something lies deeper', kind: 'clue' });
+        if (site.probes.has(cell) && this.tool !== 'probe') notes.push({ text: `Survey flag: ${site.probes.get(cell)} in the 3×3 area`, kind: 'clue' });
         return {
-            unit: `Unit ${cellLabel(cell)}`,
+            unit: cellLabel(cell),
+            depth: Math.min(d, LAYERS),
+            depthM: Math.min(d, LAYERS) * LAYER_DEPTH_M,
             layer: d >= LAYERS ? 'Bedrock' : `${LAYER_NAMES[d]} · layer ${d + 1}/3`,
             notes,
         };
@@ -437,7 +453,7 @@ export class Expedition {
     setTool(tool, fromUser = false) {
         if (this.tool === tool && fromUser) return;
         this.tool = tool;
-        hud.setTool(tool);
+        hud.setTool(tool, { equip: fromUser });
         this.scene.setTool(tool);
         if (fromUser) audio.toolSwitch();
         this.refreshHover();
@@ -475,7 +491,6 @@ export class Expedition {
         }
 
         this.busy = true;
-        hud.hideTip();
         try {
             await this.scene.act(tool, cell, () => this.impact(tool, cell, find));
         } finally {
@@ -499,7 +514,10 @@ export class Expedition {
             this.scene.brushFx(res.find, res.progress);
             this.coachDone('brush');
             if (res.recovered) this.onRecovered(res.find);
-            else announce(`Brushing… ${Math.round(res.progress * 100)}% clean.`);
+            else {
+                announce(`Brushing… ${Math.round(res.progress * 100)}% clean.`);
+                if (this.hoverCell != null) hud.gauge(this.describeCell(this.hoverCell));
+            }
             return;
         }
         if (tool === 'probe') {
@@ -521,6 +539,8 @@ export class Expedition {
         if (tool === 'shovel') audio.shovel(layerBefore); else audio.trowel(layerBefore);
         this.scene.sync();
         this.scene.digFx(res.cells, tool);
+        hud.setDug(site.volume / (GRID * GRID * LAYERS));
+        if (this.hoverCell != null) hud.gauge(this.describeCell(this.hoverCell));
         this.coachDone('dig');
 
         for (const f of res.exposed) {
@@ -539,31 +559,63 @@ export class Expedition {
         if (res.exposed.length) hud.renderFinds(site, this.thumbs);
     }
 
+    /**
+     * The discovery sequence: a held breath for rare finds, the lift, the find
+     * record, then the find is laid on the tray and its tag pops into the HUD.
+     */
     async onRecovered(find) {
         const site = this.site;
         const rank = RARITIES[find.entry.rarity].rank;
-        audio.discovery(rank);
+        const solo = this.config.mode !== 'multi';
+        const reduced = !!settings.get('reducedMotion');
         this.runFinds++;
         const record = progress.recordFind(find);
-        if (rank >= 3) this.ui.legendaryBanner?.();
-        else if (rank === 2) this.ui.banner?.('Rare find', 'rare');
-        this.scene.shake(0.02 + rank * 0.02);
-        hud.renderFinds(site, this.thumbs, find.index);
+        const thumbP = artifactThumbnail(find.entry).catch(() => null);
+        this.revealing = true;
+        this.scene.setHover(null);
+        hud.gauge(null);
+        hud.setCursor(null);
+        if (solo) this.pause();
         this.updatePotential();
         announce(`Recovered: ${displayName(find)}. ${RARITIES[find.entry.rarity].label}.`);
-        const anim = this.scene.recoverFx(find);
-        hud.showDiscovery(find, { thumb: this.thumbs.get(find.entry.id), isNew: record.isNew, improved: record.improved, damage: find.condition > find.initialCondition });
-        this.maybeCoach('guess');
-        const thumb = await artifactThumbnail(find.entry);
-        if (thumb) this.thumbs.set(find.entry.id, thumb);
+
+        if (rank >= 2 && !reduced) { audio.hush(rank); await sleep(520); }
+        if (this.site !== site || !this.active) return;
+
+        audio.discovery(rank);
+        this.scene.shake(0.02 + rank * 0.02);
+        document.body.classList.add('revealing');
+        document.body.classList.toggle('revealing-solo', solo);
+        let release;
+        const hold = new Promise(r => { release = r; });
+        const landed = this.scene.recoverFx(find, { hold, layout: compactLayout() ? 'below' : 'side' });
+        if (!reduced) await sleep(380);
+
+        const auto = solo ? [2800, 3600, 0, 0][rank] : [2200, 2600, 3200, 4000][rank];
+        const how = await showFindRecord(find, {
+            isNew: record.isNew, improved: record.improved,
+            damage: find.condition > find.initialCondition,
+            catalogued: progress.uniqueCount, total: ALL_ARTIFACTS.length,
+            auto,
+        });
+        release();
+        document.body.classList.remove('revealing', 'revealing-solo');
         if (this.site !== site) return;
-        hud.renderFinds(site, this.thumbs);
-        hud.setDiscoveryArt(find.entry.id, thumb);
-        await anim;
+        this.revealing = false;
+        if (solo && !dialogs.anyOpen()) this.resume();
+        if (how === 'inspect') this.inspect(find);
+
+        const thumb = await thumbP;
+        if (thumb) this.thumbs.set(find.entry.id, thumb);
+        await landed;
+        if (this.site !== site) return;
+        hud.renderFinds(site, this.thumbs, find.index);
+        this.maybeCoach('guess');
+        if (this.hoverCell != null && this.canPlay()) this.refreshHover();
     }
 
     inspect(find) {
-        if (!this.active) return;
+        if (!this.active || this.revealing) return;
         this.pause();
         this.ui.inspect(find.entry, { find, revealed: this.roundOver, onClose: () => this.resume() });
     }
@@ -572,6 +624,7 @@ export class Expedition {
 
     guess(country) {
         if (!this.active || this.roundOver || this.guessed || !this.site) return;
+        if (this.revealing && this.config.mode !== 'multi') return; // solo: finish reading the find first
         const site = this.site;
         const recovered = recoveredCount(site);
         const correct = country === site.country;
@@ -592,7 +645,7 @@ export class Expedition {
         const points = correct ? pointsForCorrect(recovered, this.config.time ? this.remaining : 0) : -WRONG_GUESS_PENALTY;
         this.score = Math.max(0, this.score + points);
         hud.setScore(this.score, true);
-        hud.lockGuess(`You said ${country}`);
+        hud.lockGuess(correct ? `Identified · ${country}` : `Not ${country}`, correct ? 'ok' : 'bad');
         if (correct) audio.correct(); else audio.wrong();
         this.recordSite(correct, country, points);
         setTimeout(() => this.showSoloResults(), 650);
@@ -602,11 +655,11 @@ export class Expedition {
         if (this.roundOver || this.guessed) return;
         audio.wrong();
         if (this.config.mode === 'multi') {
-            hud.lockGuess('Time’s up — waiting for the results');
+            hud.lockGuess('Time’s up — waiting for results', 'bad');
             return;
         }
         this.roundOver = true;
-        hud.lockGuess('Time’s up');
+        hud.lockGuess('Time’s up', 'bad');
         this.recordSite(false, null, 0, true);
         setTimeout(() => this.showSoloResults(), 650);
     }
@@ -632,7 +685,7 @@ export class Expedition {
 
     lockForOthers(country) {
         const others = (lobby.lobby?.players?.length || 1) - 1 - [...this.guessedIds].filter(id => id !== lobby.playerId).length;
-        hud.lockGuess(others > 0 ? `Locked in: ${country} — keep digging while the others decide` : `Locked in: ${country}`);
+        hud.lockGuess(others > 0 ? `Locked in · ${country} — keep digging` : `Locked in · ${country}`, 'ok');
     }
 
     showSoloResults() {
@@ -643,6 +696,8 @@ export class Expedition {
             site: this.site,
             thumbs: this.thumbs,
             score: this.score,
+            index: this.round + 1,
+            total: this.config.rounds,
             last,
             onContinue: () => (last ? this.finish() : this.loadRound(this.round + 1)),
             onInspect: f => this.ui.inspect(f.entry, { find: f, revealed: true }),
@@ -721,13 +776,16 @@ export class Expedition {
             entry.points = mine.points;
             entry.correct = mine.isCorrect;
         }
+        dismissFindRecord();
         this.onServerScores(msg.standings);
-        hud.lockGuess('Site closed');
+        hud.lockGuess('Site closed', 'bad');
         this.ui.roundResults({
             entry: this.log[this.log.length - 1],
             site: this.site,
             thumbs: this.thumbs,
             score: this.score,
+            index: this.round + 1,
+            total: this.config.rounds,
             multi: msg,
             last: msg.isGameOver,
             onInspect: f => this.ui.inspect(f.entry, { find: f, revealed: true }),
@@ -759,9 +817,9 @@ export class Expedition {
     }
 }
 
-function factEl(icon, text) {
+function factEl(name, text) {
     const span = document.createElement('span');
-    span.append(svgIcon(icon), text);
+    span.append(icon(name), text);
     return span;
 }
 

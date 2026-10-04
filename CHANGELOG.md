@@ -25,9 +25,14 @@ A full overhaul of the game loop, interface and server. The core idea is unchang
 - Guessing accepts common aliases and alternative names (UK, USA, Holland, Persia, Türkiye, Czechia…) and has an accessible autocomplete.
 
 ### Interface
-- Complete redesign with an archaeological identity: parchment, stone, brass, survey grids and a photo-scale motif, using self-hosted Cinzel, Crimson Pro and IBM Plex Mono fonts.
-- New menus, setup, HUD, tool rail with tooltips, round results, final summary with a site log, leaderboard, settings, pause menu and an in-game field guide.
-- No emoji anywhere: the game and admin panel share one set of drawn SVG icons (`client/icons.svg`), and the share text uses plain ✓ / ✗ marks. A test guards against emoji creeping back in.
+A game interface rather than a web page: the excavation fills the screen and the HUD sits around it as instruments.
+- **Two materials.** Field-kit surfaces (dark canvas, stitched seams, brass fittings) for things you operate; paper documents (orders, reports, labels, catalogues) for things you read. Hard edges, rubber stamps, ruled ledgers with dotted leaders and measuring-tape progress instead of cards, pills and progress bars.
+- **HUD.** Site plate (top left), survey-tape timer (top centre), score (top right), specimen tags for finds (right edge), a depth gauge showing the unit under the cursor with its stratigraphy, depth in metres and clues (bottom left), an equipment belt (bottom centre) and an identification slip (bottom right).
+- **Equipment belt.** Painted tool art, an equip animation, a readout with each tool's area, pace and risk, probe charges as pips, and the cursor becomes the equipped tool.
+- **Discovery sequence.** Rare finds get a held breath before they come free; the find lifts out, the camera moves in, and a museum-style find record writes itself line by line: catalogue number, rarity, name, material, age, condition, unit and layer, depth, museum value and collection status, with the period sealed until the site is identified. Rare and legendary finds get letterboxing and a rubber stamp. The find then lands on the tray and its tag pops into the HUD.
+- **Menus and documents.** A game main menu over the dig site; an expedition order form where choices are circled in ink; site and expedition reports; the Archive as a catalogue with a country index and entry ledger; the leaderboard as a register; a research bench for inspecting finds; a field manual; the expedition board and team roster for multiplayer.
+- **Art.** Painted icons, logo, wordmark, favicons and app icons; typography pairs Cinzel (display), Barlow Condensed (interface), Crimson Pro (reading) and IBM Plex Mono (measurements and catalogue numbers), all self-hosted.
+- No emoji anywhere, including the share text (plain ✓ / ✗ marks). A test guards against emoji creeping back in.
 - Native accessible dialogs, keyboard play (arrow keys, 1–4 for tools, Q/E/R for the camera, G to guess, Esc to pause), screen-reader announcements, visible focus states and a reduced-motion option.
 - Responsive layouts for desktop, laptop, tablet and phone.
 - Loading, empty and error states throughout.

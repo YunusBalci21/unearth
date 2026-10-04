@@ -891,8 +891,10 @@ export const CATALOG = {
     ],
 };
 
-export const ALL_ARTIFACTS = Object.entries(CATALOG).flatMap(([country, list]) =>
-    list.map(entry => ({ ...entry, country })));
+// Every entry knows its country, whichever list it is reached through.
+for (const [country, list] of Object.entries(CATALOG)) for (const entry of list) entry.country = country;
+
+export const ALL_ARTIFACTS = Object.values(CATALOG).flat();
 
 const BY_ID = new Map(ALL_ARTIFACTS.map(a => [a.id, a]));
 

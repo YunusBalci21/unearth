@@ -4,10 +4,12 @@
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { $, h, clear, svgIcon, fmtInt, dialogs } from './dom.js';
+import { $, h, clear, icon, fmtInt, dialogs } from './dom.js';
 import { RARITIES, MATERIALS, formatAge, formatYear, estimateValue, materialLabel } from '../data/catalog.js';
 import { CONDITIONS, LAYER_NAMES, cellLabel, displayName } from '../game/site.js';
 import { buildArtifact, disposeObject } from '../game/artifactModels.js';
+import { catalogNumber } from './catalogue.js';
+import { findDepth } from './reveal.js';
 
 let stage = null;
 
@@ -47,8 +49,8 @@ async function getStage() {
     trim.position.y = -0.5;
     scene.add(trim);
 
-    const camera = new THREE.PerspectiveCamera(32, 1, 0.05, 30);
-    camera.position.set(0, 0.35, 3.1);
+    const camera = new THREE.PerspectiveCamera(30, 1, 0.05, 30);
+    camera.position.set(0, 0.35, 3.8);
     const controls = new OrbitControls(camera, canvas);
     controls.enableDamping = true;
     controls.enablePan = false;
@@ -69,11 +71,6 @@ async function getStage() {
     new ResizeObserver(resize).observe(host);
     stage = { renderer, scene, camera, controls, env, resize, model: null };
     return stage;
-}
-
-function catalogNumber(entry) {
-    const m = entry.id.match(/^([a-z]+)(\d+)$/i);
-    return m ? `Cat. ${m[1].toUpperCase()}-${m[2].padStart(3, '0')}` : `Cat. ${entry.id.toUpperCase()}`;
 }
 
 function fact(k, v) {
@@ -104,6 +101,7 @@ export async function openInspector(entry, { find = null, revealed = false, cond
     if (cond != null) facts.append(...fact('Condition', CONDITIONS[cond].label));
     facts.append(...fact('Est. value', fmtInt(estimateValue(entry, cond != null ? CONDITIONS[cond].factor : 1))));
     if (find) facts.append(...fact('Found', `Unit ${cellLabel(find.cell)} · ${LAYER_NAMES[find.layer - 1]}`));
+    if (find) facts.append(...fact('Depth', `${findDepth(find.layer).toFixed(2)} m`));
     if (revealed) {
         facts.append(...fact('Culture', entry.culture));
         facts.append(...fact('Period', entry.period));
@@ -114,16 +112,13 @@ export async function openInspector(entry, { find = null, revealed = false, cond
     if (revealed) {
         notes.append(h('p.history', entry.note));
         const q = encodeURIComponent(`${entry.name} ${entry.culture}`);
-        notes.append(h('p.note', { style: { marginTop: '14px' } }, svgIcon('search'),
-            h('span', 'Explore similar objects in ',
-                h('a', { href: `https://www.metmuseum.org/art/collection/search?q=${q}`, target: '_blank', rel: 'noopener' }, 'The Met collection'),
-                '.')));
+        notes.append(h('p.ext-link', 'Compare similar objects in ',
+            h('a', { href: `https://www.metmuseum.org/art/collection/search?q=${q}`, target: '_blank', rel: 'noopener' }, 'The Met collection'),
+            '.'));
     } else {
-        notes.append(h('div.pending', svgIcon('info'),
-            h('span', 'Identify the site to complete this catalogue entry — its culture, period and story are revealed after you guess.')));
+        notes.append(h('div.pending', icon('info'),
+            h('span', 'Sealed until the site is identified — culture, period and history are added to this entry after your guess.')));
     }
-    const foot = clear($('#insp-foot'));
-    foot.append(h('button.btn.btn-primary', { type: 'button', 'data-close': '' }, 'Close'));
 
     dialogs.open('inspector', {
         onClose: () => {
@@ -144,8 +139,8 @@ export async function openInspector(entry, { find = null, revealed = false, cond
         s.scene.add(s.model);
         s.controls.target.set(0, s.model.position.y + (box.max.y - box.min.y) / 2, 0);
         s.controls.autoRotate = true;
-        s.camera.position.set(0, s.controls.target.y + 0.4, 3.1);
         s.resize();
+        s.camera.position.set(0, s.controls.target.y + 0.45, s.camera.aspect < 1 ? 4.6 : 3.8);
         s.renderer.setAnimationLoop(() => {
             s.controls.update();
             s.renderer.render(s.scene, s.camera);
@@ -155,4 +150,3 @@ export async function openInspector(entry, { find = null, revealed = false, cond
     }
 }
 
-export { catalogNumber };

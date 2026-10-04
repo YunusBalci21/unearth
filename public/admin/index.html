@@ -375,21 +375,18 @@
             opacity: 0.45;
         }
 
-        /* ── Icons (shared sprite: /icons.svg) ── */
+        /* ── Icons (painted UI set: /img/ui) ── */
         .ico {
-            width: 1.15em;
-            height: 1.15em;
+            display: inline-block;
+            width: 1.3em;
+            height: 1.3em;
             flex: none;
-            fill: none;
-            stroke: currentColor;
-            stroke-width: 1.75;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-            vertical-align: -0.2em;
+            object-fit: contain;
+            vertical-align: -0.3em;
         }
         .btn .ico { margin-right: 6px; }
         .brand { display: inline-flex; align-items: center; gap: 12px; }
-        .brand .ico { width: 0.95em; height: 0.95em; vertical-align: 0; }
+        .brand .ico { width: 1.2em; height: 1.2em; vertical-align: 0; }
         .lobby-meta > span:not(.lobby-status) { display: inline-flex; align-items: center; gap: 5px; }
         .player-chip .host-badge .ico { width: 12px; height: 12px; vertical-align: -1px; }
 
@@ -475,7 +472,7 @@
 
 <!-- Auth Screen -->
 <div id="auth-screen" class="auth-screen">
-    <div class="auth-title brand"><svg class="ico" aria-hidden="true"><use href="/icons.svg#i-trowel"/></svg>UNEARTH</div>
+    <div class="auth-title brand"><img class="ico" src="/img/ui/trowel.webp" alt="">UNEARTH</div>
     <div class="auth-box">
         <div style="text-align: center; color: #706050; font-size: 13px; letter-spacing: 2px; text-transform: uppercase;">Admin Panel</div>
         <input type="password" id="auth-key" class="auth-input" placeholder="Admin key..." autofocus>
@@ -488,14 +485,14 @@
 <div id="dashboard" style="display: none;">
     <div class="header">
         <div class="header-left">
-            <h1 class="brand"><svg class="ico" aria-hidden="true"><use href="/icons.svg#i-trowel"/></svg>UNEARTH</h1>
+            <h1 class="brand"><img class="ico" src="/img/ui/trowel.webp" alt="">UNEARTH</h1>
             <span class="badge" id="admin-version">ADMIN · v1.0.1</span>
         </div>
         <div class="header-right">
             <div class="status-dot" id="ws-status"></div>
             <span id="ws-status-text" style="font-size: 12px; color: #706050;">Connecting...</span>
-            <button class="btn" onclick="launchDebugGame()"><svg class="ico" aria-hidden="true"><use href="/icons.svg#i-wrench"/></svg>Debug Game</button>
-            <button class="btn btn-danger" onclick="broadcastMessage()"><svg class="ico" aria-hidden="true"><use href="/icons.svg#i-megaphone"/></svg>Broadcast</button>
+            <button class="btn" onclick="launchDebugGame()"><img class="ico" src="/img/ui/wrench.webp" alt="">Debug Game</button>
+            <button class="btn btn-danger" onclick="broadcastMessage()"><img class="ico" src="/img/ui/megaphone.webp" alt="">Broadcast</button>
         </div>
     </div>
 
@@ -534,7 +531,7 @@
                 </div>
                 <div class="panel-body" id="lobby-list">
                     <div class="empty-state">
-                        <svg class="ico" aria-hidden="true"><use href="/icons.svg#i-museum"/></svg>
+                        <img class="ico" src="/img/ui/museum.webp" alt="">
                         No active lobbies
                     </div>
                 </div>
@@ -548,7 +545,7 @@
                 </div>
                 <div class="panel-body" id="player-list">
                     <div class="empty-state">
-                        <svg class="ico" aria-hidden="true"><use href="/icons.svg#i-user"/></svg>
+                        <img class="ico" src="/img/ui/user.webp" alt="">
                         No players connected
                     </div>
                 </div>
@@ -562,7 +559,7 @@
                 </div>
                 <div class="panel-body log-body" id="log-list">
                     <div class="empty-state">
-                        <svg class="ico" aria-hidden="true"><use href="/icons.svg#i-clipboard"/></svg>
+                        <img class="ico" src="/img/ui/clipboard.webp" alt="">
                         Waiting for events...
                     </div>
                 </div>
@@ -579,7 +576,7 @@
                 </div>
                 <div class="panel-body" id="ban-list">
                     <div class="empty-state">
-                        <svg class="ico" aria-hidden="true"><use href="/icons.svg#i-shield"/></svg>
+                        <img class="ico" src="/img/ui/shield.webp" alt="">
                         No active bans
                     </div>
                 </div>
@@ -592,7 +589,7 @@
                     <button class="btn btn-sm" data-act="lb-refresh">Refresh</button>
                 </div>
                 <div class="panel-body" id="lb-list">
-                    <div class="empty-state"><svg class="ico" aria-hidden="true"><use href="/icons.svg#i-trophy"/></svg>No scores yet</div>
+                    <div class="empty-state"><img class="ico" src="/img/ui/trophy.webp" alt="">No scores yet</div>
                 </div>
             </div>
         </div>
@@ -606,7 +603,7 @@
     <div style="background:linear-gradient(135deg,#1a1008,#0f0a05); border:1px solid rgba(180,60,60,0.4);
         border-radius:12px; padding:28px; min-width:380px; max-width:450px;">
         <div style="font-family:'Cinzel',serif; color:#e57373; font-size:16px; margin-bottom:20px; letter-spacing:2px;">
-            <svg class="ico" aria-hidden="true"><use href="/icons.svg#i-ban"/></svg> BAN PLAYER
+            <img class="ico" src="/img/ui/ban.webp" alt=""> BAN PLAYER
         </div>
         <input type="hidden" id="ban-player-id">
         <div id="ban-target-info" style="color:#a08060; font-size:14px; margin-bottom:16px;"></div>
@@ -886,8 +883,8 @@
         return `${h}h ${m}m`;
     }
 
-    // Icon from the game's shared sprite. `name` is always a literal from this file.
-    const icon = name => `<svg class="ico" aria-hidden="true"><use href="/icons.svg#i-${name}"/></svg>`;
+    // Painted icon from the game's UI set. `name` is always a literal from this file.
+    const icon = name => `<img class="ico" src="/img/ui/${name}.webp" alt="">`;
     const emptyState = (name, text) => `<div class="empty-state">${icon(name)}${text}</div>`;
 
     function esc(str) {

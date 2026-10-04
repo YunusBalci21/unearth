@@ -15,7 +15,7 @@ import { ExcavationScene } from './game/scene.js';
 import { warmStudio } from './game/artifactModels.js';
 import { Expedition } from './game/expedition.js';
 import { hud } from './ui/hud.js';
-import { showRoundResults, showFinal, banner, legendaryBanner } from './ui/results.js';
+import { showRoundResults, showFinal, banner } from './ui/results.js';
 import { openInspector } from './ui/inspector.js';
 import { openShare } from './share.js';
 import { initScreens, showScreen, refreshMenu, openMultiplayer, renderRoom, rememberLeaderboardEntry } from './ui/screens.js';
@@ -93,7 +93,7 @@ function wireMultiplayer() {
         dialogs.close('final');
         let n = msg.countdown || 3;
         const tick = () => {
-            if (n > 0) { banner(String(n), 'legendary', n === 3 ? 'The expedition sets off' : ''); audio.countdown(n); n--; setTimeout(tick, 1000); }
+            if (n > 0) { banner(String(n), '', n === 3 ? 'The expedition sets off' : ''); audio.countdown(n); n--; setTimeout(tick, 1000); }
         };
         tick();
         setTimeout(() => {
@@ -182,8 +182,6 @@ async function boot() {
             submitScore: () => submitScore(run),
         }),
         inspect: (entry, opts) => openInspector(entry, opts),
-        banner,
-        legendaryBanner,
     });
 
     initScreens(app);
@@ -244,7 +242,11 @@ window.addEventListener('unhandledrejection', e => {
 });
 
 // Keep HUD tooltip from lingering over dialogs
-document.addEventListener('dialogs:change', () => { if (dialogs.anyOpen()) hud.hideTip(); });
+document.addEventListener('dialogs:change', () => {
+    const open = dialogs.anyOpen();
+    document.body.classList.toggle('has-dialog', open);
+    if (open) hud.gauge(null);
+});
 
 boot();
 

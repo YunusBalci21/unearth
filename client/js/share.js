@@ -2,7 +2,7 @@
 // SHARE — spoiler-free result text for social posts.
 // ============================================
 
-import { $, h, clear, svgIcon, dialogs, copyText, toast } from './ui/dom.js';
+import { $, h, clear, icon, dialogs, copyText, toast } from './ui/dom.js';
 
 const SITE_URL = 'https://www.playunearth.tech';
 
@@ -30,7 +30,7 @@ export function openShare(run) {
     if (navigator.share && matchMedia('(pointer: coarse)').matches) {
         actions.append(h('button.btn', { type: 'button', onclick: async () => {
             try { await navigator.share({ title: 'Unearth', text }); } catch { /* cancelled */ }
-        } }, svgIcon('share'), 'Share…'));
+        } }, icon('share'), 'Share…'));
     }
     actions.append(
         h('button.btn', { type: 'button', onclick: () => open(`https://twitter.com/intent/tweet?text=${encoded}`) }, 'Post on X'),
@@ -39,7 +39,7 @@ export function openShare(run) {
         h('button.btn.btn-primary', { type: 'button', onclick: async () => {
             const ok = await copyText(text);
             toast(ok ? 'Copied to clipboard' : 'Copy failed — select the text instead', { type: ok ? 'ok' : 'bad' });
-        } }, svgIcon('copy'), 'Copy'),
+        } }, icon('copy'), 'Copy'),
     );
     dialogs.open('share');
 }
