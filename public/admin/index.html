@@ -4,14 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unearth — Admin Panel</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <meta name="robots" content="noindex, nofollow">
     <style>
+        @font-face { font-family: 'Cinzel'; font-weight: 700; src: url('/public/fonts/cinzel-latin-700-normal.woff2') format('woff2'); }
+        @font-face { font-family: 'Cinzel'; font-weight: 400 600; src: url('/public/fonts/cinzel-latin-600-normal.woff2') format('woff2'); }
+        @font-face { font-family: 'Crimson Pro'; font-weight: 400; src: url('/public/fonts/crimson-pro-latin-400-normal.woff2') format('woff2'); }
+        @font-face { font-family: 'Crimson Pro'; font-weight: 600; src: url('/public/fonts/crimson-pro-latin-600-normal.woff2') format('woff2'); }
+        @font-face { font-family: 'IBM Plex Mono'; font-weight: 400; src: url('/public/fonts/ibm-plex-mono-latin-400-normal.woff2') format('woff2'); }
+        @font-face { font-family: 'IBM Plex Mono'; font-weight: 500; src: url('/public/fonts/ibm-plex-mono-latin-500-normal.woff2') format('woff2'); }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             background: #0a0705;
             color: #c8b08a;
-            font-family: 'Crimson Text', serif;
+            font-family: 'Crimson Pro', serif;
             min-height: 100vh;
         }
 
@@ -45,7 +52,7 @@
             padding: 4px 12px;
             border-radius: 20px;
             font-size: 12px;
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'IBM Plex Mono', monospace;
         }
 
         .header-right {
@@ -76,7 +83,7 @@
             padding: 8px 16px;
             border-radius: 6px;
             cursor: pointer;
-            font-family: 'Crimson Text', serif;
+            font-family: 'Crimson Pro', serif;
             font-size: 14px;
             transition: all 0.2s;
         }
@@ -130,7 +137,7 @@
             color: #706050;
             text-transform: uppercase;
             letter-spacing: 2px;
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'IBM Plex Mono', monospace;
             margin-bottom: 8px;
         }
 
@@ -219,7 +226,7 @@
         }
 
         .lobby-code {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'IBM Plex Mono', monospace;
             font-size: 12px;
             color: #706050;
             background: rgba(139, 105, 20, 0.1);
@@ -240,7 +247,7 @@
             padding: 2px 8px;
             border-radius: 10px;
             font-size: 11px;
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'IBM Plex Mono', monospace;
             text-transform: uppercase;
         }
 
@@ -314,7 +321,7 @@
         }
 
         .player-id {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'IBM Plex Mono', monospace;
             font-size: 11px;
             color: #504030;
         }
@@ -330,7 +337,7 @@
         }
 
         .log-body {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'IBM Plex Mono', monospace;
             font-size: 12px;
             line-height: 1.8;
             max-height: 250px;
@@ -360,11 +367,28 @@
             font-size: 14px;
         }
 
-        .empty-state .icon {
-            font-size: 32px;
-            margin-bottom: 12px;
-            opacity: 0.4;
+        .empty-state .ico {
+            display: block;
+            width: 32px;
+            height: 32px;
+            margin: 0 auto 12px;
+            opacity: 0.45;
         }
+
+        /* ── Icons (painted UI set: /img/ui) ── */
+        .ico {
+            display: inline-block;
+            width: 1.3em;
+            height: 1.3em;
+            flex: none;
+            object-fit: contain;
+            vertical-align: -0.3em;
+        }
+        .btn .ico { margin-right: 6px; }
+        .brand { display: inline-flex; align-items: center; gap: 12px; }
+        .brand .ico { width: 1.2em; height: 1.2em; vertical-align: 0; }
+        .lobby-meta > span:not(.lobby-status) { display: inline-flex; align-items: center; gap: 5px; }
+        .player-chip .host-badge .ico { width: 12px; height: 12px; vertical-align: -1px; }
 
         /* ── Auth Screen ── */
         .auth-screen {
@@ -400,7 +424,7 @@
             border-radius: 6px;
             padding: 12px 16px;
             color: #c8b08a;
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'IBM Plex Mono', monospace;
             font-size: 14px;
             outline: none;
         }
@@ -433,7 +457,7 @@
         .ban-entry:last-child { border-bottom: none; }
 
         .ban-ip {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'IBM Plex Mono', monospace;
             font-size: 13px;
             color: #e57373;
         }
@@ -448,7 +472,7 @@
 
 <!-- Auth Screen -->
 <div id="auth-screen" class="auth-screen">
-    <div class="auth-title">⛏️ UNEARTH</div>
+    <div class="auth-title brand"><img class="ico" src="/img/ui/trowel.webp" alt="">UNEARTH</div>
     <div class="auth-box">
         <div style="text-align: center; color: #706050; font-size: 13px; letter-spacing: 2px; text-transform: uppercase;">Admin Panel</div>
         <input type="password" id="auth-key" class="auth-input" placeholder="Admin key..." autofocus>
@@ -461,14 +485,14 @@
 <div id="dashboard" style="display: none;">
     <div class="header">
         <div class="header-left">
-            <h1>⛏️ UNEARTH</h1>
-            <span class="badge">ADMIN v1.0</span>
+            <h1 class="brand"><img class="ico" src="/img/ui/trowel.webp" alt="">UNEARTH</h1>
+            <span class="badge" id="admin-version">ADMIN · v1.0.1</span>
         </div>
         <div class="header-right">
             <div class="status-dot" id="ws-status"></div>
             <span id="ws-status-text" style="font-size: 12px; color: #706050;">Connecting...</span>
-            <button class="btn" onclick="launchDebugGame()">🔧 Debug Game</button>
-            <button class="btn btn-danger" onclick="broadcastMessage()">📢 Broadcast</button>
+            <button class="btn" onclick="launchDebugGame()"><img class="ico" src="/img/ui/wrench.webp" alt="">Debug Game</button>
+            <button class="btn btn-danger" onclick="broadcastMessage()"><img class="ico" src="/img/ui/megaphone.webp" alt="">Broadcast</button>
         </div>
     </div>
 
@@ -507,7 +531,7 @@
                 </div>
                 <div class="panel-body" id="lobby-list">
                     <div class="empty-state">
-                        <div class="icon">🏛️</div>
+                        <img class="ico" src="/img/ui/museum.webp" alt="">
                         No active lobbies
                     </div>
                 </div>
@@ -521,7 +545,7 @@
                 </div>
                 <div class="panel-body" id="player-list">
                     <div class="empty-state">
-                        <div class="icon">👤</div>
+                        <img class="ico" src="/img/ui/user.webp" alt="">
                         No players connected
                     </div>
                 </div>
@@ -535,7 +559,7 @@
                 </div>
                 <div class="panel-body log-body" id="log-list">
                     <div class="empty-state">
-                        <div class="icon">📋</div>
+                        <img class="ico" src="/img/ui/clipboard.webp" alt="">
                         Waiting for events...
                     </div>
                 </div>
@@ -552,9 +576,20 @@
                 </div>
                 <div class="panel-body" id="ban-list">
                     <div class="empty-state">
-                        <div class="icon">🛡️</div>
+                        <img class="ico" src="/img/ui/shield.webp" alt="">
                         No active bans
                     </div>
+                </div>
+            </div>
+
+            <!-- Leaderboard moderation -->
+            <div class="panel log-panel">
+                <div class="panel-header">
+                    <span class="panel-title">LEADERBOARD</span>
+                    <button class="btn btn-sm" data-act="lb-refresh">Refresh</button>
+                </div>
+                <div class="panel-body" id="lb-list">
+                    <div class="empty-state"><img class="ico" src="/img/ui/trophy.webp" alt="">No scores yet</div>
                 </div>
             </div>
         </div>
@@ -568,7 +603,7 @@
     <div style="background:linear-gradient(135deg,#1a1008,#0f0a05); border:1px solid rgba(180,60,60,0.4);
         border-radius:12px; padding:28px; min-width:380px; max-width:450px;">
         <div style="font-family:'Cinzel',serif; color:#e57373; font-size:16px; margin-bottom:20px; letter-spacing:2px;">
-            🚫 BAN PLAYER
+            <img class="ico" src="/img/ui/ban.webp" alt=""> BAN PLAYER
         </div>
         <input type="hidden" id="ban-player-id">
         <div id="ban-target-info" style="color:#a08060; font-size:14px; margin-bottom:16px;"></div>
@@ -594,7 +629,10 @@
     </div>
 </div>
 
+<script src="/config.js"></script>
 <script>
+    // Game server address (same site unless /config.js points elsewhere, e.g. a static build on Vercel).
+    const SERVER = String(window.UNEARTH_SERVER || '').trim().replace(/\/+$/, '');
     let adminKey = '';
     let ws = null;
     let pollInterval = null;
@@ -611,7 +649,7 @@
         if (!key) return;
 
         try {
-            const res = await fetch('/api/admin/stats', {
+            const res = await fetch(SERVER + '/api/admin/stats', {
                 headers: { 'x-admin-key': key }
             });
 
@@ -622,6 +660,7 @@
                 connectWebSocket();
                 startPolling();
                 refreshBans();
+                refreshLeaderboard();
                 addLog('admin', 'Authenticated successfully');
             } else {
                 document.getElementById('auth-error').style.display = 'block';
@@ -640,7 +679,7 @@
 
     async function fetchStats() {
         try {
-            const res = await fetch('/api/admin/stats', {
+            const res = await fetch(SERVER + '/api/admin/stats', {
                 headers: { 'x-admin-key': adminKey }
             });
             if (!res.ok) return;
@@ -650,6 +689,7 @@
     }
 
     function updateDashboard(data) {
+        if (data.version) document.getElementById('admin-version').textContent = `ADMIN · v${data.version}`;
         // Stats
         document.getElementById('stat-players').textContent = data.players.online;
         document.getElementById('stat-players-sub').textContent = `Peak: ${data.players.peak}`;
@@ -671,7 +711,7 @@
     function renderLobbies(lobbies) {
         const container = document.getElementById('lobby-list');
         if (!lobbies.length) {
-            container.innerHTML = '<div class="empty-state"><div class="icon">🏛️</div>No active lobbies</div>';
+            container.innerHTML = emptyState('museum', 'No active lobbies');
             return;
         }
 
@@ -682,35 +722,36 @@
                 lobby.gameState?.gameOver ? 'FINISHED' : 'WAITING';
 
             const roundInfo = lobby.gameState?.inProgress
-                ? `Round ${lobby.gameState.currentRound}/${lobby.settings.rounds} · ${lobby.gameState.currentCountry || '?'}`
+                ? `Site ${lobby.gameState.currentRound}/${lobby.gameState.totalRounds || lobby.settings.rounds} · ${esc(lobby.gameState.currentCountry || '?')}`
                 : '';
 
             return `
                 <div class="lobby-card">
                     <div class="lobby-top">
                         <span class="lobby-name">${esc(lobby.name)}</span>
-                        <span class="lobby-code">${lobby.code}</span>
+                        <span class="lobby-code">${esc(lobby.code)}</span>
                     </div>
                     <div class="lobby-meta">
                         <span class="lobby-status ${statusClass}">${statusText}</span>
-                        <span>👥 ${lobby.playerCount}/${lobby.settings.maxPlayers}</span>
-                        <span>🔄 ${lobby.settings.rounds} rounds</span>
-                        <span>⏱️ ${lobby.settings.timePerRound}s</span>
-                        ${roundInfo ? `<span>🗺️ ${roundInfo}</span>` : ''}
+                        <span>${icon('users')}${lobby.playerCount}/${lobby.settings.maxPlayers}</span>
+                        <span>${icon('refresh')}${lobby.settings.rounds} rounds</span>
+                        <span>${icon('stopwatch')}${lobby.settings.timePerRound ? lobby.settings.timePerRound + 's' : 'no limit'}</span>
+                        ${lobby.settings.isPrivate ? `<span>${icon('lock')}private</span>` : ''}
+                        ${roundInfo ? `<span>${icon('globe')}${roundInfo}</span>` : ''}
                     </div>
                     <div class="lobby-players">
                         ${lobby.players.map(p => `
                             <span class="player-chip">
-                                ${p.id === lobby.hostId ? '<span class="host-badge">👑</span>' : ''}
+                                ${p.id === lobby.hostId ? `<span class="host-badge" title="Host">${icon('crown')}</span>` : ''}
                                 ${esc(p.name || 'Unknown')}
-                                <span style="color: #504030; font-size: 10px;">(${p.score})</span>
+                                <span style="color: #504030; font-size: 10px;">(${Number(p.score) || 0})</span>
                             </span>
                         `).join('')}
                     </div>
                     <div class="lobby-actions">
-                        <button class="btn btn-sm btn-danger" onclick="closeLobby('${lobby.code}')">Close Lobby</button>
+                        <button class="btn btn-sm btn-danger" data-act="close-lobby" data-code="${esc(lobby.code)}">Close Lobby</button>
                         ${lobby.players.map(p => p.id !== lobby.hostId ?
-                `<button class="btn btn-sm" onclick="kickPlayer('${lobby.code}', '${p.id}')">Kick ${esc(p.name || 'Unknown')}</button>` : ''
+                `<button class="btn btn-sm" data-act="kick" data-code="${esc(lobby.code)}" data-player="${esc(p.id)}">Kick ${esc(p.name || 'Unknown')}</button>` : ''
             ).join('')}
                     </div>
                 </div>
@@ -721,7 +762,7 @@
     function renderPlayers(playerList) {
         const container = document.getElementById('player-list');
         if (!playerList.length) {
-            container.innerHTML = '<div class="empty-state"><div class="icon">👤</div>No players connected</div>';
+            container.innerHTML = emptyState('user', 'No players connected');
             return;
         }
 
@@ -729,13 +770,13 @@
             <div class="player-row">
                 <div class="player-info">
                     <span class="player-name">${esc(p.name || 'Anonymous')}</span>
-                    <span class="player-id">${p.id}</span>
-                    <span class="player-id" style="color: #504030;">${p.ip || '?'}</span>
+                    <span class="player-id">${esc(p.id)}</span>
+                    <span class="player-id" style="color: #504030;">${esc(p.ip || '?')}</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <span class="player-lobby">${p.lobbyCode ? `Lobby: ${p.lobbyCode}` : 'No lobby'}</span>
-                    ${p.lobbyCode ? `<button class="btn btn-sm btn-danger" onclick="kickPlayer('${p.lobbyCode}', '${p.id}')">Kick</button>` : ''}
-                    <button class="btn btn-sm btn-danger" onclick="showBanDialog('${p.id}', '${esc(p.name || 'Unknown')}', '${p.ip || ''}')">Ban</button>
+                    <span class="player-lobby">${p.lobbyCode ? `Lobby: ${esc(p.lobbyCode)}` : 'No lobby'}</span>
+                    ${p.lobbyCode ? `<button class="btn btn-sm btn-danger" data-act="kick" data-code="${esc(p.lobbyCode)}" data-player="${esc(p.id)}">Kick</button>` : ''}
+                    <button class="btn btn-sm btn-danger" data-act="ban" data-player="${esc(p.id)}" data-name="${esc(p.name || 'Unknown')}" data-ip="${esc(p.ip || '')}">Ban</button>
                 </div>
             </div>
         `).join('');
@@ -744,7 +785,7 @@
     // ── Admin Actions ──
     async function closeLobby(code) {
         if (!confirm(`Close lobby ${code}? All players will be disconnected.`)) return;
-        const res = await fetch(`/api/admin/lobby/${code}/close`, {
+        const res = await fetch(SERVER + `/api/admin/lobby/${code}/close`, {
             method: 'POST',
             headers: { 'x-admin-key': adminKey }
         });
@@ -755,7 +796,7 @@
     }
 
     async function kickPlayer(lobbyCode, playerId) {
-        const res = await fetch(`/api/admin/lobby/${lobbyCode}/kick/${playerId}`, {
+        const res = await fetch(SERVER + `/api/admin/lobby/${lobbyCode}/kick/${playerId}`, {
             method: 'POST',
             headers: { 'x-admin-key': adminKey }
         });
@@ -772,7 +813,7 @@
     function broadcastMessage() {
         const msg = prompt('Broadcast message to all players:');
         if (!msg) return;
-        fetch('/api/admin/broadcast', {
+        fetch(SERVER + '/api/admin/broadcast', {
             method: 'POST',
             headers: { 'x-admin-key': adminKey, 'Content-Type': 'application/json' },
             body: JSON.stringify({ message: msg })
@@ -784,7 +825,7 @@
     // ── WebSocket for live log ──
     function connectWebSocket() {
         const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        ws = new WebSocket(`${protocol}//${location.host}`);
+        ws = new WebSocket(SERVER ? SERVER.replace(/^http/i, 'ws') : `${protocol}//${location.host}`);
 
         ws.onopen = () => {
             document.getElementById('ws-status').classList.remove('disconnected');
@@ -821,6 +862,7 @@
 
     function renderLogs() {
         const container = document.getElementById('log-list');
+        if (!logs.length) { container.innerHTML = emptyState('clipboard', 'Waiting for events...'); return; }
         container.innerHTML = logs.map(log => `
             <div class="log-entry">
                 <span class="log-time">${log.time}</span>
@@ -844,10 +886,53 @@
         return `${h}h ${m}m`;
     }
 
+    // Painted icon from the game's UI set. `name` is always a literal from this file.
+    const icon = name => `<img class="ico" src="/img/ui/${name}.webp" alt="">`;
+    const emptyState = (name, text) => `<div class="empty-state">${icon(name)}${text}</div>`;
+
     function esc(str) {
-        const d = document.createElement('div');
-        d.textContent = str;
-        return d.innerHTML;
+        return String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    // All row buttons use data attributes + one delegated handler (no inline JS with user data).
+    document.addEventListener('click', (e) => {
+        const el = e.target.closest('[data-act]');
+        if (!el) return;
+        const d = el.dataset;
+        if (d.act === 'close-lobby') closeLobby(d.code);
+        else if (d.act === 'kick') kickPlayer(d.code, d.player);
+        else if (d.act === 'ban') showBanDialog(d.player, d.name, d.ip);
+        else if (d.act === 'unban') unbanIP(d.ip);
+        else if (d.act === 'lb-delete') deleteScore(d.id, d.name);
+        else if (d.act === 'lb-refresh') refreshLeaderboard();
+    });
+
+    async function refreshLeaderboard() {
+        try {
+            const res = await fetch(SERVER + '/api/leaderboard', { cache: 'no-store' });
+            const list = await res.json();
+            const container = document.getElementById('lb-list');
+            if (!list.length) {
+                container.innerHTML = emptyState('trophy', 'No scores yet');
+                return;
+            }
+            container.innerHTML = list.map((e, i) => `
+                <div class="ban-entry">
+                    <div>
+                        <span style="color:#706050;font-family:'IBM Plex Mono',monospace;font-size:12px;">#${i + 1}</span>
+                        <span style="color:#ffd700;margin-left:8px;">${esc(e.name)}</span>
+                        <span style="color:#a08060;margin-left:8px;">${Number(e.score).toLocaleString()} pts</span>
+                        <div class="ban-meta">${esc(e.correct)}/${esc(e.rounds)} correct · ${esc(e.mode || 'expedition')} · ${e.date ? new Date(e.date).toLocaleString() : ''}</div>
+                    </div>
+                    ${e.id ? `<button class="btn btn-sm btn-danger" data-act="lb-delete" data-id="${esc(e.id)}" data-name="${esc(e.name)}">Remove</button>` : ''}
+                </div>`).join('');
+        } catch (e) { /* silent */ }
+    }
+
+    async function deleteScore(id, name) {
+        if (!confirm(`Remove "${name}" from the leaderboard?`)) return;
+        const res = await fetch(SERVER + `/api/admin/leaderboard/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { 'x-admin-key': adminKey } });
+        if (res.ok) { addLog('admin', `Removed leaderboard entry ${name}`); refreshLeaderboard(); }
     }
 
     // ── Ban Management ──
@@ -859,7 +944,7 @@
         currentBanIP = ip;
         document.getElementById('ban-player-id').value = playerId;
         document.getElementById('ban-target-info').innerHTML =
-            `Banning: <strong style="color:#ffd700">${name}</strong> <span style="color:#504030">(IP: ${ip || 'unknown'})</span>`;
+            `Banning: <strong style="color:#ffd700">${esc(name)}</strong> <span style="color:#504030">(IP: ${esc(ip || 'unknown')})</span>`;
         document.getElementById('ban-reason').value = '';
         document.getElementById('ban-duration').value = '24';
         // Reset duration buttons
@@ -932,7 +1017,7 @@
 
     async function refreshBans() {
         try {
-            const res = await fetch('/api/admin/bans', { headers: { 'x-admin-key': adminKey } });
+            const res = await fetch(SERVER + '/api/admin/bans', { headers: { 'x-admin-key': adminKey } });
             if (!res.ok) return;
             const data = await res.json();
             renderBans(data.bans);
@@ -942,7 +1027,7 @@
     function renderBans(banList) {
         const container = document.getElementById('ban-list');
         if (!banList.length) {
-            container.innerHTML = '<div class="empty-state"><div class="icon">🛡️</div>No active bans</div>';
+            container.innerHTML = emptyState('shield', 'No active bans');
             return;
         }
 
@@ -960,7 +1045,7 @@
                         <div class="ban-meta">${esc(ban.reason)} · Since: ${since}</div>
                         <div class="ban-meta">${expiry}</div>
                     </div>
-                    <button class="btn btn-sm" onclick="unbanIP('${esc(ban.ip)}')">Unban</button>
+                    <button class="btn btn-sm" data-act="unban" data-ip="${esc(ban.ip)}">Unban</button>
                 </div>
             `;
         }).join('');
@@ -968,7 +1053,7 @@
 
     async function unbanIP(ip) {
         if (!confirm(`Unban ${ip}?`)) return;
-        const res = await fetch(`/api/admin/unban/${encodeURIComponent(ip)}`, {
+        const res = await fetch(SERVER + `/api/admin/unban/${encodeURIComponent(ip)}`, {
             method: 'POST',
             headers: { 'x-admin-key': adminKey },
         });

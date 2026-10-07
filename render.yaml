@@ -1,0 +1,23 @@
+# Render Blueprint: the complete game (static files, multiplayer, leaderboard, admin)
+# as one Node web service. https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: unearth
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Password for /admin and the in-game debug tools. Render asks for it when the Blueprint is created.
+      - key: ADMIN_KEY
+        sync: false
+      # Public address of the game, used for robots.txt, the sitemap and CORS.
+      - key: PUBLIC_URL
+        value: https://www.playunearth.tech
+      # Other sites that host the game client and call this server (e.g. Vercel deployments).
+      - key: ALLOWED_ORIGINS
+        value: https://playunearth.tech,https://www.playunearth.tech,https://*.vercel.app

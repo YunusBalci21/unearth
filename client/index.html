@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Unearth — Free Archaeology Guessing Game | Dig, Discover &amp; Guess the Country</title>
+    <meta name="description" content="Unearth is a free archaeology guessing game you play in your browser. Excavate dig sites layer by layer, recover 768 real-world artifacts and guess which of 32 countries they come from — solo, in the Daily Dig or with friends.">
+    <meta name="keywords" content="archaeology game, guessing game, geography game, history game, artifact game, browser game, multiplayer guessing game, daily puzzle, geoguessr alternative, free online game">
+    <meta name="author" content="YNS Interactive">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <link rel="canonical" href="https://www.playunearth.tech/">
+    <meta name="theme-color" content="#120e0a">
+    <meta name="color-scheme" content="dark">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Unearth">
+    <meta property="og:url" content="https://www.playunearth.tech/">
+    <meta property="og:title" content="Unearth — Dig Deep, Discover History">
+    <meta property="og:description" content="Excavate ancient sites, recover artifacts and guess which country they come from. Free archaeology guessing game — solo, daily or with friends.">
+    <meta property="og:image" content="https://www.playunearth.tech/public/images/og-image.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="800">
+    <meta property="og:image:alt" content="The Unearth logo above a golden funerary mask, an inscribed tablet under a magnifying glass and a clay jug half-buried in desert sand">
+    <meta property="og:locale" content="en_US">
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Unearth — Dig Deep, Discover History">
+    <meta name="twitter:description" content="Excavate, recover artifacts, guess the country. A free archaeology guessing game for your browser.">
+    <meta name="twitter:image" content="https://www.playunearth.tech/public/images/og-image.jpg">
+
+    <!-- App / icons -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Unearth">
+    <link rel="apple-touch-icon" sizes="180x180" href="/public/favicons/apple-touch-icon.png?v=3">
+    <link rel="icon" type="image/png" sizes="32x32" href="/public/favicons/favicon-32x32.png?v=2">
+    <link rel="icon" type="image/png" sizes="16x16" href="/public/favicons/favicon-16x16.png?v=2">
+    <link rel="icon" href="/public/favicons/favicon.ico?v=2" sizes="any">
+    <link rel="manifest" href="/public/favicons/site.webmanifest?v=3">
+
+    <link rel="preload" href="/public/fonts/barlow-condensed-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/public/fonts/ibm-plex-mono-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="/img/logo.webp" as="image" type="image/webp">
+    <link rel="modulepreload" href="/vendor/three/build/three.module.js">
+    <link rel="stylesheet" href="/css/unearth.css">
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@type": "VideoGame",
+                "@id": "https://www.playunearth.tech/#game",
+                "name": "Unearth",
+                "url": "https://www.playunearth.tech/",
+                "image": "https://www.playunearth.tech/public/images/og-image.jpg",
+                "description": "A free browser archaeology guessing game. Excavate dig sites layer by layer, recover artifacts and identify which country they come from. Play solo, take on the Daily Dig or challenge friends in multiplayer lobbies.",
+                "genre": ["Puzzle", "Educational", "Trivia", "Geography"],
+                "gamePlatform": ["Web browser", "Desktop", "Mobile"],
+                "applicationCategory": "GameApplication",
+                "operatingSystem": "Any",
+                "playMode": ["SinglePlayer", "MultiPlayer"],
+                "numberOfPlayers": { "@type": "QuantitativeValue", "minValue": 1, "maxValue": 10 },
+                "inLanguage": "en",
+                "isAccessibleForFree": true,
+                "softwareVersion": "1.0.1",
+                "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD", "availability": "https://schema.org/InStock" },
+                "author": { "@type": "Organization", "name": "YNS Interactive" },
+                "publisher": { "@type": "Organization", "name": "YNS Interactive" }
+            },
+            {
+                "@type": "WebSite",
+                "@id": "https://www.playunearth.tech/#website",
+                "name": "Unearth",
+                "url": "https://www.playunearth.tech/"
+            },
+            {
+                "@type": "FAQPage",
+                "mainEntity": [
+                    { "@type": "Question", "name": "What is Unearth?", "acceptedAnswer": { "@type": "Answer", "text": "Unearth is a free archaeology guessing game. Each round drops you at an excavation site somewhere in the world. Dig layer by layer, recover artifacts and use them as clues to guess which country the site is in." } },
+                    { "@type": "Question", "name": "How do you score points in Unearth?", "acceptedAnswer": { "@type": "Answer", "text": "A correct identification is worth 500 points if you recovered one find or fewer, dropping by 100 for every extra find, plus a bonus of one point per second left on the clock. A wrong guess costs 100 points." } },
+                    { "@type": "Question", "name": "Can I play Unearth with friends?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Host an expedition, share the six-letter code or invite link and up to ten players excavate the same sites and race to identify them." } },
+                    { "@type": "Question", "name": "Is Unearth free and does it work on mobile?", "acceptedAnswer": { "@type": "Answer", "text": "Unearth is completely free, needs no download or account and runs in modern desktop and mobile browsers." } }
+                ]
+            }
+        ]
+    }
+    </script>
+</head>
+<body class="in-menu">
+
+<canvas id="scene" aria-label="Excavation site. Use the tools to dig; arrow keys move the selected unit and Enter digs." tabindex="-1"></canvas>
+<div class="edge-shade" aria-hidden="true"></div>
+
+<!-- Boot / error state -->
+<div id="boot" role="status" aria-live="polite">
+    <div class="boot-inner">
+        <img class="boot-mark" src="/img/mark.webp" alt="" width="96" height="96">
+        <div class="boot-word">Unearth</div>
+        <div class="ruler loading" aria-hidden="true"><span></span></div>
+        <p class="boot-status" id="boot-status">Preparing the field season…</p>
+        <div class="boot-error" id="boot-error" hidden>
+            <p>Unearth couldn’t start its 3D excavation. Please make sure hardware acceleration / WebGL is enabled, or try another browser.</p>
+            <button class="btn btn-primary" type="button" onclick="location.reload()">Try again</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================ MAIN MENU ============================ -->
+<main id="menu" class="screen" aria-labelledby="menu-title">
+    <div class="utility">
+        <button class="ibtn" type="button" data-action="toggle-sound" aria-label="Mute sound" aria-pressed="false"><img class="ico" src="/img/ui/sound.webp" alt=""></button>
+        <button class="ibtn" type="button" data-action="open-settings" aria-label="Settings"><img class="ico" src="/img/ui/settings.webp" alt=""></button>
+    </div>
+
+    <div class="menu-main">
+        <h1 class="logo" id="menu-title"><img src="/img/logo.webp" alt="Unearth" width="1100" height="290"></h1>
+        <p class="menu-tagline">Dig deep <i></i> Discover history</p>
+        <p class="menu-lede">An archaeology guessing game. Excavate a site layer by layer, recover what lies buried and name the country you’re digging in.</p>
+
+        <nav class="menu-list" aria-label="Main menu">
+            <button class="menu-item lead" type="button" data-action="new-expedition">
+                <span class="mi-idx">01</span><span class="mi-label">New expedition</span><span class="mi-meta">Solo · worldwide or by region</span>
+            </button>
+            <button class="menu-item" type="button" data-action="daily">
+                <span class="mi-idx">02</span><span class="mi-label">Daily Dig</span><span class="mi-meta" id="daily-meta">#1</span>
+            </button>
+            <button class="menu-item" type="button" data-action="multiplayer">
+                <span class="mi-idx">03</span><span class="mi-label">Play with friends</span><span class="mi-meta">Up to 10 explorers</span>
+            </button>
+            <button class="menu-item" type="button" data-action="open-archive">
+                <span class="mi-idx">04</span><span class="mi-label">Archive</span><span class="mi-meta" id="archive-meta">0 / 768</span>
+            </button>
+            <button class="menu-item" type="button" data-action="open-leaderboard">
+                <span class="mi-idx">05</span><span class="mi-label">Leaderboard</span><span class="mi-meta">Worldwide register</span>
+            </button>
+            <button class="menu-item" type="button" data-action="open-guide">
+                <span class="mi-idx">06</span><span class="mi-label">Field guide</span><span class="mi-meta">How to dig</span>
+            </button>
+        </nav>
+    </div>
+
+    <button class="field-id" type="button" data-action="open-archive" id="rank-chip" aria-label="Field rank — open the Archive">
+        <span class="fid-seal" id="rank-seal">I</span>
+        <span class="fid-body">
+            <span class="fid-kicker">Field rank</span>
+            <strong class="fid-name" id="rank-name">Volunteer</strong>
+            <span class="ruler" id="rank-bar"><span></span></span>
+            <span class="fid-sub" id="rank-sub">0 of 768 artifacts catalogued</span>
+        </span>
+    </button>
+    <footer class="menu-footer">v<span data-version>1.0.1</span> · YNS Interactive</footer>
+</main>
+
+<!-- ============================ MULTIPLAYER ============================ -->
+<section id="mp" class="screen page" aria-labelledby="mp-title">
+    <div class="page-inner">
+        <header class="page-head">
+            <button class="ibtn" type="button" data-action="back-to-menu" aria-label="Back to base camp"><img class="ico" src="/img/ui/back.webp" alt=""></button>
+            <div class="ph-titles"><span class="ph-kicker">Expedition board</span><h2 class="ph-title" id="mp-title">Play with friends</h2></div>
+            <span class="status-light" id="mp-status">Connecting…</span>
+        </header>
+
+        <div class="identity case">
+            <label class="f-row"><span class="f-label">Your name</span><input class="f-line" id="mp-name" maxlength="20" placeholder="Explorer" autocomplete="nickname"></label>
+            <div class="f-row"><span class="f-label" id="mp-color-label">Colour</span><div class="swatches" role="radiogroup" aria-labelledby="mp-color-label" data-swatches></div></div>
+        </div>
+
+        <div class="board-cols">
+            <section class="case" aria-labelledby="join-title">
+                <h3 class="case-title" id="join-title">Join an expedition</h3>
+                <form class="ticket paper" id="join-form">
+                    <label class="ticket-label" for="join-code">Expedition code</label>
+                    <input class="ticket-input" id="join-code" maxlength="6" placeholder="······" autocomplete="off" autocapitalize="characters" spellcheck="false">
+                    <button class="btn btn-primary" type="submit">Join</button>
+                </form>
+                <div class="case-sub">
+                    <span class="case-kicker">Open expeditions</span>
+                    <button class="link-btn" type="button" id="refresh-lobbies"><img class="ico" src="/img/ui/refresh.webp" alt=""> Refresh</button>
+                </div>
+                <div class="ledger lobby-list" id="lobby-list" aria-live="polite"></div>
+            </section>
+
+            <section class="case" aria-labelledby="host-title">
+                <h3 class="case-title" id="host-title">Host an expedition</h3>
+                <form class="form-grid" id="host-form">
+                    <label class="f-row"><span class="f-label">Expedition name</span><input class="f-line" id="host-lobby-name" maxlength="30" placeholder="The Great Dig"></label>
+                    <div class="f-row"><span class="f-label">Sites</span><div class="choices" role="radiogroup" aria-label="Number of sites" data-seg="host-rounds"></div></div>
+                    <div class="f-row"><span class="f-label">Time per site</span><div class="choices" role="radiogroup" aria-label="Time per site" data-seg="host-time"></div></div>
+                    <div class="f-row"><span class="f-label">Team size</span><div class="choices" role="radiogroup" aria-label="Maximum players" data-seg="host-players"></div></div>
+                    <label class="toggle"><input type="checkbox" id="host-private"><span class="tg-switch" aria-hidden="true"></span><span class="tg-text">Private expedition<small>Hidden from the open list — join by code or link.</small></span></label>
+                    <label class="f-row"><span class="f-label">Password <em>optional</em></span><input class="f-line" id="host-password" type="password" maxlength="32" autocomplete="new-password"></label>
+                    <button class="btn btn-primary btn-lg btn-block" type="submit"><img class="ico" src="/img/ui/flag.webp" alt=""> Create expedition</button>
+                </form>
+            </section>
+        </div>
+    </div>
+</section>
+
+<!-- ============================ LOBBY ROOM ============================ -->
+<section id="room" class="screen page" aria-labelledby="room-title">
+    <div class="page-inner">
+        <header class="page-head">
+            <button class="ibtn" type="button" data-action="leave-lobby" aria-label="Leave expedition"><img class="ico" src="/img/ui/back.webp" alt=""></button>
+            <div class="ph-titles"><span class="ph-kicker">Base camp</span><h2 class="ph-title" id="room-title">Expedition</h2></div>
+        </header>
+        <div class="room-cols">
+            <div class="room-left">
+                <section class="code-plate" aria-label="Invite">
+                    <span class="cp-label">Expedition code</span>
+                    <div class="cp-code" id="room-code">——————</div>
+                    <div class="cp-actions">
+                        <button class="btn btn-sm" type="button" id="copy-code"><img class="ico" src="/img/ui/copy.webp" alt=""> Copy code</button>
+                        <button class="btn btn-sm" type="button" id="copy-link"><img class="ico" src="/img/ui/link.webp" alt=""> Copy invite link</button>
+                    </div>
+                </section>
+                <section class="sheet roster" aria-labelledby="team-title">
+                    <header class="doc-head slim">
+                        <span class="doc-code">Field team roster</span>
+                        <h3 class="doc-title sm" id="team-title">Team</h3>
+                        <span class="doc-no" id="room-count">1 / 6</span>
+                    </header>
+                    <ol class="roster-list" id="room-team" aria-live="polite"></ol>
+                </section>
+            </div>
+            <section class="case room-terms" aria-label="Expedition terms">
+                <h3 class="case-title">Terms</h3>
+                <dl class="terms" id="room-facts"></dl>
+                <p class="case-note" id="room-note">Everyone excavates identical sites. Recover fewer finds and identify faster for more points.</p>
+                <button class="btn btn-primary btn-lg btn-block" type="button" id="room-start"><img class="ico" src="/img/ui/play.webp" alt=""> Set off</button>
+                <p class="waiting" id="room-waiting" hidden>Waiting for the host to set off…</p>
+                <button class="btn btn-danger btn-block" type="button" data-action="leave-lobby"><img class="ico" src="/img/ui/exit.webp" alt=""> Leave expedition</button>
+            </section>
+        </div>
+    </div>
+</section>
+
+<!-- ============================ HUD ============================ -->
+<div id="hud" aria-hidden="true">
+    <header class="hud-site">
+        <span class="hs-num" id="hud-site-num">Site 01 / 05</span>
+        <span class="hs-title" id="hud-site-title">Unidentified site</span>
+        <span class="hs-meta"><span id="hud-soil">Sandy soil</span><i></i><span id="hud-mode">Worldwide</span><i></i><span id="hud-dug">0% excavated</span></span>
+    </header>
+
+    <div class="hud-timer" id="hud-timer" role="timer" aria-label="Time remaining">
+        <span class="ht-time" id="hud-time">2:00</span>
+        <span class="ht-tape" aria-hidden="true"><span></span></span>
+    </div>
+
+    <div class="hud-score">
+        <div class="hsc-read"><span class="hsc-label">Score</span><span class="hsc-value" id="hud-score">0</span></div>
+        <button class="ibtn" type="button" id="hud-pause" aria-label="Pause menu (Esc)"><img class="ico" src="/img/ui/pause.webp" alt=""></button>
+    </div>
+
+    <ol class="hud-standings" id="hud-standings" aria-label="Standings" hidden></ol>
+
+    <aside class="hud-finds" aria-label="Finds">
+        <span class="hf-head">Finds <b id="hud-finds-count">0/5</b></span>
+        <div class="hf-tags" id="hud-slots"></div>
+    </aside>
+
+    <section class="hud-gauge" id="hud-gauge" aria-hidden="true">
+        <div class="gauge-col" id="gauge-col"><i></i><i></i><i></i><i></i><b class="gauge-mark" id="gauge-mark"></b></div>
+        <div class="gauge-read">
+            <span class="g-unit" id="gauge-unit">—</span>
+            <span class="g-depth" id="gauge-depth">Depth —</span>
+            <span class="g-layer" id="gauge-layer">Survey a unit</span>
+            <ul class="g-notes" id="gauge-notes"></ul>
+        </div>
+    </section>
+
+    <div class="hud-kit">
+        <div class="kit-readout" id="kit-readout" aria-live="polite"></div>
+        <div class="kit-belt" role="radiogroup" aria-label="Excavation tools" id="toolrail">
+            <button class="kit-tool" type="button" role="radio" data-tool="shovel" aria-checked="true" aria-label="Shovel (1)">
+                <img src="/img/ui/shovel-lg.webp" alt="" width="96" height="96"><span class="kt-key">1</span><span class="kt-name">Shovel</span>
+            </button>
+            <button class="kit-tool" type="button" role="radio" data-tool="trowel" aria-checked="false" aria-label="Trowel (2)">
+                <img src="/img/ui/trowel-lg.webp" alt="" width="96" height="96"><span class="kt-key">2</span><span class="kt-name">Trowel</span>
+            </button>
+            <button class="kit-tool" type="button" role="radio" data-tool="brush" aria-checked="false" aria-label="Brush (3)">
+                <img src="/img/ui/brush-lg.webp" alt="" width="96" height="96"><span class="kt-key">3</span><span class="kt-name">Brush</span>
+            </button>
+            <button class="kit-tool" type="button" role="radio" data-tool="probe" aria-checked="false" aria-label="Survey probe (4)">
+                <img src="/img/ui/probe-lg.webp" alt="" width="96" height="96"><span class="kt-key">4</span><span class="kt-name">Probe</span>
+                <span class="kt-charges" id="hud-probes" aria-label="3 probes left"><i></i><i></i><i></i></span>
+            </button>
+        </div>
+    </div>
+
+    <form class="hud-ident paper" id="guess-form" autocomplete="off" novalidate>
+        <div class="id-head"><span>Identify the site</span><span class="id-penalty">Wrong guess −100</span></div>
+        <div class="id-row">
+            <div class="combo">
+                <img class="ico" src="/img/ui/pin.webp" alt="">
+                <label class="sr-only" for="guess-input">Which country is this site in?</label>
+                <input id="guess-input" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="guess-list" placeholder="Country…" spellcheck="false" autocapitalize="words">
+                <ul class="listbox" id="guess-list" role="listbox" aria-label="Countries" hidden></ul>
+            </div>
+            <button class="id-stamp" type="submit" id="guess-submit" disabled>Identify</button>
+        </div>
+        <div class="id-foot"><span id="guess-hint">If correct now: 500 pts</span></div>
+        <div class="id-locked" id="guess-locked"><span class="id-locked-stamp" id="guess-locked-text">Answer locked in</span></div>
+    </form>
+
+    <div class="coach paper" id="coach" hidden>
+        <span class="coach-step" id="coach-step">1</span>
+        <p id="coach-text"></p>
+        <button class="coach-x" type="button" id="coach-close" aria-label="Hide tips"><img class="ico" src="/img/ui/close.webp" alt=""></button>
+    </div>
+</div>
+
+<!-- Discovery: the find record that accompanies a recovered artifact -->
+<div class="reveal" id="reveal" hidden>
+    <div class="reveal-bars" aria-hidden="true"><i></i><i></i></div>
+    <article class="find-record paper" id="find-record" role="dialog" aria-modal="false" aria-labelledby="fr-name"></article>
+    <p class="reveal-hint" id="reveal-hint">Click anywhere to catalogue</p>
+</div>
+
+<div class="site-intro" id="site-intro" aria-live="polite">
+    <div class="slate">
+        <span class="slate-num" id="intro-kicker">Site 01 / 05</span>
+        <h2 class="slate-title" id="intro-title">Breaking ground</h2>
+        <div class="slate-facts" id="intro-facts"></div>
+        <div class="ruler"><span id="intro-bar"></span></div>
+        <p class="slate-tip" id="intro-tip"></p>
+    </div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+<div class="sr-only" id="announcer" aria-live="assertive"></div>
+
+<!-- ============================ DIALOGS ============================ -->
+
+<dialog class="modal" id="setup" aria-labelledby="setup-title">
+    <form class="sheet doc-narrow" method="dialog" id="setup-form">
+        <header class="doc-head">
+            <span class="doc-code">Form UE-1 · Expedition order</span>
+            <h2 class="doc-title" id="setup-title">New expedition</h2>
+            <span class="doc-no" id="setup-no">No. 0001</span>
+            <button class="doc-close" type="button" data-close aria-label="Close"><img class="ico" src="/img/ui/close.webp" alt=""></button>
+        </header>
+        <div class="form-grid">
+            <label class="f-row"><span class="f-label">Field director</span><input class="f-line" id="setup-name" maxlength="20" placeholder="Explorer" autocomplete="nickname"></label>
+            <div class="f-row"><span class="f-label" id="setup-color-label">Colour</span><div class="swatches" role="radiogroup" aria-labelledby="setup-color-label" data-swatches></div></div>
+            <div class="f-row"><span class="f-label">Region</span><div class="choices" role="radiogroup" aria-label="Region" data-seg="setup-region"></div></div>
+            <div class="f-row"><span class="f-label">Sites</span><div class="choices" role="radiogroup" aria-label="Number of sites" data-seg="setup-rounds"></div></div>
+            <div class="f-row"><span class="f-label">Time per site</span><div class="choices" role="radiogroup" aria-label="Time per site" data-seg="setup-time"></div></div>
+        </div>
+        <p class="doc-note" id="setup-note">Worldwide expeditions are entered in the leaderboard.</p>
+        <footer class="doc-foot">
+            <button class="btn" type="button" data-close>Cancel</button>
+            <button class="btn btn-primary btn-lg" type="submit" value="start"><img class="ico" src="/img/ui/shovel.webp" alt=""> Set off</button>
+        </footer>
+    </form>
+</dialog>
+
+<dialog class="modal bare" id="pause" aria-labelledby="pause-title">
+    <div class="pause-menu">
+        <span class="pm-kicker" id="pause-kicker">Expedition paused</span>
+        <h2 class="pm-title" id="pause-title">Field tent</h2>
+        <nav class="menu-list compact" aria-label="Pause menu">
+            <button class="menu-item lead" type="button" data-close><span class="mi-label">Resume</span><span class="mi-meta">Esc</span></button>
+            <button class="menu-item" type="button" data-action="open-guide"><span class="mi-label">Field guide</span></button>
+            <button class="menu-item" type="button" data-action="open-settings"><span class="mi-label">Settings</span></button>
+            <button class="menu-item danger" type="button" id="pause-quit"><span class="mi-label">Abandon expedition</span></button>
+        </nav>
+        <div class="confirm" id="pause-confirm" hidden>
+            <p>Abandon this expedition? This run’s score is lost — artifacts you recovered stay in your Archive.</p>
+            <div class="confirm-row">
+                <button class="btn btn-sm" type="button" id="pause-quit-cancel">Keep digging</button>
+                <button class="btn btn-sm btn-danger" type="button" id="pause-quit-confirm">Abandon</button>
+            </div>
+        </div>
+        <dl class="keys" aria-label="Controls">
+            <dt>Click</dt><dd>Dig / use tool</dd>
+            <dt>1 – 4</dt><dd>Equip tool</dd>
+            <dt>Right-drag</dt><dd>Walk around</dd>
+            <dt>Q · E · R</dt><dd>Turn · reset view</dd>
+            <dt>Arrows · Enter</dt><dd>Select · dig</dd>
+            <dt>G</dt><dd>Identify site</dd>
+        </dl>
+    </div>
+</dialog>
+
+<dialog class="modal" id="settings" aria-labelledby="settings-title">
+    <div class="case doc-narrow">
+        <header class="case-head">
+            <h2 class="case-title lg" id="settings-title">Settings</h2>
+            <button class="doc-close" type="button" data-close aria-label="Close"><img class="ico" src="/img/ui/close.webp" alt=""></button>
+        </header>
+        <section class="set-group" aria-label="Audio">
+            <span class="case-kicker">Audio</span>
+            <div class="tape"><label for="set-master">Master</label><input type="range" id="set-master" min="0" max="100" step="1"><output for="set-master"></output></div>
+            <div class="tape"><label for="set-music">Music</label><input type="range" id="set-music" min="0" max="100" step="1"><output for="set-music"></output></div>
+            <div class="tape"><label for="set-sfx">Effects</label><input type="range" id="set-sfx" min="0" max="100" step="1"><output for="set-sfx"></output></div>
+        </section>
+        <section class="set-group" aria-label="Visuals and comfort">
+            <span class="case-kicker">Visuals &amp; comfort</span>
+            <label class="toggle"><input type="checkbox" id="set-particles"><span class="tg-switch" aria-hidden="true"></span><span class="tg-text">Ambient effects<small>Dust, embers and drifting particles.</small></span></label>
+            <label class="toggle"><input type="checkbox" id="set-shake"><span class="tg-switch" aria-hidden="true"></span><span class="tg-text">Camera shake<small>A small jolt when the shovel bites.</small></span></label>
+            <label class="toggle"><input type="checkbox" id="set-motion"><span class="tg-switch" aria-hidden="true"></span><span class="tg-text">Reduced motion<small>Calmer transitions and no camera moves.</small></span></label>
+            <label class="toggle"><input type="checkbox" id="set-tips"><span class="tg-switch" aria-hidden="true"></span><span class="tg-text">Field tips<small>Short hints while you dig.</small></span></label>
+        </section>
+        <footer class="case-foot">
+            <button class="btn btn-danger btn-sm" type="button" id="reset-archive">Reset archive</button>
+            <button class="btn btn-primary" type="button" data-close>Done</button>
+        </footer>
+    </div>
+</dialog>
+
+<dialog class="modal wide" id="inspector" aria-labelledby="insp-name">
+    <div class="bench">
+        <div class="bench-stage" id="insp-stage">
+            <span class="bench-catno" id="insp-catno">Cat. —</span>
+            <span class="bench-scale" aria-hidden="true"><i></i><b>10 cm</b></span>
+            <span class="bench-hint">Drag to turn · scroll to zoom</span>
+        </div>
+        <div class="sheet bench-label">
+            <header class="doc-head slim">
+                <span class="doc-code">Research bench · catalogue entry</span>
+                <button class="doc-close" type="button" data-close aria-label="Close"><img class="ico" src="/img/ui/close.webp" alt=""></button>
+            </header>
+            <span id="insp-rarity" class="rarity rarity-common">Common</span>
+            <h2 class="label-name" id="insp-name">Artifact</h2>
+            <dl class="fields" id="insp-facts"></dl>
+            <div id="insp-notes"></div>
+        </div>
+    </div>
+</dialog>
+
+<dialog class="modal" id="round-results" aria-labelledby="rr-country">
+    <div class="sheet doc-medium" id="rr-body" tabindex="-1" autofocus></div>
+</dialog>
+
+<dialog class="modal" id="final" aria-labelledby="final-title">
+    <div class="sheet doc-medium" id="final-body" tabindex="-1" autofocus></div>
+</dialog>
+
+<dialog class="modal wide" id="archive" aria-labelledby="archive-title">
+    <div class="sheet doc-wide archive">
+        <header class="doc-head">
+            <span class="doc-code">Collection catalogue</span>
+            <h2 class="doc-title" id="archive-title">The Archive</h2>
+            <span class="doc-no" id="archive-count">0 / 768</span>
+            <button class="doc-close" type="button" data-close aria-label="Close"><img class="ico" src="/img/ui/close.webp" alt=""></button>
+        </header>
+        <div id="archive-body"></div>
+    </div>
+</dialog>
+
+<dialog class="modal" id="leaderboard" aria-labelledby="lb-title">
+    <div class="sheet doc-medium">
+        <header class="doc-head">
+            <span class="doc-code">Register of expeditions · worldwide</span>
+            <h2 class="doc-title" id="lb-title">Leaderboard</h2>
+            <button class="doc-close" type="button" data-close aria-label="Close"><img class="ico" src="/img/ui/close.webp" alt=""></button>
+        </header>
+        <div id="lb-body"></div>
+    </div>
+</dialog>
+
+<dialog class="modal" id="share" aria-labelledby="share-title">
+    <div class="sheet doc-narrow">
+        <header class="doc-head slim">
+            <span class="doc-code">Dispatch</span>
+            <h2 class="doc-title sm" id="share-title">Share your expedition</h2>
+            <button class="doc-close" type="button" data-close aria-label="Close"><img class="ico" src="/img/ui/close.webp" alt=""></button>
+        </header>
+        <pre class="dispatch" id="share-text"></pre>
+        <footer class="doc-foot wrap" id="share-actions"></footer>
+    </div>
+</dialog>
+
+<dialog class="modal" id="prompt" aria-labelledby="prompt-title">
+    <form class="sheet doc-narrow" method="dialog" id="prompt-form">
+        <header class="doc-head slim"><span class="doc-code">Restricted</span><h2 class="doc-title sm" id="prompt-title">Password required</h2></header>
+        <p class="doc-note" id="prompt-text"></p>
+        <label class="f-row"><span class="f-label">Password</span><input class="f-line" id="prompt-input" type="password" autocomplete="off"></label>
+        <footer class="doc-foot">
+            <button class="btn" type="button" data-close>Cancel</button>
+            <button class="btn btn-primary" type="submit" value="ok" id="prompt-ok">Continue</button>
+        </footer>
+    </form>
+</dialog>
+
+<dialog class="modal" id="guide" aria-labelledby="guide-title">
+    <div class="sheet doc-medium manual">
+        <header class="doc-head">
+            <span class="doc-code">Field manual · 2nd edition</span>
+            <h2 class="doc-title" id="guide-title">Field guide</h2>
+            <button class="doc-close" type="button" data-close aria-label="Close"><img class="ico" src="/img/ui/close.webp" alt=""></button>
+        </header>
+        <ol class="manual-steps">
+            <li><img class="ico" src="/img/ui/layers.webp" alt=""><div><h3>Excavate</h3><p>Every site is an 8×8 grid of excavation units with three layers of soil above bedrock. Click a unit to remove a layer. Deeper layers are older — and hold the rarest finds.</p></div></li>
+            <li><img class="ico" src="/img/ui/search.webp" alt=""><div><h3>Read the clues</h3><p>Potsherds on the surface lie near buried finds. Dark soil stains mark something deep below. A survey probe counts every hidden find in the 3×3 units around it.</p></div></li>
+            <li><img class="ico" src="/img/ui/brush.webp" alt=""><div><h3>Recover</h3><p>When a find starts to show through the soil, brush it clean to lift it out. On site you only know what you can see — material, type, age and condition; its name and history are recorded after you identify the site. Shovels are fast but can chip what they uncover, and badly damaged finds can barely be described.</p></div></li>
+            <li><img class="ico" src="/img/ui/pin.webp" alt=""><div><h3>Identify the site</h3><p>Use your finds to name the country. One find or none: 500 points, then 100 less per extra find — plus a second-by-second time bonus. A wrong answer costs 100.</p></div></li>
+        </ol>
+
+        <h3 class="manual-h">The kit</h3>
+        <table class="kit-table">
+            <thead><tr><th scope="col">Tool</th><th scope="col">Key</th><th scope="col">Area</th><th scope="col">Use it for</th></tr></thead>
+            <tbody>
+                <tr><td><img class="ico" src="/img/ui/shovel.webp" alt="">Shovel</td><td><kbd>1</kbd></td><td>3×3</td><td>Clearing ground quickly. May chip finds it uncovers.</td></tr>
+                <tr><td><img class="ico" src="/img/ui/trowel.webp" alt="">Trowel</td><td><kbd>2</kbd></td><td>1×1</td><td>Careful work on a single unit. Never damages a find.</td></tr>
+                <tr><td><img class="ico" src="/img/ui/brush.webp" alt="">Brush</td><td><kbd>3</kbd></td><td>Find</td><td>Cleaning an exposed find until it can be lifted out.</td></tr>
+                <tr><td><img class="ico" src="/img/ui/probe.webp" alt="">Probe</td><td><kbd>4</kbd></td><td>3×3</td><td>Counting hidden finds. Three charges per site.</td></tr>
+            </tbody>
+        </table>
+        <p class="doc-note">Right-drag (or one-finger drag) to walk around the trench, scroll or pinch to zoom, <kbd>R</kbd> resets the view. Arrow keys select a unit and <kbd>Enter</kbd> digs.</p>
+
+        <section class="about" aria-labelledby="about-title">
+            <h3 class="manual-h" id="about-title">About Unearth</h3>
+            <p>Unearth is a free archaeology guessing game for your browser — part excavation, part geography quiz. Its archive holds 768 artifacts, 24 from each of 32 countries: everyday potsherds, coins, lamps and spindle whorls alongside Egyptian funerary masks, Chinese oracle bones, Viking swords, Benin brasses and 2.6-million-year-old stone tools, each with a short note on its real history.</p>
+            <p>Play a solo expedition worldwide or by region, take on the Daily Dig that everyone plays with the same sites, or host a private lobby and race up to nine friends to identify each site. Every artifact you recover is catalogued in your personal Archive.</p>
+        </section>
+        <footer class="doc-foot"><button class="btn btn-primary" type="button" data-close>Understood</button></footer>
+    </div>
+</dialog>
+
+<noscript>
+    <div style="position:fixed;inset:0;z-index:200;display:grid;place-items:center;background:#120e0a;color:#efe3c6;font:18px Georgia,serif;text-align:center;padding:24px">
+        <div>
+            <h1 style="font-family:Georgia,serif;letter-spacing:.2em;color:#d6a446">UNEARTH</h1>
+            <p>Unearth is a free archaeology guessing game: excavate sites, recover artifacts and guess which country they come from.</p>
+            <p>Please enable JavaScript to play.</p>
+        </div>
+    </div>
+</noscript>
+
+<script src="/config.js"></script>
+<script type="importmap">
+{
+    "imports": {
+        "three": "/vendor/three/build/three.module.js",
+        "three/addons/": "/vendor/three/examples/jsm/"
+    }
+}
+</script>
+<script>
+    // If the game module fails to load (old browser, blocked script), show a helpful error instead of a blank screen.
+    window.__unearthBootTimer = setTimeout(function () {
+        if (window.__unearthReady) return;
+        var err = document.getElementById('boot-error');
+        var status = document.getElementById('boot-status');
+        if (err) err.hidden = false;
+        if (status) status.textContent = 'Something went wrong';
+    }, 20000);
+</script>
+<script type="module" src="/js/main.js"></script>
+</body>
+</html>

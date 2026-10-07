@@ -1,153 +1,331 @@
 // ============================================
-// UNEARTH MULTIPLAYER SERVER
+// UNEARTH SERVER — static hosting, multiplayer lobbies, leaderboard, admin API
 // ============================================
 
 import 'dotenv/config';
 import express from 'express';
+import compression from 'compression';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { Readable } from 'stream';
-import { pipeline } from 'stream/promises';
+import { readFileSync, writeFileSync, existsSync, renameSync } from 'fs';
+import { timingSafeEqual, randomBytes } from 'crypto';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { SITE_NAMES, resolveCountry } from './client/js/shared/countries.js';
+import {
+    VERSION, ROUND_OPTIONS, TIME_OPTIONS, MAX_PLAYER_OPTIONS, WRONG_GUESS_PENALTY,
+    pointsForCorrect, maxPointsPerRound, clampToOption,
+} from './client/js/shared/rules.js';
 
-const app = express();
-const server = createServer(app);
-const wss = new WebSocketServer({ server });
-
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const CLIENT_DIR = join(__dirname, 'client');
+const PUBLIC_DIR = join(__dirname, 'public');
 const PORT = process.env.PORT || 3000;
+const PUBLIC_URL = (process.env.PUBLIC_URL || 'https://www.playunearth.tech').replace(/\/+$/, '');
 
-// Serve static files
-app.use(express.static(__dirname));
-app.use('/public', express.static(join(__dirname, 'public')));
+// Sites allowed to call the API from a browser when the game is hosted elsewhere
+// (e.g. the static build on Vercel). Comma-separated origins; "*" wildcards allowed,
+// as in "https://*.vercel.app". The public site and its www / bare variant are always allowed.
+const ALLOWED_ORIGINS = allowedOrigins(process.env.ALLOWED_ORIGINS, PUBLIC_URL);
 
-// Admin panel route
-app.get('/admin', (req, res) => {
-    res.sendFile(join(__dirname, 'public', 'admin', 'index.html'));
-});
+function allowedOrigins(list, publicUrl) {
+    const out = new Set(String(list || '').split(',').map(s => s.trim().replace(/\/+$/, '')).filter(Boolean));
+    try {
+        const u = new URL(publicUrl);
+        out.add(u.origin);
+        const host = u.hostname.startsWith('www.') ? u.hostname.slice(4) : `www.${u.hostname}`;
+        out.add(`${u.protocol}//${host}${u.port ? `:${u.port}` : ''}`);
+    } catch { /* PUBLIC_URL is not a URL: only the explicit list applies */ }
+    return [...out].map(p => p === '*' ? /^.*$/ : new RegExp(`^${p.split('*').map(x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[^/]*')}$`, 'i'));
+}
 
-// ============================================
-// DATA STRUCTURES
-// ============================================
+function isAllowedOrigin(origin) {
+    return !!origin && ALLOWED_ORIGINS.some(re => re.test(origin));
+}
 
-const lobbies = new Map();        // lobbyCode -> Lobby
-const players = new Map();        // odlayerId -> Player
-const connections = new Map();    // odlayerId -> WebSocket
-const adminConnections = new Set(); // WebSocket connections subscribed to admin logs
+const ROUND_BREAK_MS = 7000;   // results screen between multiplayer rounds
+const READY_TIMEOUT_MS = 15000; // start a round even if a client is slow to load
 
-// ── Admin Config ──
+// ── Admin key ──
 const ADMIN_KEY = process.env.ADMIN_KEY || 'unearth-admin-2026';
-
-// ── Ban System ──
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-
-const BANS_FILE = join(__dirname, 'bans.json');
-let bans = new Map(); // ip -> { reason, bannedAt, expiresAt (null=permanent), bannedName }
-
-function loadBans() {
-    try {
-        if (existsSync(BANS_FILE)) {
-            const data = JSON.parse(readFileSync(BANS_FILE, 'utf8'));
-            bans = new Map(Object.entries(data));
-            // Clean expired bans on load
-            const now = Date.now();
-            for (const [ip, ban] of bans) {
-                if (ban.expiresAt && ban.expiresAt < now) bans.delete(ip);
-            }
-            saveBans();
-            console.log(`[Bans] Loaded ${bans.size} active bans`);
-        }
-    } catch (e) {
-        console.error('[Bans] Failed to load bans:', e.message);
-    }
+if (!process.env.ADMIN_KEY) {
+    console.warn('[Security] ADMIN_KEY is not set — using the built-in default. Set ADMIN_KEY in your environment to secure /admin.');
 }
 
-function saveBans() {
-    try {
-        writeFileSync(BANS_FILE, JSON.stringify(Object.fromEntries(bans), null, 2));
-    } catch (e) {
-        console.error('[Bans] Failed to save bans:', e.message);
-    }
+function isAdminKey(candidate) {
+    if (typeof candidate !== 'string') return false;
+    const a = Buffer.from(candidate);
+    const b = Buffer.from(ADMIN_KEY);
+    return a.length === b.length && timingSafeEqual(a, b);
 }
 
-function isIPBanned(ip) {
-    const ban = bans.get(ip);
-    if (!ban) return null;
-    // Check expiry
-    if (ban.expiresAt && ban.expiresAt < Date.now()) {
-        bans.delete(ip);
-        saveBans();
-        return null;
-    }
-    return ban;
+// ============================================
+// INPUT HELPERS
+// ============================================
+
+function cleanText(value, max) {
+    return String(value ?? '')
+        .replace(/[\u0000-\u001f\u007f<>]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, max);
 }
 
-function getClientIP(ws, req) {
-    // Support proxies (Render, nginx, etc.)
+function cleanColor(value) {
+    return /^#[0-9a-f]{6}$/i.test(String(value)) ? String(value) : '#d9a93b';
+}
+
+function generateId() {
+    return randomBytes(9).toString('base64url');
+}
+
+function shuffleArray(array) {
+    const out = [...array];
+    for (let i = out.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [out[i], out[j]] = [out[j], out[i]];
+    }
+    return out;
+}
+
+function getClientIP(req) {
     const forwarded = req.headers['x-forwarded-for'];
-    if (forwarded) return forwarded.split(',')[0].trim();
+    if (forwarded) return String(forwarded).split(',')[0].trim();
     return req.socket.remoteAddress || 'unknown';
 }
 
-loadBans();
+// ============================================
+// PERSISTENCE (atomic JSON files next to server.js — never web-served)
+// ============================================
 
-// ── Rate Limiting ──
-const rateLimits = new Map(); // ip -> { connections: timestamp[], messages: timestamp[] }
-
-function getRateLimit(ip) {
-    if (!rateLimits.has(ip)) {
-        rateLimits.set(ip, { connections: [], messages: [], lobbyCreations: [] });
+function readJSON(file, fallback) {
+    try {
+        if (existsSync(file)) return JSON.parse(readFileSync(file, 'utf8'));
+    } catch (e) {
+        console.error(`[Storage] Failed to read ${file}:`, e.message);
     }
-    return rateLimits.get(ip);
+    return fallback;
 }
 
-function isRateLimited(ip, type, maxCount, windowMs) {
-    const limits = getRateLimit(ip);
+function writeJSON(file, data) {
+    try {
+        const tmp = `${file}.tmp`;
+        writeFileSync(tmp, JSON.stringify(data, null, 2));
+        renameSync(tmp, file);
+    } catch (e) {
+        console.error(`[Storage] Failed to write ${file}:`, e.message);
+    }
+}
+
+// ── Bans ──
+const BANS_FILE = join(__dirname, 'bans.json');
+let bans = new Map(Object.entries(readJSON(BANS_FILE, {})));
+
+function pruneBans() {
     const now = Date.now();
-    // Clean old entries
-    limits[type] = limits[type].filter(t => now - t < windowMs);
-    if (limits[type].length >= maxCount) return true;
-    limits[type].push(now);
+    let changed = false;
+    for (const [ip, ban] of bans) {
+        if (ban.expiresAt && ban.expiresAt < now) { bans.delete(ip); changed = true; }
+    }
+    if (changed) saveBans();
+}
+function saveBans() { writeJSON(BANS_FILE, Object.fromEntries(bans)); }
+function isIPBanned(ip) {
+    pruneBans();
+    return bans.get(ip) || null;
+}
+pruneBans();
+console.log(`[Bans] ${bans.size} active bans`);
+
+// ── Leaderboard ──
+const LEADERBOARD_FILE = join(__dirname, 'leaderboard.json');
+let leaderboard = readJSON(LEADERBOARD_FILE, []);
+if (!Array.isArray(leaderboard)) leaderboard = [];
+// Sanitize entries written by older versions (names were stored unescaped).
+leaderboard = leaderboard
+    .filter(e => e && typeof e.score === 'number')
+    .map(e => ({ ...e, name: cleanText(e.name, 20) || 'Explorer', color: cleanColor(e.color) }));
+console.log(`[Leaderboard] ${leaderboard.length} entries`);
+
+// ============================================
+// RATE LIMITING
+// ============================================
+
+const rateLimits = new Map(); // `${bucket}:${ip}` -> timestamps[]
+
+function isRateLimited(ip, bucket, max, windowMs) {
+    const key = `${bucket}:${ip}`;
+    const now = Date.now();
+    const hits = (rateLimits.get(key) || []).filter(t => now - t < windowMs);
+    if (hits.length >= max) { rateLimits.set(key, hits); return true; }
+    hits.push(now);
+    rateLimits.set(key, hits);
     return false;
 }
 
-// Clean rate limit entries every 60 seconds
 setInterval(() => {
     const now = Date.now();
-    for (const [ip, limits] of rateLimits) {
-        limits.connections = limits.connections.filter(t => now - t < 60000);
-        limits.messages = limits.messages.filter(t => now - t < 10000);
-        limits.lobbyCreations = limits.lobbyCreations.filter(t => now - t < 30000);
-        if (limits.connections.length === 0 && limits.messages.length === 0) {
-            rateLimits.delete(ip);
-        }
+    for (const [key, hits] of rateLimits) {
+        const fresh = hits.filter(t => now - t < 120000);
+        if (fresh.length) rateLimits.set(key, fresh); else rateLimits.delete(key);
     }
-}, 60000);
+}, 60000).unref();
 
-// Rate limits config
-const RATE_LIMITS = {
-    connections: { max: 10, window: 60000 },    // 10 connections per minute per IP
-    messages:    { max: 30, window: 10000 },     // 30 messages per 10 seconds per IP
-    lobbies:     { max: 3,  window: 30000 },     // 3 lobby creations per 30 seconds per IP
-    guesses:     { max: 10, window: 10000 },     // 10 guesses per 10 seconds per IP
+const LIMITS = {
+    connections: [10, 60000],
+    messages: [40, 10000],
+    lobbies: [3, 30000],
+    api: [60, 60000],
+    leaderboard: [6, 60000],
 };
 
-// Simple API rate limiter middleware
-function apiRateLimiter(req, res, next) {
-    const forwarded = req.headers['x-forwarded-for'];
-    const ip = forwarded ? forwarded.split(',')[0].trim() : req.socket.remoteAddress || 'unknown';
-    if (isRateLimited(ip, 'messages', 60, 60000)) { // 60 API calls per minute
+// ============================================
+// EXPRESS
+// ============================================
+
+const app = express();
+const server = createServer(app);
+app.disable('x-powered-by');
+app.set('trust proxy', true);
+app.use(compression());
+
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+});
+
+// CORS for a game client served from another site (see ALLOWED_ORIGINS)
+app.use('/api', (req, res, next) => {
+    const origin = req.headers.origin;
+    if (isAllowedOrigin(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Admin-Key');
+        res.setHeader('Access-Control-Max-Age', '600');
+    }
+    res.append('Vary', 'Origin');
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+    next();
+});
+
+// SEO: crawler hints
+app.get('/robots.txt', (req, res) => {
+    res.type('text/plain').send(
+        `User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\n\nSitemap: ${PUBLIC_URL}/sitemap.xml\n`);
+});
+
+const DEPLOYED_ON = new Date().toISOString().slice(0, 10);
+app.get('/sitemap.xml', (req, res) => {
+    const lastmod = DEPLOYED_ON;
+    res.type('application/xml').send(
+        `<?xml version="1.0" encoding="UTF-8"?>\n` +
+        `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+        `  <url><loc>${PUBLIC_URL}/</loc><lastmod>${lastmod}</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>\n` +
+        `</urlset>\n`);
+});
+
+app.get('/healthz', (req, res) => res.json({ ok: true, version: VERSION }));
+app.get('/api/version', (req, res) => res.json({ version: VERSION }));
+
+// Admin panel (no-index, not frameable)
+app.get('/admin', (req, res) => {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Cache-Control', 'no-store');
+    res.sendFile(join(PUBLIC_DIR, 'admin', 'index.html'));
+});
+
+// three.js served from node_modules so the game never depends on a third-party CDN
+app.use('/vendor/three', express.static(join(__dirname, 'node_modules', 'three'), {
+    maxAge: '30d', immutable: true, index: false,
+}));
+
+// Media, fonts and icons: long-lived cache
+app.use('/public', express.static(PUBLIC_DIR, {
+    index: false,
+    setHeaders(res, path) {
+        if (/[\\/]admin[\\/]/.test(path)) res.setHeader('Cache-Control', 'no-store');
+        else if (/\.(woff2?)$/.test(path)) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        else res.setHeader('Cache-Control', 'public, max-age=604800');
+    },
+}));
+
+// Game client: always revalidate so a new release is picked up immediately
+app.use(express.static(CLIENT_DIR, {
+    setHeaders(res) { res.setHeader('Cache-Control', 'no-cache'); },
+}));
+
+app.use('/api', (req, res, next) => {
+    if (isRateLimited(getClientIP(req), 'api', ...LIMITS.api)) {
         return res.status(429).json({ error: 'Too many requests' });
     }
     next();
+});
+app.use('/api', express.json({ limit: '8kb' }));
+
+// ── Leaderboard API ──
+app.get('/api/leaderboard', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache');
+    res.json(leaderboard.slice(0, 50));
+});
+
+app.post('/api/leaderboard', (req, res) => {
+    if (isRateLimited(getClientIP(req), 'leaderboard', ...LIMITS.leaderboard)) {
+        return res.status(429).json({ error: 'Too many submissions' });
+    }
+    const body = req.body || {};
+    const name = cleanText(body.name, 20) || 'Explorer';
+    const rounds = Number(body.rounds);
+    const correct = Number(body.correct);
+    const score = Math.round(Number(body.score));
+
+    if (!ROUND_OPTIONS.includes(rounds)) return res.status(400).json({ error: 'Invalid rounds' });
+    if (!Number.isInteger(correct) || correct < 0 || correct > rounds) return res.status(400).json({ error: 'Invalid result' });
+    if (!Number.isFinite(score) || score <= 0 || score > correct * maxPointsPerRound()) {
+        return res.status(400).json({ error: 'Invalid score' });
+    }
+
+    const entry = {
+        name,
+        score,
+        rounds,
+        correct,
+        accuracy: Math.round((correct / rounds) * 100),
+        color: cleanColor(body.color),
+        mode: body.mode === 'daily' ? 'daily' : 'expedition',
+        date: new Date().toISOString(),
+        id: generateId(),
+    };
+
+    leaderboard.push(entry);
+    leaderboard.sort((a, b) => b.score - a.score);
+    leaderboard = leaderboard.slice(0, 100);
+    writeJSON(LEADERBOARD_FILE, leaderboard);
+
+    const rank = leaderboard.findIndex(e => e.id === entry.id) + 1;
+    res.json({ success: true, rank: rank || null, total: leaderboard.length, id: entry.id });
+});
+
+// ============================================
+// ADMIN API
+// ============================================
+
+const adminConnections = new Set();
+
+function adminLog(type, message) {
+    const payload = JSON.stringify({ type: 'admin_log', logType: type, message });
+    adminConnections.forEach(ws => { try { ws.send(payload); } catch { /* closed */ } });
+    console.log(`[${type.toUpperCase()}] ${message}`);
 }
 
-app.use('/api', apiRateLimiter);
+function checkAdminKey(req, res, next) {
+    if (!isAdminKey(req.headers['x-admin-key'])) return res.status(403).json({ error: 'Invalid admin key' });
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+}
 
-// ── Server Stats ──
 const serverStats = {
     startedAt: Date.now(),
     totalConnections: 0,
@@ -156,91 +334,56 @@ const serverStats = {
     totalGuesses: 0,
 };
 
-function adminLog(type, message) {
-    const payload = JSON.stringify({ type: 'admin_log', logType: type, message });
-    adminConnections.forEach(ws => {
-        try { ws.send(payload); } catch (e) { /* dead connection */ }
-    });
-    console.log(`[${type.toUpperCase()}] ${message}`);
-}
-
-function checkAdminKey(req, res, next) {
-    if (req.headers['x-admin-key'] !== ADMIN_KEY) {
-        return res.status(403).json({ error: 'Invalid admin key' });
-    }
-    next();
-}
-
-// ── Admin API ──
-app.use(express.json());
+app.get('/api/admin/verify', checkAdminKey, (req, res) => res.json({ ok: true, version: VERSION }));
 
 app.get('/api/admin/stats', checkAdminKey, (req, res) => {
-    const lobbyList = [];
-    lobbies.forEach((lobby, code) => {
-        lobbyList.push({
-            code,
+    const lobbyList = [...lobbies.values()].map(lobby => {
+        const gs = lobby.gameState;
+        return {
+            code: lobby.code,
             name: lobby.name,
             hostId: lobby.hostId,
             playerCount: lobby.players.length,
-            players: lobby.players.map(p => ({ id: p.id, name: p.name, score: p.score })),
-            settings: lobby.settings,
-            gameState: lobby.gameState ? {
-                inProgress: lobby.gameState.inProgress,
-                gameOver: lobby.gameState.gameOver,
-                currentRound: lobby.gameState.currentRound,
-                currentCountry: lobby.gameState.currentCountry,
+            players: lobby.players.map(p => ({ id: p.id, name: p.name, score: p.score || 0 })),
+            settings: { ...lobby.settings, password: undefined, hasPassword: !!lobby.settings.password },
+            gameState: gs ? {
+                inProgress: !gs.isGameOver,
+                gameOver: gs.isGameOver,
+                currentRound: gs.currentRound,
+                totalRounds: gs.totalRounds,
+                currentCountry: gs.countries[gs.currentRound - 1] || null,
             } : null,
-        });
+        };
     });
 
-    const playerList = [];
-    players.forEach((player, id) => {
-        playerList.push({
-            id,
-            name: player.name,
-            lobbyCode: player.lobbyCode,
-            score: player.score,
-            ip: player.ip,
-        });
-    });
-
-    const inGameCount = lobbyList.filter(l => l.gameState?.inProgress).length;
+    const playerList = [...players.values()].map(p => ({
+        id: p.id, name: p.name, lobbyCode: p.lobbyCode, score: p.score, ip: p.ip,
+    }));
 
     res.json({
-        players: {
-            online: players.size,
-            peak: serverStats.peakPlayers,
-            list: playerList,
-        },
-        lobbies: {
-            total: lobbies.size,
-            inGame: inGameCount,
-            list: lobbyList,
-        },
+        version: VERSION,
+        players: { online: players.size, peak: serverStats.peakPlayers, list: playerList },
+        lobbies: { total: lobbies.size, inGame: lobbyList.filter(l => l.gameState?.inProgress).length, list: lobbyList },
         stats: {
             totalGamesPlayed: serverStats.totalGamesPlayed,
             totalGuesses: serverStats.totalGuesses,
             totalConnections: serverStats.totalConnections,
             uptimeSeconds: Math.floor((Date.now() - serverStats.startedAt) / 1000),
             startedAt: new Date(serverStats.startedAt).toISOString(),
-        }
+            leaderboardEntries: leaderboard.length,
+        },
     });
 });
 
 app.post('/api/admin/lobby/:code/close', checkAdminKey, (req, res) => {
     const lobby = lobbies.get(req.params.code);
     if (!lobby) return res.status(404).json({ error: 'Lobby not found' });
-
-    // Notify all players
     lobby.players.forEach(p => {
-        const ws = connections.get(p.id);
-        if (ws) {
-            ws.send(JSON.stringify({ type: 'lobby_closed', reason: 'Closed by admin' }));
-        }
-        const playerData = players.get(p.id);
-        if (playerData) playerData.lobbyCode = null;
+        sendTo(p.id, { type: 'lobby_closed', reason: 'This expedition was closed by an administrator.' });
+        const pd = players.get(p.id);
+        if (pd) pd.lobbyCode = null;
     });
-
+    lobby.destroy();
     lobbies.delete(req.params.code);
     adminLog('admin', `Lobby ${req.params.code} closed by admin`);
     res.json({ success: true });
@@ -249,286 +392,173 @@ app.post('/api/admin/lobby/:code/close', checkAdminKey, (req, res) => {
 app.post('/api/admin/lobby/:code/kick/:playerId', checkAdminKey, (req, res) => {
     const lobby = lobbies.get(req.params.code);
     if (!lobby) return res.status(404).json({ error: 'Lobby not found' });
-
-    const ws = connections.get(req.params.playerId);
-    if (ws) {
-        ws.send(JSON.stringify({ type: 'kicked', reason: 'Kicked by admin' }));
-    }
-
-    lobby.removePlayer(req.params.playerId);
-    const playerData = players.get(req.params.playerId);
-    if (playerData) playerData.lobbyCode = null;
-
-    broadcast(lobby, { type: 'lobby_update', lobby: lobby.getState() });
+    sendTo(req.params.playerId, { type: 'kicked', reason: 'You were removed from the expedition by an administrator.' });
+    removeFromLobby(req.params.playerId, lobby);
     adminLog('admin', `Kicked player ${req.params.playerId} from lobby ${req.params.code}`);
     res.json({ success: true });
 });
 
 app.post('/api/admin/broadcast', checkAdminKey, (req, res) => {
-    const msg = req.body.message;
+    const msg = cleanText(req.body?.message, 280);
     if (!msg) return res.status(400).json({ error: 'No message' });
-
     const payload = JSON.stringify({ type: 'server_message', message: msg });
-    connections.forEach(ws => {
-        try { ws.send(payload); } catch (e) { /* skip dead */ }
-    });
-
+    connections.forEach(ws => { try { ws.send(payload); } catch { /* closed */ } });
     adminLog('admin', `Broadcast: "${msg}"`);
     res.json({ success: true, recipients: connections.size });
 });
 
-// Ban a player by their current connection (looks up IP)
+function banIP(ip, { reason, duration, name }) {
+    const hours = Number(duration);
+    const ban = {
+        reason: cleanText(reason, 200) || 'Banned by admin',
+        bannedAt: Date.now(),
+        expiresAt: hours > 0 ? Date.now() + hours * 3600000 : null,
+        bannedName: cleanText(name, 40) || 'Unknown',
+    };
+    bans.set(ip, ban);
+    saveBans();
+    players.forEach((player, playerId) => {
+        if (player.ip !== ip) return;
+        const ws = connections.get(playerId);
+        if (ws) {
+            ws.send(JSON.stringify({ type: 'banned', reason: ban.reason, expiresAt: ban.expiresAt }));
+            setTimeout(() => ws.close(), 500);
+        }
+    });
+    return ban;
+}
+
 app.post('/api/admin/ban/:playerId', checkAdminKey, (req, res) => {
     const player = players.get(req.params.playerId);
     if (!player) return res.status(404).json({ error: 'Player not found' });
     if (!player.ip || player.ip === 'unknown') return res.status(400).json({ error: 'Cannot determine player IP' });
-
-    const { reason, duration } = req.body; // duration in hours, null = permanent
-    const ban = {
-        reason: reason || 'Banned by admin',
-        bannedAt: Date.now(),
-        expiresAt: duration ? Date.now() + (duration * 3600000) : null,
-        bannedName: player.name || 'Unknown',
-    };
-
-    bans.set(player.ip, ban);
-    saveBans();
-
-    // Notify and disconnect the player
-    const ws = connections.get(req.params.playerId);
-    if (ws) {
-        ws.send(JSON.stringify({
-            type: 'banned',
-            reason: ban.reason,
-            expiresAt: ban.expiresAt,
-        }));
-        setTimeout(() => ws.close(), 500); // give time for message to send
-    }
-
-    // Remove from lobby
-    if (player.lobbyCode) {
-        const lobby = lobbies.get(player.lobbyCode);
-        if (lobby) {
-            lobby.removePlayer(req.params.playerId);
-            broadcast(lobby, { type: 'lobby_update', lobby: lobby.getState() });
-        }
-    }
-
-    const durationText = duration ? `${duration}h` : 'permanent';
+    const ban = banIP(player.ip, { ...req.body, name: player.name });
+    if (player.lobbyCode) removeFromLobby(player.id, lobbies.get(player.lobbyCode));
+    const durationText = ban.expiresAt ? `${req.body.duration}h` : 'permanent';
     adminLog('admin', `BANNED ${player.name} (IP: ${player.ip}) — ${durationText}: ${ban.reason}`);
     res.json({ success: true, ip: player.ip, duration: durationText });
 });
 
-// Ban by IP directly
 app.post('/api/admin/ban-ip', checkAdminKey, (req, res) => {
-    const { ip, reason, duration } = req.body;
+    const ip = cleanText(req.body?.ip, 64);
     if (!ip) return res.status(400).json({ error: 'No IP provided' });
-
-    const ban = {
-        reason: reason || 'Banned by admin',
-        bannedAt: Date.now(),
-        expiresAt: duration ? Date.now() + (duration * 3600000) : null,
-        bannedName: 'Manual IP ban',
-    };
-
-    bans.set(ip, ban);
-    saveBans();
-
-    // Disconnect any currently connected players with this IP
-    players.forEach((player, playerId) => {
-        if (player.ip === ip) {
-            const ws = connections.get(playerId);
-            if (ws) {
-                ws.send(JSON.stringify({ type: 'banned', reason: ban.reason, expiresAt: ban.expiresAt }));
-                setTimeout(() => ws.close(), 500);
-            }
-        }
-    });
-
-    const durationText = duration ? `${duration}h` : 'permanent';
-    adminLog('admin', `IP BANNED ${ip} — ${durationText}: ${ban.reason}`);
+    const ban = banIP(ip, { ...req.body, name: 'Manual IP ban' });
+    adminLog('admin', `IP BANNED ${ip} — ${ban.expiresAt ? `${req.body.duration}h` : 'permanent'}: ${ban.reason}`);
     res.json({ success: true });
 });
 
-// Unban an IP
 app.post('/api/admin/unban/:ip', checkAdminKey, (req, res) => {
     const ip = decodeURIComponent(req.params.ip);
     if (!bans.has(ip)) return res.status(404).json({ error: 'IP not banned' });
-
     bans.delete(ip);
     saveBans();
     adminLog('admin', `Unbanned IP: ${ip}`);
     res.json({ success: true });
 });
 
-// Get all bans
 app.get('/api/admin/bans', checkAdminKey, (req, res) => {
-    const banList = [];
-    const now = Date.now();
-    bans.forEach((ban, ip) => {
-        // Clean expired while listing
-        if (ban.expiresAt && ban.expiresAt < now) {
-            bans.delete(ip);
-            return;
-        }
-        banList.push({ ip, ...ban });
-    });
-    saveBans();
-    res.json({ bans: banList });
+    pruneBans();
+    res.json({ bans: [...bans.entries()].map(([ip, ban]) => ({ ip, ...ban })) });
 });
 
-// Countries available in the game
-const COUNTRIES = [
-    'Egypt', 'Greece', 'China', 'Mexico', 'Japan', 'Italy', 'India', 'Peru', 'Iraq',
-    'France', 'United Kingdom', 'Spain', 'Germany', 'Netherlands', 'Ireland', 'Russia',
-    'Turkey', 'Iran', 'Morocco',
-    'South Korea', 'Thailand', 'Cambodia', 'Indonesia',
-    'Nigeria', 'Ethiopia',
-    'Colombia', 'Brazil', 'United States',
-    'Australia',
-    'Norway', 'Sweden', 'Denmark'
-];
-
-app.get('/met-img/*', async (req, res) => {
-    try {
-        const remoteUrl = 'https://images.metmuseum.org' + req.path.replace('/met-img', '');
-
-        const response = await fetch(remoteUrl);
-        if (!response.ok) {
-            return res.status(response.status).send('Failed to fetch image');
-        }
-
-        // Reject non-image responses (Met Museum sometimes returns HTML error pages with 200)
-        const contentType = response.headers.get('content-type') || '';
-        if (!contentType.startsWith('image/')) {
-            return res.status(404).send('Not an image');
-        }
-
-        res.setHeader('Content-Type', contentType);
-        res.setHeader('Cache-Control', 'public, max-age=86400');
-
-        const nodeStream = Readable.fromWeb(response.body);
-        await pipeline(nodeStream, res);
-    } catch (err) {
-        console.error('[met-img proxy] Error:', err);
-        res.status(500).send('Proxy error');
-    }
+app.delete('/api/admin/leaderboard/:id', checkAdminKey, (req, res) => {
+    const before = leaderboard.length;
+    leaderboard = leaderboard.filter(e => e.id !== req.params.id);
+    if (leaderboard.length === before) return res.status(404).json({ error: 'Entry not found' });
+    writeJSON(LEADERBOARD_FILE, leaderboard);
+    adminLog('admin', `Removed leaderboard entry ${req.params.id}`);
+    res.json({ success: true });
 });
 
+app.use((req, res) => res.status(404).type('text/plain').send('Not found'));
 
 // ============================================
-// UTILITY FUNCTIONS
+// LOBBIES
 // ============================================
 
-function generateId() {
-    return Math.random().toString(36).substring(2, 15);
-}
+const lobbies = new Map();     // code -> Lobby
+const players = new Map();     // playerId -> player
+const connections = new Map(); // playerId -> ws
 
 function generateLobbyCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let code = '';
-    for (let i = 0; i < 6; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    // Make sure code is unique
-    if (lobbies.has(code)) {
-        return generateLobbyCode();
-    }
+    let code;
+    do {
+        code = Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    } while (lobbies.has(code));
     return code;
-}
-
-function broadcast(lobby, message, excludeId = null) {
-    lobby.players.forEach(player => {
-        if (player.id !== excludeId) {
-            const ws = connections.get(player.id);
-            if (ws && ws.readyState === 1) {
-                ws.send(JSON.stringify(message));
-            }
-        }
-    });
 }
 
 function sendTo(playerId, message) {
     const ws = connections.get(playerId);
-    if (ws && ws.readyState === 1) {
-        ws.send(JSON.stringify(message));
-    }
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify(message));
 }
 
-function shuffleArray(array) {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
+function broadcast(lobby, message, excludeId = null) {
+    const payload = JSON.stringify(message);
+    lobby.players.forEach(p => {
+        if (p.id === excludeId) return;
+        const ws = connections.get(p.id);
+        if (ws && ws.readyState === 1) ws.send(payload);
+    });
 }
-
-// ============================================
-// LOBBY CLASS
-// ============================================
 
 class Lobby {
-    constructor(hostId, hostName, settings) {
+    constructor(host, settings) {
         this.code = generateLobbyCode();
-        this.name = settings.lobbyName || `${hostName}'s Lobby`;
-        this.hostId = hostId;
+        this.name = cleanText(settings.lobbyName, 30) || `${host.name}'s Expedition`;
+        this.hostId = host.id;
         this.settings = {
-            maxPlayers: settings.maxPlayers || 6,
-            rounds: settings.rounds || 10,
-            timePerRound: settings.timePerRound || 120,
-            isPrivate: settings.isPrivate || false,
-            password: settings.password || null
+            maxPlayers: clampToOption(settings.maxPlayers, MAX_PLAYER_OPTIONS, 6),
+            rounds: clampToOption(settings.rounds, ROUND_OPTIONS, 5),
+            timePerRound: clampToOption(settings.timePerRound, TIME_OPTIONS, 120),
+            isPrivate: !!settings.isPrivate,
+            password: settings.password ? cleanText(settings.password, 32) || null : null,
         };
         this.players = [];
         this.bannedIds = new Set();
         this.gameState = null;
-        this.roundTimer = null;
+        this.timers = new Set();
     }
 
-    addPlayer(player) {
-        if (this.players.length >= this.settings.maxPlayers) {
-            return { success: false, error: 'Lobby is full' };
-        }
-        if (this.bannedIds.has(player.id)) {
-            return { success: false, error: 'You are banned from this lobby' };
-        }
-        this.players.push(player);
-        return { success: true };
+    later(fn, ms) {
+        const t = setTimeout(() => { this.timers.delete(t); fn(); }, ms);
+        this.timers.add(t);
+        return t;
     }
 
-    removePlayer(playerId) {
-        this.players = this.players.filter(p => p.id !== playerId);
-
-        // If host left, assign new host
-        if (playerId === this.hostId && this.players.length > 0) {
-            this.hostId = this.players[0].id;
-            return { newHostId: this.hostId };
-        }
-        return {};
+    every(fn, ms) {
+        const t = setInterval(fn, ms);
+        this.timers.add(t);
+        return t;
     }
 
-    kickPlayer(playerId) {
-        this.players = this.players.filter(p => p.id !== playerId);
+    clear(t) {
+        if (!t) return;
+        clearTimeout(t);
+        clearInterval(t);
+        this.timers.delete(t);
     }
 
-    banPlayer(playerId) {
-        this.kickPlayer(playerId);
-        this.bannedIds.add(playerId);
+    destroy() {
+        this.timers.forEach(t => { clearTimeout(t); clearInterval(t); });
+        this.timers.clear();
+        this.gameState = null;
     }
 
-    toPublicInfo() {
+    publicInfo() {
         return {
             code: this.code,
             name: this.name,
             playerCount: this.players.length,
             maxPlayers: this.settings.maxPlayers,
             rounds: this.settings.rounds,
-            hasPassword: !!this.settings.password
+            timePerRound: this.settings.timePerRound,
+            hasPassword: !!this.settings.password,
         };
     }
 
-    toFullInfo() {
+    fullInfo() {
         return {
             code: this.code,
             name: this.name,
@@ -536,859 +566,422 @@ class Lobby {
             settings: {
                 maxPlayers: this.settings.maxPlayers,
                 rounds: this.settings.rounds,
-                timePerRound: this.settings.timePerRound
+                timePerRound: this.settings.timePerRound,
+                isPrivate: this.settings.isPrivate,
+                hasPassword: !!this.settings.password,
             },
-            players: this.players.map(p => ({
-                id: p.id,
-                name: p.name,
-                score: p.score || 0,
-                color: p.color || '#ffd700'
-            }))
+            inGame: !!this.gameState,
+            players: this.playerList(),
         };
     }
 
-    // ============================================
-    // GAME LOGIC
-    // ============================================
-
-    startGame() {
-        // Generate round order (random countries)
-        const countryPool = [];
-        while (countryPool.length < this.settings.rounds) {
-            countryPool.push(...shuffleArray(COUNTRIES));
-        }
-
-        this.gameState = {
-            currentRound: 0,
-            totalRounds: this.settings.rounds,
-            countries: countryPool.slice(0, this.settings.rounds),
-            scores: {},
-            roundGuesses: {},
-            roundStartTime: null,
-            isRoundActive: false,
-            isRoundPending: false,  // True between startRound() and activateRound()
-            isGameOver: false
-        };
-
-        // Initialize scores
-        this.players.forEach(p => {
-            this.gameState.scores[p.id] = 0;
-            p.score = 0;
-        });
-
-        return this.gameState;
+    playerList() {
+        return this.players.map(p => ({ id: p.id, name: p.name, color: p.color, score: p.score || 0 }));
     }
 
-    startRound() {
-        const gs = this.gameState;
-        gs.currentRound++;
-        gs.roundGuesses = {};
-        gs.readyPlayers = new Set();
-        gs.isRoundActive = false;
-        gs.isRoundPending = true;   // Prevents duplicate startRound calls
-
-        const currentCountry = gs.countries[gs.currentRound - 1];
-
-        // Safety timeout: if not all players ready in 15s, start anyway
-        this.readyTimeout = setTimeout(() => {
-            if (!gs.isRoundActive && gs.isRoundPending) {
-                console.log(`[Server] Ready timeout - starting round ${gs.currentRound} with ${gs.readyPlayers.size}/${this.players.length} ready`);
-                this.activateRound();
-                broadcast(this, {
-                    type: 'round_go',
-                    serverTime: Date.now(),
-                    roundStartTime: gs.roundStartTime,
-                    timePerRound: this.settings.timePerRound,
-                    timeRemaining: this.settings.timePerRound
-                });
-                startTimerSync(this);
-            }
-        }, 15000);
-
-        return {
-            round: gs.currentRound,
-            totalRounds: gs.totalRounds,
-            country: currentCountry,
-            timeLimit: this.settings.timePerRound
-        };
-    }
-
-    // Called when a player finishes loading
-    playerReady(playerId) {
-        const gs = this.gameState;
-        if (!gs || gs.isRoundActive) return false;
-
-        gs.readyPlayers.add(playerId);
-
-        // Check if all players are ready
-        const allReady = this.players.every(p => gs.readyPlayers.has(p.id));
-        return allReady;
-    }
-
-    // Called when all players are ready - actually start the timer
-    activateRound() {
-        const gs = this.gameState;
-        if (!gs || gs.isRoundActive) return;
-
-        gs.roundStartTime = Date.now();
-        gs.isRoundActive = true;
-        gs.isRoundPending = false;
-
-        // Start timeout timer if time limit is set
-        if (this.settings.timePerRound > 0) {
-            this.roundTimer = setTimeout(() => {
-                this.endRound();
-            }, this.settings.timePerRound * 1000);
-        }
-    }
-
-    submitGuess(playerId, guess, artifactsFound = 0) {
-        const gs = this.gameState;
-        if (!gs || !gs.isRoundActive) return null;
-        if (gs.roundGuesses[playerId]) return null; // Already guessed
-
-        const currentCountry = gs.countries[gs.currentRound - 1];
-        const isCorrect = guess.toLowerCase() === currentCountry.toLowerCase();
-
-        // Use same scoring as client: artifact-based + time bonus
-        let basePoints;
-        if (artifactsFound <= 1) basePoints = 500;
-        else if (artifactsFound === 2) basePoints = 400;
-        else if (artifactsFound === 3) basePoints = 300;
-        else if (artifactsFound === 4) basePoints = 200;
-        else basePoints = 100;
-
-        const timeElapsed = (Date.now() - gs.roundStartTime) / 1000;
-        const timeBonus = Math.floor(Math.max(0, this.settings.timePerRound - timeElapsed));
-        const points = isCorrect ? (basePoints + timeBonus) : -100;
-
-        gs.roundGuesses[playerId] = {
-            guess,
-            isCorrect,
-            points,
-            time: timeElapsed
-        };
-
-        if (isCorrect) {
-            gs.scores[playerId] = (gs.scores[playerId] || 0) + points;
-        } else {
-            gs.scores[playerId] = Math.max(0, (gs.scores[playerId] || 0) + points);
-        }
-        const player = this.players.find(p => p.id === playerId);
-        if (player) player.score = gs.scores[playerId];
-
-        // Check if all players have guessed
-        const allGuessed = this.players.every(p => gs.roundGuesses[p.id]);
-        if (allGuessed) {
-            this.endRound();
-        }
-
-        return {
-            playerId,
-            playerName: this.players.find(p => p.id === playerId)?.name,
-            isCorrect,
-            points: isCorrect ? points : 0,
-            allGuessed
-        };
-    }
-
-    endRound() {
-        const gs = this.gameState;
-        if (!gs || !gs.isRoundActive) return null;
-
-        gs.isRoundActive = false;
-        gs.isRoundPending = false;
-        gs.isGameOver = gs.currentRound >= gs.totalRounds;
-
-        if (this.roundTimer) {
-            clearTimeout(this.roundTimer);
-            this.roundTimer = null;
-        }
-        if (this.readyTimeout) {
-            clearTimeout(this.readyTimeout);
-            this.readyTimeout = null;
-        }
-
-        const currentCountry = gs.countries[gs.currentRound - 1];
-
-        // Build per-player results with colors
-        const playerResults = this.players.map(p => {
-            const guess = gs.roundGuesses[p.id];
-            return {
-                playerId: p.id,
-                playerName: p.name,
-                color: p.color || '#ffd700',
-                isCorrect: guess?.isCorrect || false,
-                isTimeout: !guess,
-                points: guess?.points || 0,
-                guess: guess?.guess || null,
-            };
-        });
-
-        const results = {
-            round: gs.currentRound,
-            correctAnswer: currentCountry,
-            guesses: gs.roundGuesses,
-            results: playerResults,
-            scores: gs.scores,
-            isGameOver: gs.currentRound >= gs.totalRounds
-        };
-
-        // Broadcast round end
-        broadcast(this, {
-            type: 'round_end',
-            ...results,
-            standings: this.getStandings()
-        });
-
-        if (results.isGameOver) {
-            this.endGame();
-        }
-
-        return results;
-    }
-
-    endGame() {
-        const standings = this.getStandings();
-        const gs = this.gameState;
-
-        // Send personalized game_end to each player with their stats
-        this.players.forEach(p => {
-            const ws = connections.get(p.id);
-            if (ws && ws.readyState === 1) {
-                // Count correct guesses for this player
-                let correctCount = 0;
-                let totalGuesses = 0;
-                for (let round = 0; round < (gs?.totalRounds || 0); round++) {
-                    // We don't have per-round history easily, so use score as proxy
-                }
-
-                ws.send(JSON.stringify({
-                    type: 'game_end',
-                    standings,
-                    winner: standings[0],
-                    yourScore: gs?.scores[p.id] || 0,
-                    totalRounds: gs?.totalRounds || 0,
-                }));
-            }
-        });
-
-        // Reset game state
-        this.gameState = null;
-    }
-
-    getStandings() {
+    standings() {
         return this.players
             .map(p => ({
                 id: p.id,
                 name: p.name,
-                score: this.gameState?.scores[p.id] || 0,
-                color: p.color || '#ffd700'
+                color: p.color,
+                score: this.gameState?.scores[p.id] ?? p.score ?? 0,
+                correct: this.gameState?.correct[p.id] || 0,
             }))
             .sort((a, b) => b.score - a.score);
     }
 
-    getTimeRemaining() {
-        if (!this.gameState || !this.gameState.roundStartTime) return 0;
-        if (this.settings.timePerRound === 0) return -1; // No limit
+    // ── game flow ──
 
-        const elapsed = (Date.now() - this.gameState.roundStartTime) / 1000;
-        return Math.max(0, this.settings.timePerRound - elapsed);
+    startGame() {
+        const pool = [];
+        while (pool.length < this.settings.rounds) pool.push(...shuffleArray(SITE_NAMES));
+        this.gameState = {
+            currentRound: 0,
+            totalRounds: this.settings.rounds,
+            countries: pool.slice(0, this.settings.rounds),
+            seeds: Array.from({ length: this.settings.rounds }, () => Math.floor(Math.random() * 2 ** 31)),
+            scores: {},
+            correct: {},
+            roundGuesses: {},
+            readyPlayers: new Set(),
+            roundStartTime: null,
+            isRoundActive: false,
+            isRoundPending: false,
+            isGameOver: false,
+        };
+        this.players.forEach(p => {
+            this.gameState.scores[p.id] = 0;
+            this.gameState.correct[p.id] = 0;
+            p.score = 0;
+        });
+    }
+
+    startRound() {
+        const gs = this.gameState;
+        if (!gs || gs.isRoundActive || gs.isRoundPending || gs.isGameOver) return;
+        gs.currentRound++;
+        gs.roundGuesses = {};
+        gs.readyPlayers = new Set();
+        gs.isRoundPending = true;
+        this.clear(this.nextRoundTimer);
+
+        broadcast(this, {
+            type: 'round_start',
+            round: gs.currentRound,
+            totalRounds: gs.totalRounds,
+            country: gs.countries[gs.currentRound - 1],
+            seed: gs.seeds[gs.currentRound - 1],
+            timeLimit: this.settings.timePerRound,
+        });
+        this.readyTimer = this.later(() => {
+            console.log(`[Lobby ${this.code}] Ready timeout — starting round ${gs.currentRound}`);
+            this.activateRound();
+        }, READY_TIMEOUT_MS);
+    }
+
+    playerReady(playerId) {
+        const gs = this.gameState;
+        if (!gs || !gs.isRoundPending) return;
+        gs.readyPlayers.add(playerId);
+        if (this.players.every(p => gs.readyPlayers.has(p.id))) this.activateRound();
+    }
+
+    activateRound() {
+        const gs = this.gameState;
+        if (!gs || !gs.isRoundPending) return;
+        this.clear(this.readyTimer);
+        gs.isRoundPending = false;
+        gs.isRoundActive = true;
+        gs.roundStartTime = Date.now();
+
+        const timing = () => ({
+            serverTime: Date.now(),
+            roundStartTime: gs.roundStartTime,
+            timePerRound: this.settings.timePerRound,
+            timeRemaining: Math.floor(this.timeRemaining()),
+        });
+        broadcast(this, { type: 'round_go', ...timing() });
+
+        if (this.settings.timePerRound > 0) {
+            this.roundTimer = this.later(() => this.endRound(), this.settings.timePerRound * 1000);
+            this.syncTimer = this.every(() => {
+                if (!gs.isRoundActive) return this.clear(this.syncTimer);
+                broadcast(this, { type: 'timer_sync', ...timing() });
+            }, 5000);
+        }
+    }
+
+    timeRemaining() {
+        const gs = this.gameState;
+        if (!gs?.roundStartTime || this.settings.timePerRound === 0) return 0;
+        return Math.max(0, this.settings.timePerRound - (Date.now() - gs.roundStartTime) / 1000);
+    }
+
+    submitGuess(playerId, guessText, recovered) {
+        const gs = this.gameState;
+        if (!gs || !gs.isRoundActive || gs.roundGuesses[playerId]) return null;
+        const answer = gs.countries[gs.currentRound - 1];
+        const resolved = resolveCountry(guessText);
+        if (!resolved) return null; // client only submits known countries
+        const isCorrect = resolved === answer;
+        const finds = Math.max(0, Math.min(5, Math.floor(Number(recovered) || 0)));
+        const points = isCorrect ? pointsForCorrect(finds, this.timeRemaining()) : -WRONG_GUESS_PENALTY;
+
+        gs.roundGuesses[playerId] = { guess: resolved, isCorrect, points, finds };
+        gs.scores[playerId] = Math.max(0, (gs.scores[playerId] || 0) + points);
+        if (isCorrect) gs.correct[playerId] = (gs.correct[playerId] || 0) + 1;
+        const player = this.players.find(p => p.id === playerId);
+        if (player) player.score = gs.scores[playerId];
+        return { playerId, playerName: player?.name, isCorrect, points: isCorrect ? points : 0 };
+    }
+
+    allGuessed() {
+        const gs = this.gameState;
+        return !!gs && this.players.length > 0 && this.players.every(p => gs.roundGuesses[p.id]);
+    }
+
+    endRound() {
+        const gs = this.gameState;
+        if (!gs || !gs.isRoundActive) return;
+        gs.isRoundActive = false;
+        this.clear(this.roundTimer);
+        this.clear(this.syncTimer);
+        gs.isGameOver = gs.currentRound >= gs.totalRounds;
+
+        const results = this.players.map(p => {
+            const g = gs.roundGuesses[p.id];
+            return {
+                playerId: p.id,
+                playerName: p.name,
+                color: p.color,
+                isCorrect: !!g?.isCorrect,
+                isTimeout: !g,
+                guess: g?.guess || null,
+                points: g ? g.points : 0,
+                finds: g?.finds ?? null,
+            };
+        });
+
+        broadcast(this, {
+            type: 'round_end',
+            round: gs.currentRound,
+            totalRounds: gs.totalRounds,
+            correctAnswer: gs.countries[gs.currentRound - 1],
+            results,
+            standings: this.standings(),
+            isGameOver: gs.isGameOver,
+            nextRoundIn: gs.isGameOver ? 0 : ROUND_BREAK_MS,
+        });
+
+        if (gs.isGameOver) {
+            this.later(() => this.endGame(), 1500);
+        } else {
+            this.nextRoundTimer = this.later(() => this.startRound(), ROUND_BREAK_MS);
+        }
+    }
+
+    endGame() {
+        const gs = this.gameState;
+        if (!gs) return;
+        const standings = this.standings();
+        this.players.forEach(p => sendTo(p.id, {
+            type: 'game_end',
+            standings,
+            winner: standings[0] || null,
+            yourScore: gs.scores[p.id] || 0,
+            yourCorrect: gs.correct[p.id] || 0,
+            totalRounds: gs.totalRounds,
+        }));
+        adminLog('game', `Game finished in ${this.code} — winner ${standings[0]?.name || 'nobody'}`);
+        this.destroy();
     }
 }
 
-// ============================================
-// WEBSOCKET HANDLERS
-// ============================================
+function removeFromLobby(playerId, lobby) {
+    if (!lobby) return;
+    const player = players.get(playerId);
+    lobby.players = lobby.players.filter(p => p.id !== playerId);
+    if (player) player.lobbyCode = null;
 
-wss.on('connection', (ws, req) => {
-    const clientIP = getClientIP(ws, req);
-
-    // Check if IP is banned
-    const ban = isIPBanned(clientIP);
-    if (ban) {
-        ws.send(JSON.stringify({
-            type: 'banned',
-            reason: ban.reason || 'You have been banned from this server.',
-            expiresAt: ban.expiresAt || null,
-        }));
-        ws.close();
-        adminLog('connect', `Banned IP ${clientIP} attempted to connect`);
+    if (lobby.players.length === 0) {
+        lobby.destroy();
+        lobbies.delete(lobby.code);
+        adminLog('lobby', `Lobby ${lobby.code} closed (empty)`);
         return;
     }
 
-    // Connection rate limit
-    if (isRateLimited(clientIP, 'connections', RATE_LIMITS.connections.max, RATE_LIMITS.connections.window)) {
-        ws.send(JSON.stringify({ type: 'error', message: 'Too many connections. Please wait.' }));
+    if (lobby.hostId === playerId) {
+        lobby.hostId = lobby.players[0].id;
+        broadcast(lobby, { type: 'host_changed', newHostId: lobby.hostId });
+    }
+    broadcast(lobby, { type: 'lobby_update', lobby: lobby.fullInfo(), leftId: playerId });
+
+    // The leaver may have been the last player we were waiting on.
+    const gs = lobby.gameState;
+    if (gs?.isRoundPending && lobby.players.every(p => gs.readyPlayers.has(p.id))) lobby.activateRound();
+    if (gs?.isRoundActive && lobby.allGuessed()) lobby.endRound();
+}
+
+// ============================================
+// WEBSOCKETS
+// ============================================
+
+const wss = new WebSocketServer({ server, maxPayload: 16 * 1024 });
+
+wss.on('connection', (ws, req) => {
+    const ip = getClientIP(req);
+
+    const ban = isIPBanned(ip);
+    if (ban) {
+        ws.send(JSON.stringify({ type: 'banned', reason: ban.reason, expiresAt: ban.expiresAt || null }));
         ws.close();
-        adminLog('connect', `Rate limited connection from ${clientIP}`);
+        adminLog('connect', `Banned IP ${ip} attempted to connect`);
+        return;
+    }
+    if (isRateLimited(ip, 'connections', ...LIMITS.connections)) {
+        ws.send(JSON.stringify({ type: 'error', code: 'rate_limited', message: 'Too many connections. Please wait a moment.' }));
+        ws.close();
         return;
     }
 
     const playerId = generateId();
-
-    const player = {
-        id: playerId,
-        name: null,
-        lobbyCode: null,
-        score: 0,
-        isAdmin: false,
-        ip: clientIP,
-        color: '#ffd700',
-    };
-
+    const player = { id: playerId, name: null, lobbyCode: null, score: 0, ip, color: '#d9a93b' };
     players.set(playerId, player);
     connections.set(playerId, ws);
+    ws.isAlive = true;
+    ws.on('pong', () => { ws.isAlive = true; });
 
-    // Track stats
     serverStats.totalConnections++;
-    if (players.size > serverStats.peakPlayers) {
-        serverStats.peakPlayers = players.size;
-    }
+    serverStats.peakPlayers = Math.max(serverStats.peakPlayers, players.size);
+    ws.send(JSON.stringify({ type: 'connected', playerId, version: VERSION }));
 
-    adminLog('connect', `Player connected: ${playerId} (${players.size} online)`);
+    ws.on('message', data => {
+        if (isRateLimited(ip, 'messages', ...LIMITS.messages)) {
+            ws.send(JSON.stringify({ type: 'error', code: 'rate_limited', message: 'Slow down — too many actions.' }));
+            return;
+        }
+        let message;
+        try { message = JSON.parse(data); } catch { return; }
+        if (!message || typeof message.type !== 'string') return;
 
-    ws.send(JSON.stringify({
-        type: 'connected',
-        playerId
-    }));
-
-    ws.on('message', (data) => {
+        if (message.type === 'admin_subscribe') {
+            if (isAdminKey(message.key)) {
+                adminConnections.add(ws);
+                ws.send(JSON.stringify({ type: 'admin_subscribed' }));
+            }
+            return;
+        }
         try {
-            // Message rate limit
-            if (isRateLimited(clientIP, 'messages', RATE_LIMITS.messages.max, RATE_LIMITS.messages.window)) {
-                ws.send(JSON.stringify({ type: 'error', message: 'Slow down! Too many messages.' }));
-                return;
-            }
-
-            const message = JSON.parse(data);
-
-            // Handle admin subscription
-            if (message.type === 'admin_subscribe') {
-                if (message.key === ADMIN_KEY) {
-                    adminConnections.add(ws);
-                    player.isAdmin = true;
-                    ws.send(JSON.stringify({ type: 'admin_subscribed' }));
-                }
-                return;
-            }
-
-            handleMessage(playerId, message);
-        } catch (error) {
-            console.error('[Server] Error parsing message:', error);
+            handleMessage(player, message);
+        } catch (e) {
+            console.error('[Server] Message handler error:', e);
         }
     });
 
     ws.on('close', () => {
         adminConnections.delete(ws);
-        handleDisconnect(playerId);
+        if (player.lobbyCode) removeFromLobby(playerId, lobbies.get(player.lobbyCode));
+        players.delete(playerId);
+        connections.delete(playerId);
+        if (player.name) adminLog('disconnect', `${player.name} disconnected (${players.size} online)`);
     });
 });
 
-function handleMessage(playerId, message) {
-    const player = players.get(playerId);
-    if (!player) return;
+// Drop dead sockets so lobbies don't wait on ghosts.
+setInterval(() => {
+    wss.clients.forEach(ws => {
+        if (!ws.isAlive) return ws.terminate();
+        ws.isAlive = false;
+        ws.ping();
+    });
+}, 30000).unref();
 
-    console.log(`[Server] Message from ${playerId}:`, message.type);
+function lobbyOf(player) {
+    return player.lobbyCode ? lobbies.get(player.lobbyCode) : null;
+}
 
+function errorTo(player, code, message) {
+    sendTo(player.id, { type: 'error', code, message });
+}
+
+function handleMessage(player, message) {
     switch (message.type) {
-        case 'create_lobby':
-            if (isRateLimited(player.ip, 'lobbyCreations', RATE_LIMITS.lobbies.max, RATE_LIMITS.lobbies.window)) {
-                sendToPlayer(playerId, { type: 'error', message: 'Please wait before creating another lobby.' });
-                return;
+        case 'create_lobby': {
+            if (isRateLimited(player.ip, 'lobbies', ...LIMITS.lobbies)) {
+                return errorTo(player, 'rate_limited', 'Please wait a moment before creating another expedition.');
             }
-            handleCreateLobby(playerId, message);
+            if (player.lobbyCode) removeFromLobby(player.id, lobbyOf(player));
+            player.name = cleanText(message.hostName, 20) || 'Host';
+            player.color = cleanColor(message.color);
+            const lobby = new Lobby(player, message);
+            lobby.players.push(player);
+            player.lobbyCode = lobby.code;
+            lobbies.set(lobby.code, lobby);
+            adminLog('lobby', `Lobby "${lobby.name}" (${lobby.code}) created by ${player.name}`);
+            sendTo(player.id, { type: 'lobby_joined', lobby: lobby.fullInfo(), isHost: true });
             break;
+        }
 
-        case 'join_lobby':
-            handleJoinLobby(playerId, message);
+        case 'join_lobby': {
+            const code = cleanText(message.lobbyCode, 8).toUpperCase();
+            const lobby = lobbies.get(code);
+            if (!lobby) return errorTo(player, 'not_found', 'No expedition found with that code.');
+            if (lobby.settings.password && lobby.settings.password !== String(message.password ?? '')) {
+                return errorTo(player, 'bad_password', 'Incorrect password.');
+            }
+            if (lobby.gameState) return errorTo(player, 'in_progress', 'That expedition has already set off.');
+            if (lobby.bannedIds.has(player.id) || lobby.bannedIds.has(player.ip)) {
+                return errorTo(player, 'banned', 'You can’t join this expedition.');
+            }
+            if (lobby.players.length >= lobby.settings.maxPlayers) return errorTo(player, 'full', 'That expedition is full.');
+            if (player.lobbyCode && player.lobbyCode !== code) removeFromLobby(player.id, lobbyOf(player));
+
+            player.name = cleanText(message.playerName, 20) || 'Explorer';
+            player.color = cleanColor(message.color);
+            if (!lobby.players.includes(player)) lobby.players.push(player);
+            player.lobbyCode = lobby.code;
+            adminLog('lobby', `${player.name} joined lobby ${lobby.code}`);
+            sendTo(player.id, { type: 'lobby_joined', lobby: lobby.fullInfo(), isHost: false });
+            broadcast(lobby, { type: 'lobby_update', lobby: lobby.fullInfo(), joinedId: player.id }, player.id);
             break;
+        }
 
         case 'leave_lobby':
-            handleLeaveLobby(playerId);
+            removeFromLobby(player.id, lobbyOf(player));
             break;
 
         case 'kick_player':
-            handleKickPlayer(playerId, message);
+        case 'ban_player': {
+            const lobby = lobbyOf(player);
+            if (!lobby || lobby.hostId !== player.id) return;
+            const target = players.get(message.targetId);
+            if (!target || target.id === player.id || target.lobbyCode !== lobby.code) return;
+            if (message.type === 'ban_player') {
+                lobby.bannedIds.add(target.id);
+                lobby.bannedIds.add(target.ip);
+            }
+            sendTo(target.id, { type: 'kicked', reason: message.type === 'ban_player'
+                ? 'The host banned you from this expedition.' : 'The host removed you from the expedition.' });
+            removeFromLobby(target.id, lobby);
+            adminLog('lobby', `${target.name} was ${message.type === 'ban_player' ? 'banned' : 'kicked'} from ${lobby.code}`);
             break;
-
-        case 'ban_player':
-            handleBanPlayer(playerId, message);
-            break;
+        }
 
         case 'get_lobbies':
-            handleGetLobbies(playerId);
+            sendTo(player.id, {
+                type: 'lobby_list',
+                lobbies: [...lobbies.values()]
+                    .filter(l => !l.settings.isPrivate && !l.gameState)
+                    .map(l => l.publicInfo()),
+            });
             break;
 
-        case 'start_game':
-            handleStartGame(playerId);
+        case 'start_game': {
+            const lobby = lobbyOf(player);
+            if (!lobby || lobby.hostId !== player.id || lobby.gameState) return;
+            serverStats.totalGamesPlayed++;
+            adminLog('game', `Game started in lobby ${lobby.code} (${lobby.players.length} players)`);
+            lobby.startGame();
+            broadcast(lobby, {
+                type: 'game_starting',
+                countdown: 3,
+                settings: { rounds: lobby.settings.rounds, timePerRound: lobby.settings.timePerRound },
+                players: lobby.playerList(),
+            });
+            lobby.later(() => lobby.startRound(), 3200);
             break;
+        }
 
-        case 'submit_guess':
-            handleSubmitGuess(playerId, message);
+        case 'player_ready': {
+            const lobby = lobbyOf(player);
+            if (lobby) lobby.playerReady(player.id);
             break;
+        }
+
+        case 'submit_guess': {
+            const lobby = lobbyOf(player);
+            if (!lobby?.gameState) return;
+            const result = lobby.submitGuess(player.id, message.guess, message.recovered ?? message.artifactsFound);
+            if (!result) return;
+            serverStats.totalGuesses++;
+            adminLog('game', `${player.name} guessed "${cleanText(message.guess, 40)}" in ${lobby.code} — ${result.isCorrect ? 'correct' : 'wrong'}`);
+            broadcast(lobby, { type: 'player_guessed', ...result });
+            broadcast(lobby, { type: 'score_update', standings: lobby.standings() });
+            if (lobby.allGuessed()) lobby.endRound();
+            break;
+        }
 
         case 'request_next_round':
-            handleNextRound(playerId);
-            break;
-
-        case 'player_ready':
-            handlePlayerReady(playerId);
+            // Rounds are paced by the server since 1.0.1; kept for older clients.
             break;
     }
 }
 
-function handleCreateLobby(playerId, message) {
-    const player = players.get(playerId);
-    player.name = message.hostName;
-    player.color = message.color || '#ffd700';
-
-    const lobby = new Lobby(playerId, message.hostName, {
-        lobbyName: message.lobbyName,
-        maxPlayers: message.maxPlayers,
-        rounds: message.rounds,
-        timePerRound: message.timePerRound,
-        isPrivate: message.isPrivate,
-        password: message.password
-    });
-
-    lobby.addPlayer(player);
-    player.lobbyCode = lobby.code;
-
-    lobbies.set(lobby.code, lobby);
-
-    console.log(`[Server] Lobby created: ${lobby.code} by ${player.name}`);
-    adminLog('lobby', `Lobby "${lobby.name}" (${lobby.code}) created by ${player.name}`);
-
-    sendTo(playerId, {
-        type: 'lobby_created',
-        lobby: lobby.toFullInfo()
-    });
-}
-
-function handleJoinLobby(playerId, message) {
-    const player = players.get(playerId);
-    const lobby = lobbies.get(message.lobbyCode.toUpperCase());
-
-    if (!lobby) {
-        sendTo(playerId, { type: 'error', message: 'Lobby not found' });
-        return;
-    }
-
-    if (lobby.settings.password && lobby.settings.password !== message.password) {
-        sendTo(playerId, { type: 'error', message: 'Incorrect password' });
-        return;
-    }
-
-    if (lobby.gameState) {
-        sendTo(playerId, { type: 'error', message: 'Game already in progress' });
-        return;
-    }
-
-    player.name = message.playerName;
-    player.color = message.color || '#ffd700';
-    const result = lobby.addPlayer(player);
-
-    if (!result.success) {
-        sendTo(playerId, { type: 'error', message: result.error });
-        return;
-    }
-
-    player.lobbyCode = lobby.code;
-
-    console.log(`[Server] ${player.name} joined lobby ${lobby.code}`);
-    adminLog('lobby', `${player.name} joined lobby ${lobby.code}`);
-
-    // Notify the joining player
-    sendTo(playerId, {
-        type: 'lobby_joined',
-        lobby: lobby.toFullInfo()
-    });
-
-    // Notify others in lobby
-    broadcast(lobby, {
-        type: 'player_joined',
-        player: { id: player.id, name: player.name },
-        players: lobby.players.map(p => ({ id: p.id, name: p.name }))
-    }, playerId);
-}
-
-function handleLeaveLobby(playerId) {
-    const player = players.get(playerId);
-    if (!player || !player.lobbyCode) return;
-
-    const lobby = lobbies.get(player.lobbyCode);
-    if (!lobby) return;
-
-    const result = lobby.removePlayer(playerId);
-    player.lobbyCode = null;
-
-    console.log(`[Server] ${player.name} left lobby ${lobby.code}`);
-    adminLog('lobby', `${player.name} left lobby ${lobby.code}`);
-
-    if (lobby.players.length === 0) {
-        // Delete empty lobby
-        lobbies.delete(lobby.code);
-        console.log(`[Server] Lobby ${lobby.code} deleted (empty)`);
-        adminLog('lobby', `Lobby ${lobby.code} deleted (empty)`);
-    } else {
-        // Notify remaining players
-        broadcast(lobby, {
-            type: 'player_left',
-            playerId,
-            players: lobby.players.map(p => ({ id: p.id, name: p.name }))
-        });
-
-        if (result.newHostId) {
-            broadcast(lobby, {
-                type: 'host_changed',
-                newHostId: result.newHostId
-            });
-        }
-
-        // If we're waiting for ready and the disconnected player was the holdout, check
-        const gs = lobby.gameState;
-        if (gs && gs.readyPlayers && !gs.isRoundActive) {
-            gs.readyPlayers.delete(playerId);
-            const allReady = lobby.players.every(p => gs.readyPlayers.has(p.id));
-            if (allReady && lobby.players.length > 0) {
-                if (lobby.readyTimeout) {
-                    clearTimeout(lobby.readyTimeout);
-                    lobby.readyTimeout = null;
-                }
-                lobby.activateRound();
-                broadcast(lobby, {
-                    type: 'round_go',
-                    serverTime: Date.now(),
-                    roundStartTime: gs.roundStartTime,
-                    timePerRound: lobby.settings.timePerRound,
-                    timeRemaining: lobby.settings.timePerRound
-                });
-                startTimerSync(lobby);
-            }
-        }
-    }
-}
-
-function handleKickPlayer(playerId, message) {
-    const player = players.get(playerId);
-    if (!player || !player.lobbyCode) return;
-
-    const lobby = lobbies.get(player.lobbyCode);
-    if (!lobby || lobby.hostId !== playerId) return;
-
-    const targetPlayer = players.get(message.targetId);
-    if (!targetPlayer) return;
-
-    lobby.kickPlayer(message.targetId);
-    targetPlayer.lobbyCode = null;
-
-    console.log(`[Server] ${targetPlayer.name} was kicked from ${lobby.code}`);
-    adminLog('lobby', `${targetPlayer.name} was kicked from ${lobby.code}`);
-
-    sendTo(message.targetId, {
-        type: 'player_kicked',
-        playerId: message.targetId
-    });
-
-    broadcast(lobby, {
-        type: 'player_kicked',
-        playerId: message.targetId,
-        players: lobby.players.map(p => ({ id: p.id, name: p.name }))
-    });
-}
-
-function handleBanPlayer(playerId, message) {
-    const player = players.get(playerId);
-    if (!player || !player.lobbyCode) return;
-
-    const lobby = lobbies.get(player.lobbyCode);
-    if (!lobby || lobby.hostId !== playerId) return;
-
-    const targetPlayer = players.get(message.targetId);
-    if (!targetPlayer) return;
-
-    lobby.banPlayer(message.targetId);
-    targetPlayer.lobbyCode = null;
-
-    console.log(`[Server] ${targetPlayer.name} was banned from ${lobby.code}`);
-    adminLog('lobby', `${targetPlayer.name} was BANNED from ${lobby.code}`);
-
-    sendTo(message.targetId, {
-        type: 'player_kicked',
-        playerId: message.targetId,
-        banned: true
-    });
-
-    broadcast(lobby, {
-        type: 'player_kicked',
-        playerId: message.targetId,
-        players: lobby.players.map(p => ({ id: p.id, name: p.name }))
-    });
-}
-
-function handleGetLobbies(playerId) {
-    const publicLobbies = [];
-
-    lobbies.forEach(lobby => {
-        if (!lobby.settings.isPrivate && !lobby.gameState) {
-            publicLobbies.push(lobby.toPublicInfo());
-        }
-    });
-
-    sendTo(playerId, {
-        type: 'lobby_list',
-        lobbies: publicLobbies
-    });
-}
-
-function handleStartGame(playerId) {
-    const player = players.get(playerId);
-    if (!player || !player.lobbyCode) return;
-
-    const lobby = lobbies.get(player.lobbyCode);
-    if (!lobby || lobby.hostId !== playerId) return;
-
-    console.log(`[Server] Starting game in lobby ${lobby.code}`);
-    adminLog('game', `Game started in lobby ${lobby.code} (${lobby.players.length} players)`);
-    serverStats.totalGamesPlayed++;
-
-    // Send countdown
-    broadcast(lobby, {
-        type: 'game_starting',
-        countdown: 3
-    });
-
-    // Start game after countdown
-    setTimeout(() => {
-        lobby.startGame();
-
-        broadcast(lobby, {
-            type: 'game_started',
-            settings: {
-                rounds: lobby.settings.rounds,
-                timePerRound: lobby.settings.timePerRound
-            }
-        });
-
-        // Start first round after short delay
-        setTimeout(() => {
-            const roundInfo = lobby.startRound();
-            broadcast(lobby, {
-                type: 'round_start',
-                ...roundInfo
-            });
-            // Timer will start when all players send player_ready
-        }, 1000);
-    }, 3000);
-}
-
-function handleSubmitGuess(playerId, message) {
-    const player = players.get(playerId);
-    if (!player || !player.lobbyCode) return;
-
-    const lobby = lobbies.get(player.lobbyCode);
-    if (!lobby || !lobby.gameState) return;
-
-    const result = lobby.submitGuess(playerId, message.guess, message.artifactsFound || 0);
-    if (!result) return;
-
-    serverStats.totalGuesses++;
-    adminLog('game', `${player.name} guessed "${message.guess}" in ${lobby.code} — ${result.correct ? '✓ CORRECT' : '✗ wrong'}`);
-
-    // Notify all players about the guess
-    broadcast(lobby, {
-        type: 'player_guessed',
-        ...result
-    });
-
-    // Send score update (check gameState still exists after submitGuess)
-    if (lobby.gameState) {
-        broadcast(lobby, {
-            type: 'score_update',
-            scores: lobby.gameState.scores,
-            standings: lobby.getStandings()
-        });
-    }
-}
-
-function handleNextRound(playerId) {
-    const player = players.get(playerId);
-    if (!player || !player.lobbyCode) return;
-
-    const lobby = lobbies.get(player.lobbyCode);
-    if (!lobby) return;
-
-    // Allow any player to trigger next round (first one wins, second is ignored)
-    if (lobby.gameState && !lobby.gameState.isRoundActive && !lobby.gameState.isRoundPending && !lobby.gameState.isGameOver) {
-        const roundInfo = lobby.startRound();
-        if (roundInfo) {
-            broadcast(lobby, {
-                type: 'round_start',
-                ...roundInfo
-            });
-            // DON'T start timer yet - wait for player_ready from all
-        }
-    }
-}
-
-function handlePlayerReady(playerId) {
-    const player = players.get(playerId);
-    if (!player || !player.lobbyCode) return;
-
-    const lobby = lobbies.get(player.lobbyCode);
-    if (!lobby || !lobby.gameState) return;
-
-    const allReady = lobby.playerReady(playerId);
-    adminLog('game', `Player ${player.name} ready for round ${lobby.gameState.currentRound} (${lobby.gameState.readyPlayers.size}/${lobby.players.length})`);
-
-    if (allReady) {
-        // Clear safety timeout
-        if (lobby.readyTimeout) {
-            clearTimeout(lobby.readyTimeout);
-            lobby.readyTimeout = null;
-        }
-
-        // All players loaded - NOW start the round timer
-        lobby.activateRound();
-
-        broadcast(lobby, {
-            type: 'round_go',
-            serverTime: Date.now(),
-            roundStartTime: lobby.gameState.roundStartTime,
-            timePerRound: lobby.settings.timePerRound,
-            timeRemaining: lobby.settings.timePerRound
-        });
-
-        // Start periodic timer sync
-        startTimerSync(lobby);
-    }
-}
-
-function startTimerSync(lobby) {
-    if (lobby.settings.timePerRound === 0) return;
-
-    // Send authoritative time reference at start
-    broadcast(lobby, {
-        type: 'timer_sync',
-        serverTime: Date.now(),
-        roundStartTime: lobby.gameState.roundStartTime,
-        timePerRound: lobby.settings.timePerRound,
-        timeRemaining: Math.floor(lobby.getTimeRemaining())
-    });
-
-    // Periodic drift correction every 5 seconds (not every 1s)
-    const syncInterval = setInterval(() => {
-        if (!lobby.gameState || !lobby.gameState.isRoundActive) {
-            clearInterval(syncInterval);
-            return;
-        }
-
-        const timeRemaining = lobby.getTimeRemaining();
-        broadcast(lobby, {
-            type: 'timer_sync',
-            serverTime: Date.now(),
-            roundStartTime: lobby.gameState.roundStartTime,
-            timePerRound: lobby.settings.timePerRound,
-            timeRemaining: Math.floor(timeRemaining)
-        });
-
-        if (timeRemaining <= 0) {
-            clearInterval(syncInterval);
-        }
-    }, 5000);
-}
-
-function handleDisconnect(playerId) {
-    const player = players.get(playerId);
-    if (!player) return;
-
-    console.log(`[Server] Player disconnected: ${playerId} (${player.name})`);
-    adminLog('disconnect', `${player.name || 'Unknown'} disconnected (${players.size} online)`);
-
-    // Handle leaving lobby
-    if (player.lobbyCode) {
-        handleLeaveLobby(playerId);
-    }
-
-    players.delete(playerId);
-    connections.delete(playerId);
-}
-
 // ============================================
-// LEADERBOARD SYSTEM
-// ============================================
-
-const LEADERBOARD_FILE = 'leaderboard.json';
-let leaderboard = [];
-
-function loadLeaderboard() {
-    try {
-        if (existsSync(LEADERBOARD_FILE)) {
-            leaderboard = JSON.parse(readFileSync(LEADERBOARD_FILE, 'utf8'));
-            console.log(`[Leaderboard] Loaded ${leaderboard.length} entries`);
-        }
-    } catch (e) {
-        console.warn('[Leaderboard] Failed to load:', e.message);
-        leaderboard = [];
-    }
-}
-
-function saveLeaderboard() {
-    try {
-        writeFileSync(LEADERBOARD_FILE, JSON.stringify(leaderboard, null, 2));
-    } catch (e) {
-        console.warn('[Leaderboard] Failed to save:', e.message);
-    }
-}
-
-loadLeaderboard();
-
-// GET leaderboard
-app.get('/api/leaderboard', (req, res) => {
-    res.json(leaderboard.slice(0, 50));
-});
-
-// POST score to leaderboard
-app.post('/api/leaderboard', express.json(), (req, res) => {
-    const { name, score, rounds, correct, accuracy, color } = req.body;
-
-    if (!name || typeof score !== 'number' || score < 0) {
-        return res.status(400).json({ error: 'Invalid score data' });
-    }
-
-    const entry = {
-        name: String(name).slice(0, 20),
-        score: Math.round(score),
-        rounds: rounds || 0,
-        correct: correct || 0,
-        accuracy: accuracy || 0,
-        color: color || '#ffd700',
-        date: new Date().toISOString(),
-    };
-
-    leaderboard.push(entry);
-    leaderboard.sort((a, b) => b.score - a.score);
-    leaderboard = leaderboard.slice(0, 100); // Keep top 100
-    saveLeaderboard();
-
-    const rank = leaderboard.findIndex(e => e === entry) + 1;
-    res.json({ success: true, rank, total: leaderboard.length });
-});
-
-// ============================================
-// START SERVER
+// START
 // ============================================
 
 server.listen(PORT, () => {
-    console.log(`
-╔═══════════════════════════════════════════╗
-║         UNEARTH MULTIPLAYER SERVER        ║
-╠═══════════════════════════════════════════╣
-║  Server:  http://localhost:${PORT}          ║
-║  Admin:   http://localhost:${PORT}/admin     ║
-║  Key:     ${ADMIN_KEY.substring(0, 20).padEnd(20)}       ║
-║  WebSocket ready for connections          ║
-╚═══════════════════════════════════════════╝
-    `);
+    console.log(`\n  UNEARTH v${VERSION}\n  Game:  http://localhost:${PORT}\n  Admin: http://localhost:${PORT}/admin\n`);
 });
